@@ -1,0 +1,5 @@
+(sym_lib_table
+  (lib (name "stepper_monitor")(type "KiCad")(uri "${KIPRJMOD}/stepper_monitor.kicad_sym")(options "")(descr ""))
+  (lib (name "stepper_probe")(type "KiCad")(uri "C:/projects/ble_stepper_motor_analyzer/repo/kicad/stepper_probe.kicad_sym")(options "")(descr ""))
+  (lib (name "stepper_monitor-rescue")(type "KiCad")(uri "${KIPRJMOD}/stepper_monitor-rescue.kicad_sym")(options "")(descr ""))
+)
