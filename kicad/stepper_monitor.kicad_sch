@@ -3818,7 +3818,7 @@
     (uuid 00000000-0000-0000-0000-0000631b04ca)
     (property "Reference" "U1" (id 0) (at 89.535 121.92 0))
     (property "Value" "CP2102N-A01-GQFN28" (id 1) (at 80.01 129.54 0))
-    (property "Footprint" "Package_DFN_QFN:QFN-28-1EP_5x5mm_P0.5mm_EP3.35x3.35mm" (id 2) (at 114.935 135.89 0)
+    (property "Footprint" "stepper_monitor:QFN-28-1EP_5x5mm_P0.5mm_EP3.35x3.35mm" (id 2) (at 114.935 135.89 0)
       (effects (font (size 1.27 1.27)) (justify left) hide)
     )
     (property "Datasheet" "https://www.silabs.com/documents/public/data-sheets/cp2102n-datasheet.pdf" (id 3) (at 104.775 124.46 0)
@@ -5300,7 +5300,7 @@
       (reference "SW1") (unit 1) (value "SW_Push") (footprint "stepper_probe:SW_Push_SPST_NO_Alps_SKRK")
     )
     (path "/00000000-0000-0000-0000-0000631b04ca"
-      (reference "U1") (unit 1) (value "CP2102N-A01-GQFN28") (footprint "Package_DFN_QFN:QFN-28-1EP_5x5mm_P0.5mm_EP3.35x3.35mm")
+      (reference "U1") (unit 1) (value "CP2102N-A01-GQFN28") (footprint "stepper_monitor:QFN-28-1EP_5x5mm_P0.5mm_EP3.35x3.35mm")
     )
     (path "/170ecade-8817-49a1-92ea-e91fd90a65e6"
       (reference "U2") (unit 1) (value "AMS1117-3.3") (footprint "Package_TO_SOT_SMD:SOT-223-3_TabPin2")
