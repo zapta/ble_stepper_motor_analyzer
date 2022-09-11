@@ -1,0 +1,6 @@
+
+[PCB] Round corners.
+[PCB] Compact(?)
+[PCB] Missing 2 pin connector
+[PCB] Choose WROOM.
+[PCB] 4u7 cap part number
