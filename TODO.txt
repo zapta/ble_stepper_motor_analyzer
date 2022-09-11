@@ -4,3 +4,4 @@
 [PCB] Missing 2 pin connector
 [PCB] Choose WROOM.
 [PCB] 4u7 cap part number
+[PCB] Add silkscreen labels
