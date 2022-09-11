@@ -5,3 +5,7 @@
 [PCB] Choose WROOM.
 [PCB] 4u7 cap part number
 [PCB] Add silkscreen labels
+[PCB] Clean all traces.
+[PCB] Make sure all traces and vias are of the right width.
+[PCB] Add orientation dots and markers.
+[PCB] Reduce the gap of the solder jumpers
