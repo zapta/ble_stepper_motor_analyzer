@@ -6,4 +6,7 @@ _autosave-stepper_monitor.sch
 stepper_monitor.bak
 stepper_monitor.bck
 production
+production.zip
+_autosave-*
+*auto_saved_files*
 
