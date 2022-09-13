@@ -1,2 +1,1 @@
 
-[PCB] Move DC/DC into position in jlcpcb.

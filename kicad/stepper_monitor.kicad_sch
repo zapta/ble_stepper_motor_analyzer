@@ -1955,9 +1955,6 @@
   (junction (at 231.775 121.285) (diameter 0) (color 0 0 0 0)
     (uuid dea5939c-3404-4f0c-8394-45d413b04e13)
   )
-  (junction (at 104.14 37.465) (diameter 0) (color 0 0 0 0)
-    (uuid e184438f-dd3b-45a9-b0d4-7c8ed1a3b5dd)
-  )
   (junction (at 82.55 51.435) (diameter 0) (color 0 0 0 0)
     (uuid ea8690b8-51ed-4904-b917-55925ac040fd)
   )
@@ -2463,7 +2460,7 @@
     (stroke (width 0) (type default) (color 0 0 0 0))
     (uuid 74240252-455e-471f-b08e-bb6988943e2b)
   )
-  (wire (pts (xy 101.6 37.465) (xy 104.14 37.465))
+  (wire (pts (xy 101.6 37.465) (xy 106.68 37.465))
     (stroke (width 0) (type default) (color 0 0 0 0))
     (uuid 7541288a-ab29-4f10-97e3-f7fb8ed0409f)
   )
@@ -2699,10 +2696,6 @@
     (stroke (width 0) (type default) (color 0 0 0 0))
     (uuid bf843e82-8b68-4dd2-aacc-20ad647ee54d)
   )
-  (wire (pts (xy 104.14 36.83) (xy 104.14 37.465))
-    (stroke (width 0) (type default) (color 0 0 0 0))
-    (uuid bf92c2bf-0ea4-4da2-842e-c659d8bb2d71)
-  )
   (wire (pts (xy 109.855 161.29) (xy 113.03 161.29))
     (stroke (width 0) (type default) (color 0 0 0 0))
     (uuid c0b6dc90-5dae-46f0-8bef-a176d2b2e98f)
@@ -2758,10 +2751,6 @@
   (wire (pts (xy 259.08 41.275) (xy 263.525 41.275))
     (stroke (width 0) (type default) (color 0 0 0 0))
     (uuid ca0ed601-821c-4c25-b4a8-9a884285695e)
-  )
-  (wire (pts (xy 104.14 37.465) (xy 106.68 37.465))
-    (stroke (width 0) (type default) (color 0 0 0 0))
-    (uuid cdb82803-a984-4d57-bdb0-b3ce0d6132ea)
   )
   (wire (pts (xy 111.125 69.85) (xy 113.03 69.85))
     (stroke (width 0) (type default) (color 0 0 0 0))
@@ -2988,7 +2977,7 @@
     (effects (font (size 1.27 1.27)) (justify right bottom))
     (uuid 700cf7b4-6456-447c-88de-75da97bc1495)
   )
-  (text "USB/Serial" (at 85.09 139.7 180)
+  (text "USB/Serial" (at 93.98 142.875 180)
     (effects (font (size 1.27 1.27)) (justify right bottom))
     (uuid 7ae164b8-6fc1-4ece-b19c-6cfd6bd78f9c)
   )
@@ -3004,8 +2993,8 @@
     (effects (font (size 1.27 1.27)) (justify right bottom))
     (uuid de616426-2556-4a0f-aed0-cc4f45b15a43)
   )
-  (text "ESP32 Stepper Motor Analyzer" (at 227.33 175.26 180)
-    (effects (font (size 2 2)) (justify right bottom))
+  (text "ESP32 Stepper Motor Analyzer 1.4.0" (at 183.515 175.26 0)
+    (effects (font (size 2 2)) (justify left bottom))
     (uuid f92fb0ae-10f4-4bd5-bb8a-fce3705dc4bc)
   )
 
@@ -4536,7 +4525,7 @@
     (pin "8" (uuid c0e7c096-e42b-4ca3-a666-b75997dadf10))
   )
 
-  (symbol (lib_id "Transistor_BJT:UMH3N") (at 99.695 167.005 0) (unit 2)
+  (symbol (lib_id "Transistor_BJT:UMH3N") (at 99.695 167.005 0) (unit 1)
     (in_bom yes) (on_board yes)
     (uuid 972e7b42-d79f-4e43-9830-0a496a349e58)
     (property "Reference" "Q1" (id 0) (at 97.79 161.925 0)
@@ -4914,7 +4903,7 @@
     (pin "4" (uuid dd2c77d7-7071-4eab-b3d4-0befd766a2f8))
   )
 
-  (symbol (lib_id "Transistor_BJT:UMH3N") (at 99.695 180.34 0) (mirror x) (unit 1)
+  (symbol (lib_id "Transistor_BJT:UMH3N") (at 99.695 180.34 0) (mirror x) (unit 2)
     (in_bom yes) (on_board yes)
     (uuid f1fd41ef-85ac-46c3-976e-cf8236d850dc)
     (property "Reference" "Q1" (id 0) (at 97.79 184.785 0)
@@ -5151,10 +5140,10 @@
     (path "/64c584ec-f1bc-453f-8b60-7c99d996b567"
       (reference "M1") (unit 1) (value "Motor-simple_stepper_motor_analyzer") (footprint "stepper_monitor:Empty")
     )
-    (path "/f1fd41ef-85ac-46c3-976e-cf8236d850dc"
+    (path "/972e7b42-d79f-4e43-9830-0a496a349e58"
       (reference "Q1") (unit 1) (value "UMH3N") (footprint "stepper_monitor:SOT-363_SC-70-6")
     )
-    (path "/972e7b42-d79f-4e43-9830-0a496a349e58"
+    (path "/f1fd41ef-85ac-46c3-976e-cf8236d850dc"
       (reference "Q1") (unit 2) (value "UMH3N") (footprint "stepper_monitor:SOT-363_SC-70-6")
     )
     (path "/420a49fa-bc07-40b0-8b18-684ba9455b7a"

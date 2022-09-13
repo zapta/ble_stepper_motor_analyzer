@@ -67,8 +67,8 @@
   (pad "38" smd rect (at -9.005 -8.5) (size 0.9 2) (layers "F.Cu" "F.Paste" "F.Mask") (tstamp 14770f21-be08-470d-9fb1-a1c8c1146ec6))
   (pad "39" smd rect (at -1.505 1) (size 5 5) (layers "F.Cu" "F.Paste" "F.Mask") (tstamp e2139318-2c19-4e0b-925e-a3f58fb23ba1))
   (model "${KICAD6_3DMODEL_DIR}/RF_Module.3dshapes/ESP32-WROOM-32.wrl"
-    (offset (xyz 0 0 0))
+    (offset (xyz -0.75 0 0))
     (scale (xyz 1 1 1))
-    (rotate (xyz 0 0 270))
+    (rotate (xyz 0 0 -90))
   )
 )
