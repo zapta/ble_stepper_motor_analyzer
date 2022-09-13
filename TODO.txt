@@ -1,2 +1,2 @@
 
-[PCB] Connect USB shield to ground.
+[PCB] Move DC/DC into position in jlcpcb.
