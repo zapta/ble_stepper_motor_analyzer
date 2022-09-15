@@ -120,8 +120,8 @@ void my_main() {
 
     util::delay_ms(1000);
 
-    printf("Switch: %d, config: %hhu\n", io::SWITCH1.is_high(), io::read_hardware_config());
-
+    printf("Switch: %d, config: %hhu\n", io::SWITCH1.is_high(),
+           io::read_hardware_config());
 
     // ESP_LOGI(TAG, "uuhello world");
     // printf("xprintf\n");
@@ -131,6 +131,4 @@ void my_main() {
 }
 
 // The runtime environment expects a "C" main.
-extern "C" {
-void app_main() { my_main(); }
-}
+extern "C" void app_main() { my_main(); }
