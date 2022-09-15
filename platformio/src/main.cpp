@@ -6,7 +6,6 @@
 // #include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-
 #include "misc/io.h"
 #include "misc/util.h"
 
@@ -107,7 +106,7 @@ void my_main() {
   ESP_ERROR_CHECK(err);
   printf("Storage ok\n");
 
-  io::setup();
+  // io::setup();
   for (;;) {
     // sys_delay_ms(1000);
 
@@ -115,10 +114,19 @@ void my_main() {
 
     // vTaskDelay(pdMS_TO_TICKS(1000));
     util::delay_ms(1000);
+
+    io::LED1.toggle();
+    io::LED2.toggle();
+
+    util::delay_ms(1000);
+
+    printf("Switch: %d, config: %hhu\n", io::SWITCH1.is_high(), io::read_hardware_config());
+
+
     // ESP_LOGI(TAG, "uuhello world");
     // printf("xprintf\n");
     // printf("\n\n");
-    //test_nvs();
+    // test_nvs();
   }
 }
 
