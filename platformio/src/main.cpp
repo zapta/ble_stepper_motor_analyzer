@@ -108,7 +108,7 @@ void my_main() {
 
   // io::setup();
   for (;;) {
-    // sys_delay_ms(1000);
+    sys_delay_ms(1000);
 
     io::LED1.toggle();
 
@@ -120,13 +120,10 @@ void my_main() {
 
     util::delay_ms(1000);
 
-    printf("Switch: %d, config: %hhu\n", io::SWITCH1.is_high(),
-           io::read_hardware_config());
-
-    // ESP_LOGI(TAG, "uuhello world");
-    // printf("xprintf\n");
-    // printf("\n\n");
-    // test_nvs();
+    uint64_t t0 = util::time_us();
+    uint32_t ms = util::time_ms();
+    uint64_t t1 = util::time_us();
+    printf("dt=%u %u\n", (uint32_t)(t1 - t0), ms);
   }
 }
 
