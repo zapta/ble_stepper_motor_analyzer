@@ -108,22 +108,31 @@ void my_main() {
 
   // io::setup();
   for (;;) {
-    sys_delay_ms(1000);
+    // Yields to avoid starvations and WDT trigger.
+    util::delay_ms(10);
+    Button::ButtonEvent event = io::BUTTON1.update();
+    
+    io::LED1.write(io::BUTTON1.is_pressed());
+    if (event != Button::EVENT_NONE) {
+      printf("Event: %d\n", event);
+    }
 
-    io::LED1.toggle();
+    // sys_delay_ms(1000);
+
+    // io::LED1.toggle();
 
     // vTaskDelay(pdMS_TO_TICKS(1000));
-    util::delay_ms(1000);
+    // util::delay_ms(1000);
 
-    io::LED1.toggle();
-    io::LED2.toggle();
+    // io::LED1.toggle();
+    // io::LED2.toggle();
 
-    util::delay_ms(1000);
+    // util::delay_ms(1000);
 
-    uint64_t t0 = util::time_us();
-    uint32_t ms = util::time_ms();
-    uint64_t t1 = util::time_us();
-    printf("dt=%u %u\n", (uint32_t)(t1 - t0), ms);
+    // uint64_t t0 = util::time_us();
+    // uint32_t ms = util::time_ms();
+    // uint64_t t1 = util::time_us();
+    // printf("dt=%u %u\n", (uint32_t)(t1 - t0), ms);
   }
 }
 
