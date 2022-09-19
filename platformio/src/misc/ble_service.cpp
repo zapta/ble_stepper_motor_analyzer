@@ -2,7 +2,7 @@
 
 // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/bluetooth/esp_gatts.html
 //
-// https://github.com/espressif/esp-idf/tree/master/examples/bluetooth/bluedroid/ble/gatt_server_service_table
+// https://github.com/espressif/esp-jidf/tree/master/examples/bluetooth/bluedroid/ble/gatt_server_service_table
 
 // https://github.com/espressif/esp-idf/blob/master/examples/bluetooth/bluedroid/ble/gatt_server_service_table/tutorial/Gatt_Server_Service_Table_Example_Walkthrough.md
 
