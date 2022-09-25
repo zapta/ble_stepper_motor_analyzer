@@ -1,6 +1,7 @@
 #pragma once
 
-namespace ble {
+namespace ble_service {
 
-    
+    void test();
+
 }

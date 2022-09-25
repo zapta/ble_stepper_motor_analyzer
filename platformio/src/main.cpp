@@ -8,6 +8,7 @@
 #include "freertos/task.h"
 #include "misc/io.h"
 #include "misc/util.h"
+#include "misc/ble_service.h"
 
 // #include "lwip/err.h"
 // #include "lwip/sys.h"
@@ -86,6 +87,9 @@ void test_nvs() {
 // int b = 123;
 
 void my_main() {
+
+  ble_service::test();
+
   // for (;;) {
   //   A a2(22);
   //   printf("a1.val_=%d, a2.val_=%d, b=%d\n", a1.val_, a2.val_, b);
@@ -106,7 +110,6 @@ void my_main() {
   ESP_ERROR_CHECK(err);
   printf("Storage ok\n");
 
-  // io::setup();
   for (;;) {
     // Yields to avoid starvations and WDT trigger.
     util::delay_ms(10);
