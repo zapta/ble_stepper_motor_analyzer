@@ -1,7 +1,7 @@
 #pragma once
 
-#include "misc/debounced_input.h"
-#include "misc/input_pin.h"
+#include "io/debounced_input.h"
+#include "io/input_pin.h"
 
 class Button {
  public:

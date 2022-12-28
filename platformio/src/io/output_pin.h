@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #include "driver/gpio.h"
-#include "misc/button.h"
+#include "io/button.h"
 
 class OutputPin {
  public:

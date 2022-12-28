@@ -4,9 +4,9 @@
 #include <stdint.h>
 
 #include "driver/gpio.h"
-#include "misc/button.h"
-#include "misc/input_pin.h"
-#include "misc/output_pin.h"
+#include "io/button.h"
+#include "io/input_pin.h"
+#include "io/output_pin.h"
 
 namespace io {
 

@@ -1,4 +1,4 @@
-#include "misc/ble_service.h"
+#include "ble/ble_service.h"
 
 /*
   https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/bluetooth/esp_gatts.html

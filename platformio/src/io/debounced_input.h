@@ -2,7 +2,7 @@
 
 // #include "common.h"
 // #include "misc/io.h"
-#include "misc/input_pin.h"
+#include "io/input_pin.h"
 
 class DebouncedInput {
  public:

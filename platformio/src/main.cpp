@@ -6,9 +6,9 @@
 // #include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "misc/io.h"
+#include "io/io.h"
 #include "misc/util.h"
-#include "misc/ble_service.h"
+#include "ble/ble_service.h"
 
 // #include "lwip/err.h"
 // #include "lwip/sys.h"
