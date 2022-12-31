@@ -1,5 +1,6 @@
 // #include <string.h>
 
+#include "acquisition/adc_test.h"
 #include "esp_event.h"
 // #include "esp_log.h"
 #include "esp_system.h"
@@ -87,6 +88,9 @@ void test_nvs() {
 // int b = 123;
 
 void my_main() {
+
+  adc_test_main();
+  return;
 
   ble_service::test();
 

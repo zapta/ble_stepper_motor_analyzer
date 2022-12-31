@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "esp_log.h"
+#include "esp_task_wdt.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
@@ -20,9 +21,10 @@
 
 #if CONFIG_IDF_TARGET_ESP32
 #define ADC_RESULT_BYTE 2
-#define ADC_CONV_LIMIT_EN 1  // For ESP32, this should always be set to 1
-#define ADC_CONV_MODE \
-  ADC_CONV_SINGLE_UNIT_1  // ESP32 only supports ADC1 DMA mode
+// For ESP32, this should always be set to 1
+#define ADC_CONV_LIMIT_EN 1
+// ESP32 only supports ADC1 DMA mode
+#define ADC_CONV_MODE ADC_CONV_SINGLE_UNIT_1
 #define ADC_OUTPUT_TYPE ADC_DIGI_OUTPUT_FORMAT_TYPE1
 
 #elif CONFIG_IDF_TARGET_ESP32S2
@@ -72,10 +74,11 @@ static constexpr uint16_t adc2_chan_mask = 0;
 static constexpr adc_channel_t channel[1] = {ADC_CHANNEL_7};
 #endif
 
-static constexpr char *TAG = "ADC DMA";
+static const char *TAG = "ADC DMA";
 
 static void continuous_adc_init(const uint16_t adc1_chan_mask,
-                                const uint16_t adc2_chan_mask, const adc_channel_t *channel,
+                                const uint16_t adc2_chan_mask,
+                                const adc_channel_t *channel,
                                 const uint8_t channel_num) {
   adc_digi_init_config_t adc_dma_config = {
       .max_store_buf_size = 1024,
@@ -83,18 +86,27 @@ static void continuous_adc_init(const uint16_t adc1_chan_mask,
       .adc1_chan_mask = adc1_chan_mask,
       .adc2_chan_mask = adc2_chan_mask,
   };
+  printf("Initializing ADC\n");
   ESP_ERROR_CHECK(adc_digi_initialize(&adc_dma_config));
+  printf("ADC initialized\n");
+
 
   adc_digi_configuration_t dig_cfg = {
       .conv_limit_en = ADC_CONV_LIMIT_EN,
-      .conv_limit_num = 250,
-      .sample_freq_hz = 10 * 1000,
+      //.conv_limit_num = 250,
+      .conv_limit_num = 255,
+      // .sample_freq_hz = 10 * 1000,
+      .sample_freq_hz = 2000,
       .conv_mode = ADC_CONV_MODE,
       .format = ADC_OUTPUT_TYPE,
+      //.pattern_num = 
+      //.adc_pattern = 
   };
 
   adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX] = {0};
+
   dig_cfg.pattern_num = channel_num;
+
   for (int i = 0; i < channel_num; i++) {
     uint8_t unit = GET_UNIT(channel[i]);
     uint8_t ch = channel[i] & 0x7;
@@ -124,7 +136,7 @@ static bool check_valid_data(const adc_digi_output_data_t *data) {
 
 // void xapp_main(void) {
 
-void adc_test_main() {
+IRAM_ATTR void adc_test_main() {
   esp_err_t ret;
   uint32_t ret_num = 0;
   uint8_t result[TIMES] = {0};
@@ -159,14 +171,18 @@ void adc_test_main() {
          */
       }
 
-      ESP_LOGI("TASK:", "ret is %x, ret_num is %d", ret, ret_num);
+      // ESP_LOGI("TASK:", "ret is %x, ret_num is %d", ret, ret_num);
+      if (ret != 0x103) {
+        printf("%x\n", ret);
+      }
       for (int i = 0; i < ret_num; i += ADC_RESULT_BYTE) {
         // adc_digi_output_data_t *p = (void *)&result[i];
-        adc_digi_output_data_t *p = (adc_digi_output_data_t*)&result[i];
+        adc_digi_output_data_t *p = (adc_digi_output_data_t *)&result[i];
 #if CONFIG_IDF_TARGET_ESP32
-        ESP_LOGI(TAG, "Unit: %d, Channel: %d, Value: %x", 1, p->type1.channel,
-                 p->type1.data);
+        // ESP_LOGI(TAG, "Unit: %d, Channel: %d, Value: %x", 1, p->type1.channel,
+        //          p->type1.data);
 #else
+#error "Not reached"
         if (ADC_CONV_MODE == ADC_CONV_BOTH_UNIT ||
             ADC_CONV_MODE == ADC_CONV_ALTER_UNIT) {
           if (check_valid_data(p)) {
@@ -179,6 +195,7 @@ void adc_test_main() {
           }
         }
 #if CONFIG_IDF_TARGET_ESP32S2
+#error "Not reached"
         else if (ADC_CONV_MODE == ADC_CONV_SINGLE_UNIT_2) {
           ESP_LOGI(TAG, "Unit: %d, Channel: %d, Value: %x", 2, p->type1.channel,
                    p->type1.data);
@@ -187,11 +204,14 @@ void adc_test_main() {
                    p->type1.data);
         }
 #endif  // #if CONFIG_IDF_TARGET_ESP32S2
+#error "Not reached"
 #endif
       }
       // See `note 1`
-      vTaskDelay(1);
+      //vTaskDelay(1);
+      //ESP_ERROR_CHECK(esp_task_wdt_reset());
       
+
     } else if (ret == ESP_ERR_TIMEOUT) {
       /**
        * ``ESP_ERR_TIMEOUT``: If ADC conversion is not finished until Timeout,
