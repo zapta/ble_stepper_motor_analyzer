@@ -90,17 +90,17 @@ static void continuous_adc_init(const uint16_t adc1_chan_mask,
   ESP_ERROR_CHECK(adc_digi_initialize(&adc_dma_config));
   printf("ADC initialized\n");
 
-
   adc_digi_configuration_t dig_cfg = {
       .conv_limit_en = ADC_CONV_LIMIT_EN,
       //.conv_limit_num = 250,
       .conv_limit_num = 255,
+      // 20k to 2M
       // .sample_freq_hz = 10 * 1000,
-      .sample_freq_hz = 2000,
+      .sample_freq_hz = 20 * 1000,
       .conv_mode = ADC_CONV_MODE,
       .format = ADC_OUTPUT_TYPE,
-      //.pattern_num = 
-      //.adc_pattern = 
+      //.pattern_num =
+      //.adc_pattern =
   };
 
   adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX] = {0};
@@ -120,7 +120,9 @@ static void continuous_adc_init(const uint16_t adc1_chan_mask,
     ESP_LOGI(TAG, "adc_pattern[%d].unit is :%x", i, adc_pattern[i].unit);
   }
   dig_cfg.adc_pattern = adc_pattern;
-  ESP_ERROR_CHECK(adc_digi_controller_configure(&dig_cfg));
+  // ESP_ERROR_CHECK(adc_digi_controller_configure(&dig_cfg));
+  esp_err_t ret = adc_digi_controller_configure(&dig_cfg);
+  ESP_ERROR_CHECK(ret);
 }
 
 #if !CONFIG_IDF_TARGET_ESP32
@@ -172,14 +174,21 @@ IRAM_ATTR void adc_test_main() {
       }
 
       // ESP_LOGI("TASK:", "ret is %x, ret_num is %d", ret, ret_num);
-      if (ret != 0x103) {
-        printf("%x\n", ret);
-      }
+
+      adc_digi_output_data_t *p0 = (adc_digi_output_data_t *)&result[0];
+
+      printf("%d %u %hu %hu\n", ret, ret_num, p0->type1.channel, p0->type1.data);
+
+      // if (ret != 0x103) {
+      //   printf("%x\n", ret);
+      // }
+
       for (int i = 0; i < ret_num; i += ADC_RESULT_BYTE) {
         // adc_digi_output_data_t *p = (void *)&result[i];
         adc_digi_output_data_t *p = (adc_digi_output_data_t *)&result[i];
 #if CONFIG_IDF_TARGET_ESP32
-        // ESP_LOGI(TAG, "Unit: %d, Channel: %d, Value: %x", 1, p->type1.channel,
+        // ESP_LOGI(TAG, "Unit: %d, Channel: %d, Value: %x", 1,
+        // p->type1.channel,
         //          p->type1.data);
 #else
 #error "Not reached"
@@ -208,9 +217,8 @@ IRAM_ATTR void adc_test_main() {
 #endif
       }
       // See `note 1`
-      //vTaskDelay(1);
-      //ESP_ERROR_CHECK(esp_task_wdt_reset());
-      
+      // vTaskDelay(1);
+      // ESP_ERROR_CHECK(esp_task_wdt_reset());
 
     } else if (ret == ESP_ERR_TIMEOUT) {
       /**
