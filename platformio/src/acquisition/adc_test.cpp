@@ -14,13 +14,16 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
+#include "io/io.h"
 #include "sdkconfig.h"
 
 #define TIMES 256
 #define GET_UNIT(x) ((x >> 3) & 0x1)
 
 #if CONFIG_IDF_TARGET_ESP32
+
 #define ADC_RESULT_BYTE 2
+
 // For ESP32, this should always be set to 1
 #define ADC_CONV_LIMIT_EN 1
 // ESP32 only supports ADC1 DMA mode
@@ -66,12 +69,11 @@ static uint16_t adc2_chan_mask = BIT(0);
 static adc_channel_t channel[3] = {ADC1_CHANNEL_2, ADC1_CHANNEL_3,
                                    (ADC2_CHANNEL_0 | 1 << 3)};
 #endif
-
 #if CONFIG_IDF_TARGET_ESP32
-static constexpr uint16_t adc1_chan_mask = BIT(7);
+static constexpr uint16_t adc1_chan_mask = BIT(6) | BIT(7);
 static constexpr uint16_t adc2_chan_mask = 0;
 // static adc_channel_t channel[1] = {ADC1_CHANNEL_7};
-static constexpr adc_channel_t channel[1] = {ADC_CHANNEL_7};
+static constexpr adc_channel_t channel[] = {ADC_CHANNEL_6, ADC_CHANNEL_7};
 #endif
 
 static const char *TAG = "ADC DMA";
@@ -94,18 +96,29 @@ static void continuous_adc_init(const uint16_t adc1_chan_mask,
       .conv_limit_en = ADC_CONV_LIMIT_EN,
       //.conv_limit_num = 250,
       .conv_limit_num = 255,
+
+      .pattern_num = channel_num,
+
+      // NOTE:  adc_pattern are filled in below in code.
+
+      .adc_pattern = nullptr,
+
       // 20k to 2M
       // .sample_freq_hz = 10 * 1000,
       .sample_freq_hz = 20 * 1000,
       .conv_mode = ADC_CONV_MODE,
       .format = ADC_OUTPUT_TYPE,
+
       //.pattern_num =
       //.adc_pattern =
   };
 
-  adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX] = {0};
+  // adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX] = {0};
 
-  dig_cfg.pattern_num = channel_num;
+  // TODO(zapta): Change the size to 2 (num of channels)
+  adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX] = {};
+
+  // dig_cfg.pattern_num = channel_num;
 
   for (int i = 0; i < channel_num; i++) {
     uint8_t unit = GET_UNIT(channel[i]);
@@ -119,6 +132,7 @@ static void continuous_adc_init(const uint16_t adc1_chan_mask,
     ESP_LOGI(TAG, "adc_pattern[%d].channel is :%x", i, adc_pattern[i].channel);
     ESP_LOGI(TAG, "adc_pattern[%d].unit is :%x", i, adc_pattern[i].unit);
   }
+  // Arrary pointer reference.
   dig_cfg.adc_pattern = adc_pattern;
   // ESP_ERROR_CHECK(adc_digi_controller_configure(&dig_cfg));
   esp_err_t ret = adc_digi_controller_configure(&dig_cfg);
@@ -149,7 +163,9 @@ IRAM_ATTR void adc_test_main() {
   adc_digi_start();
 
   while (1) {
+    io::LED1.set();
     ret = adc_digi_read_bytes(result, TIMES, &ret_num, ADC_MAX_DELAY);
+    io::LED1.clear();
     if (ret == ESP_OK || ret == ESP_ERR_INVALID_STATE) {
       if (ret == ESP_ERR_INVALID_STATE) {
         /**
@@ -176,8 +192,10 @@ IRAM_ATTR void adc_test_main() {
       // ESP_LOGI("TASK:", "ret is %x, ret_num is %d", ret, ret_num);
 
       adc_digi_output_data_t *p0 = (adc_digi_output_data_t *)&result[0];
+      // adc_digi_output_data_t *p1 = p0 +/ 1;
 
-      printf("%d %u %hu %hu\n", ret, ret_num, p0->type1.channel, p0->type1.data);
+      printf("%d %u %hu %4hu %hu %4hu\n", ret, ret_num, p0[0].type1.channel,
+             p0[0].type1.data, p0[1].type1.channel,  p0[1].type1.data);
 
       // if (ret != 0x103) {
       //   printf("%x\n", ret);
