@@ -18,4 +18,7 @@ inline uint32_t time_ms() { return pdTICKS_TO_MS(xTaskGetTickCount()); }
 
 inline uint64_t time_us() { return (uint64_t)esp_timer_get_time(); }
 
+// Do not enable in normal operation. Blocks interrupts.
+void dump_tasks();
+
 }  // namespace util

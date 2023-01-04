@@ -2,14 +2,15 @@
 
 #include "acquisition/adc_task.h"
 #include "esp_event.h"
+#include "misc/elapsed.h"
 // #include "esp_log.h"
 #include "esp_system.h"
 // #include "esp_wifi.h"
+#include "ble/ble_service.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "io/io.h"
 #include "misc/util.h"
-#include "ble/ble_service.h"
 
 // #include "lwip/err.h"
 // #include "lwip/sys.h"
@@ -88,8 +89,12 @@ void test_nvs() {
 // int b = 123;
 
 void my_main() {
-
-  adc_test_main();
+  adc_task::setup();
+  
+  for (;;) {
+    //util::dump_tasks();
+    vTaskDelay(300);
+  }
   return;
 
   ble_service::test();
@@ -118,7 +123,7 @@ void my_main() {
     // Yields to avoid starvations and WDT trigger.
     util::delay_ms(10);
     Button::ButtonEvent event = io::BUTTON1.update();
-    
+
     io::LED1.write(io::BUTTON1.is_pressed());
     if (event != Button::EVENT_NONE) {
       printf("Event: %d\n", event);

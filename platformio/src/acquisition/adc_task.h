@@ -1,3 +1,7 @@
 #pragma once
 
-void adc_test_main();
+namespace adc_task {
+
+void setup();
+
+}  // namespace adc_task
