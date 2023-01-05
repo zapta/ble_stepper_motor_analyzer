@@ -10,9 +10,11 @@
 
 namespace io {
 
-// Active high.
+// LEDs are Active high.
 extern OutputPin LED1;
 extern OutputPin LED2;
+
+extern OutputPin TEST1;
 
 // Active low.
 extern Button BUTTON1;

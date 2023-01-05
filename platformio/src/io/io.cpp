@@ -9,6 +9,8 @@ namespace io {
 OutputPin LED1(GPIO_NUM_26, 1);
 OutputPin LED2(GPIO_NUM_25, 1);
 
+OutputPin TEST1(GPIO_NUM_2, 0);
+
 // Digital inputs.
 static InputPin SWITCH1(GPIO_NUM_27, GPIO_PULLUP_ONLY);
 Button BUTTON1(SWITCH1);

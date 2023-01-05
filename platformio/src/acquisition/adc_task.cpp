@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 
+#include "analyzer_private.h"
 #include "driver/adc.h"
 #include "esp_assert.h"
 #include "freertos/FreeRTOS.h"
@@ -12,31 +13,36 @@
 #include "misc/elapsed.h"
 #include "sdkconfig.h"
 
+// namespace analyzer {
+// // Private method of the analyzer.
+// void handle_one_sample(const uint16_t raw_v1, const uint16_t raw_v2);
+// }  // namespace analyzer.
+
 namespace adc_task {
 
 // Should be equivalent to sizeof(*adc_digi_output_data_t)
-constexpr uint32_t BYTES_PER_VALUE = 2;
+constexpr uint32_t kBytesPerValue = 2;
 
 // Number of pairs of samples per a read packet.
-constexpr uint32_t VALUE_PAIRS_PER_BUFFER = 200;
+constexpr uint32_t kValuePairsPerBuffer = 100;
 
-constexpr uint32_t VALUES_PER_BUFFER = 2 * VALUE_PAIRS_PER_BUFFER;
+constexpr uint32_t kValuesPerBuffer = 2 * kValuePairsPerBuffer;
 
 // Number of buffer bytes per a read packet.
 // Increasing this value 'too much' causes in stability (with IDF 4.4.3).
-constexpr uint32_t BYTES_PER_BUFFER = VALUES_PER_BUFFER * BYTES_PER_VALUE;
+constexpr uint32_t kBytesPerBuffer = kValuesPerBuffer * kBytesPerValue;
 
 // Num of buffer in the ADC/DMA circular queue. We want to have
 // a sufficient size to allow backlog in processing.
-constexpr uint32_t NUM_BUFFERS = 2048 / VALUE_PAIRS_PER_BUFFER;
+constexpr uint32_t kNumBuffers = 2048 / kValuePairsPerBuffer;
 
 #if !CONFIG_IDF_TARGET_ESP32
 #error "Unexpected target CPU."
 #endif
 
 static const adc_digi_init_config_t adc_dma_config = {
-    .max_store_buf_size = NUM_BUFFERS * BYTES_PER_BUFFER,
-    .conv_num_each_intr = BYTES_PER_BUFFER,
+    .max_store_buf_size = kNumBuffers * kBytesPerBuffer,
+    .conv_num_each_intr = kBytesPerBuffer,
     .adc1_chan_mask = BIT(6) | BIT(7),
     .adc2_chan_mask = 0,
 };
@@ -73,23 +79,24 @@ static const adc_digi_configuration_t dig_cfg = {
     .format = ADC_DIGI_OUTPUT_FORMAT_TYPE1,
 };
 
-static uint8_t bytes_buffer[BYTES_PER_BUFFER] = {0};
+static uint8_t bytes_buffer[kBytesPerBuffer] = {0};
 
 void adc_task(void *ignored) {
   bool in_order = false;
   uint32_t order_changes = 0;
   uint32_t buffers_count = 0;
-  Elapsed timer;
+  uint32_t samples_to_snapshot = 0;
+  // Elapsed timer;
 
   for (;;) {
-    io::LED1.clear();
+    io::TEST1.clear();
     uint32_t num_ret_bytes = 0;
-    esp_err_t err_code = adc_digi_read_bytes(bytes_buffer, BYTES_PER_BUFFER,
+    esp_err_t err_code = adc_digi_read_bytes(bytes_buffer, kBytesPerBuffer,
                                              &num_ret_bytes, ADC_MAX_DELAY);
-    io::LED1.set();
+    io::TEST1.set();
 
     // Sanity check the results.
-    if (err_code != ESP_OK || num_ret_bytes != BYTES_PER_BUFFER) {
+    if (err_code != ESP_OK || num_ret_bytes != kBytesPerBuffer) {
       printf("ADC read failed: %0x %u\n", err_code, num_ret_bytes);
       assert(false);
     }
@@ -114,34 +121,53 @@ void adc_task(void *ignored) {
       }
     }
 
-    if (timer.elapsed_millis() >= 1000) {
-      timer.reset();
-      printf("ADC: %s, [%4u, %4u]  %u, %u\n", (in_order ? "[6,7]" : "[7,6]"),
-             values[0].type1.data, values[1].type1.data, order_changes,
-             buffers_count);
-    }
+    // if (timer.elapsed_millis() >= 10000) {
+    //   timer.reset();
+    //   printf("ADC: %s, [%4u, %4u]  %u, %u\n", (in_order ? "[6,7]" : "[7,6]"),
+    //          values[0].type1.data, values[1].type1.data, order_changes,
+    //          buffers_count);
+    // }
 
     // printf("%hu %hu %4hu %4hu\n", values[0].type1.channel,
     //        values[1].type1.channel, values[0].type1.data,
     //        values[1].type1.data);
 
     // We expect the buffer to have the same order of pairs.
-    for (int i = 0; i < VALUE_PAIRS_PER_BUFFER; i += 2) {
-      bool ok = (values[i].type1.channel == (in_order ? 6 : 7)) &&
-                (values[i + 1].type1.channel == (in_order ? 7 : 6));
-      if (!ok) {
-        printf("\n----\n\n");
-        for (int j = 0; j < VALUE_PAIRS_PER_BUFFER; j += 2) {
-          printf("%3d: %hu %4hu %hu %4hu\n", j, values[j + 0].type1.channel,
-                 values[j + 0].type1.data, values[j + 1].type1.channel,
-                 values[j + 1].type1.data);
+    analyzer::enter_mutex();
+    {
+      for (int i = 0; i < kValuePairsPerBuffer; i += 2) {
+        if (in_order) {
+          analyzer::isr_handle_one_sample(values[i].type1.data,
+                                          values[i + 1].type1.data);
+        } else {
+          analyzer::isr_handle_one_sample(values[i + 1].type1.data,
+                                          values[i].type1.data);
         }
 
-        for (;;) {
-          vTaskDelay(1);
+        bool ok = (values[i].type1.channel == (in_order ? 6 : 7)) &&
+                  (values[i + 1].type1.channel == (in_order ? 7 : 6));
+        if (!ok) {
+          printf("\n----\n\n");
+          for (int j = 0; j < kValuePairsPerBuffer; j += 2) {
+            printf("%3d: %hu %4hu %hu %4hu\n", j, values[j + 0].type1.channel,
+                   values[j + 0].type1.data, values[j + 1].type1.channel,
+                   values[j + 1].type1.data);
+          }
+
+          for (;;) {
+            vTaskDelay(1);
+          }
         }
       }
     }
+
+    samples_to_snapshot+= kValuePairsPerBuffer;
+    if (samples_to_snapshot >= 800) {
+      analyzer::isr_snapshot_state();
+      samples_to_snapshot = 0;
+    }
+
+    analyzer::exit_mutex();
   }
 }
 

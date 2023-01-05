@@ -1,5 +1,6 @@
 // #include <string.h>
 
+#include "acquisition/analyzer.h"
 #include "acquisition/adc_task.h"
 #include "esp_event.h"
 #include "misc/elapsed.h"
@@ -88,12 +89,25 @@ void test_nvs() {
 // A a1(11);
 // int b = 123;
 
+static analyzer::State state;
+
 void my_main() {
+  analyzer::Settings settings = {
+    .offset1 = 2000,
+    .offset2 = 2000,
+    .is_reverse_direction = false
+  };
+  analyzer::setup(settings);
   adc_task::setup();
   
   for (;;) {
+    // Blocking.
+    analyzer::pop_next_state(&state);
     //util::dump_tasks();
-    vTaskDelay(300);
+    //vTaskDelay(100);
+    // analyzer::sample_state(&state);
+    analyzer::dump_state(state);
+    
   }
   return;
 

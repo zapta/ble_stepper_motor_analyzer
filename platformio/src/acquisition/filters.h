@@ -2,8 +2,7 @@
 
 #pragma once
 
-#include <stdint.h>
-
+#include <inttypes.h>
 
 namespace filters {
 
@@ -31,4 +30,3 @@ class Adc12BitsLowPassFilter {
 };
 
 }  // namespace filters
-
