@@ -91,6 +91,8 @@ void test_nvs() {
 
 static analyzer::State state;
 
+static analyzer::AdcCaptureBuffer capture_buffer;
+
 void my_main() {
   analyzer::Settings settings = {.offset1 = 2000 - 188,
                                  .offset2 = 2000 - 230,
@@ -98,13 +100,62 @@ void my_main() {
   analyzer::setup(settings);
   adc_task::setup();
 
+  // For testing. To detect restarts.
+  printf("\n*** Press button to start...\n");
   for (;;) {
-    // Dump every N times.
-    for (int i = 0; i < 10; i++) {
-      // Blocking.
-      analyzer::pop_next_state(&state);
+    const Button::ButtonEvent button_event = io::BUTTON1.update();
+    if (button_event == Button::EVENT_SHORT_CLICK) {
+      break;
     }
-    analyzer::dump_state(state);
+    vTaskDelay(10);
+  }
+
+  for (int iter = 0;; iter++) {
+    adc_digi_output_data_t* values;
+    int count;
+    adc_task::raw_capture(&values, &count);
+
+    printf("\n---\n");
+    for (int i = 0; i < count; i += 2) {
+      const adc_digi_output_data_t& v1 = values[i];
+      const adc_digi_output_data_t& v2 = values[i + 1];
+      printf("%d, %d, %4d, %4u, %4u\n", v1.type1.channel, v2.type1.channel,
+             i / 2, v1.type1.data, v2.type1.data);
+    }
+    printf("\n");
+
+    // printf("%d\n", count);
+    vTaskDelay(1000);
+    // Blocking.
+    // analyzer::pop_next_state(&state);
+
+    // // Dump state
+    // if (iter % 100 == 0) {
+    //   analyzer::dump_state(state);
+    // }
+    // // Dump capture buffer
+    // if (iter % 500 == 0) {
+    //   analyzer::get_last_capture_snapshot(&capture_buffer);
+    //   char prev_char = '?';
+    //   int prev_count = 0;
+    //   for (int i = 0; i < capture_buffer.items.size(); i++) {
+    //     const analyzer::AdcCaptureItem* item = capture_buffer.items.get(i);
+    //     const char new_char = item->v1 < -1000 ? 'L' : item->v1 > 1000 ? 'H'
+    //     : 'X'; if (new_char == prev_char) {
+    //       prev_count++;
+    //     } else {
+    //       if (prev_count > 0) {
+    //         printf("- %c %03d\n", prev_char, prev_count);
+    //       }
+    //       prev_char = new_char;
+    //       prev_count = 1;
+    //     }
+    //     // printf("%5hd %s\n", item->v1, item->v1 < 0 ? "**" : "******");
+    //   }
+    //   printf("- %c %03d\n", prev_char, prev_count);
+
+    //   //analyzer::dump_adc_capture_buffer(capture_buffer);
+    // }
   }
   return;
 

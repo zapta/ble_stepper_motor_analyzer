@@ -375,7 +375,9 @@ void dump_adc_capture_buffer(const AdcCaptureBuffer& buffer) {
   printf(" seq: %hu, div=%hus\n", buffer.seq_number, buffer.divider);
   for (int i = 0; i < buffer.items.size(); i++) {
     const analyzer::AdcCaptureItem* item = buffer.items.get(i);
-    printf("%03d: %4hd %4hd\n", i, item->v1, item->v2);
+    //printf("%03d: %4hd %4hd\n", i, item->v1, item->v2);
+    printf("%hd,%hd\n", item->v1, item->v2);
+
   }
   printf("\n");
 }
@@ -453,6 +455,9 @@ void isr_handle_one_sample(const uint16_t raw_v1, const uint16_t raw_v2) {
   // Slight filtering for signal cleanup.
   const int16_t v1 = (int16_t)signal1_filter.update(raw_v1) - isr_data.offset1;
   const int16_t v2 = (int16_t)signal2_filter.update(raw_v2) - isr_data.offset2;
+  // @@@ Temp for testing
+  // const int16_t v1 = (int16_t)raw_v1 - isr_data.offset1;
+  // const int16_t v2 = (int16_t)raw_v2 - isr_data.offset2;
 
   isr_data.state.v1 = v1;
   isr_data.state.v2 = v2;

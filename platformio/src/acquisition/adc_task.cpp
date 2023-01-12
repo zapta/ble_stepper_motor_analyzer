@@ -20,25 +20,33 @@
 
 namespace adc_task {
 
-// Should be equivalent to sizeof(*adc_digi_output_data_t)
-constexpr uint32_t kBytesPerValue = 2;
-
-// Number of pairs of samples per a read packet.
-constexpr uint32_t kValuePairsPerBuffer = 100;
-
+constexpr uint32_t kBytesPerValue = sizeof(adc_digi_output_data_t);
+constexpr uint32_t kValuePairsPerBuffer = 50;
 constexpr uint32_t kValuesPerBuffer = 2 * kValuePairsPerBuffer;
-
-// Number of buffer bytes per a read packet.
-// Increasing this value 'too much' causes in stability (with IDF 4.4.3).
 constexpr uint32_t kBytesPerBuffer = kValuesPerBuffer * kBytesPerValue;
-
-// Num of buffer in the ADC/DMA circular queue. We want to have
-// a sufficient size to allow backlog in processing.
 constexpr uint32_t kNumBuffers = 2048 / kValuePairsPerBuffer;
 
 #if !CONFIG_IDF_TARGET_ESP32
 #error "Unexpected target CPU."
 #endif
+
+// Raw capture buffer. For testing only.
+// NOTE: We assume atomic uint86_t access and don't use a mutex.
+constexpr uint32_t kCaptureBuffersCount = 1000 / kValuePairsPerBuffer;
+constexpr uint32_t kCaptureValuesCount =
+    kCaptureBuffersCount * kValuesPerBuffer;
+static adc_digi_output_data_t
+    captured_values[kCaptureBuffersCount * kValuePairsPerBuffer];
+static uint8_t captured_buffers_count = 0;
+
+void raw_capture(adc_digi_output_data_t **values, int *count) {
+  captured_buffers_count = 0;
+  while (captured_buffers_count < kCaptureBuffersCount) {
+    vTaskDelay(1);
+  }
+  *values = captured_values;
+  *count = kCaptureValuesCount;
+}
 
 static const adc_digi_init_config_t adc_dma_config = {
     .max_store_buf_size = kNumBuffers * kBytesPerBuffer,
@@ -103,6 +111,13 @@ void adc_task(void *ignored) {
 
     adc_digi_output_data_t *values = (adc_digi_output_data_t *)&bytes_buffer;
 
+    // For testing. Remove after stabilization.
+    if (captured_buffers_count < kCaptureBuffersCount) {
+      memcpy(&captured_values[captured_buffers_count * kValuesPerBuffer],
+             values, kBytesPerBuffer);
+      captured_buffers_count++;
+    }
+
     buffers_count++;
 
     if (values[0].type1.channel == 6) {
@@ -161,7 +176,7 @@ void adc_task(void *ignored) {
       }
     }
 
-    samples_to_snapshot+= kValuePairsPerBuffer;
+    samples_to_snapshot += kValuePairsPerBuffer;
     if (samples_to_snapshot >= 800) {
       analyzer::isr_snapshot_state();
       samples_to_snapshot = 0;
