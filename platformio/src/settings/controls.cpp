@@ -35,7 +35,7 @@ bool toggle_direction(bool* new_reversed_direction) {
   analyzer::Settings settings;
   analyzer::get_settings(&settings);
   const bool write_ok = nvs::write_acquisition_settings(settings);
-  ESP_LOGI(TAG, "%s direction. Write %s\n", new_direction ? "REVERSED" : "NORMAL",
+  ESP_LOGI(TAG, "%s direction. Write %s", new_direction ? "REVERSED" : "NORMAL",
          write_ok ? "OK" : "FAILED");
   return write_ok;
 }

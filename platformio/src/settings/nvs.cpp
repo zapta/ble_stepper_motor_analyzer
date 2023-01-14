@@ -11,7 +11,7 @@
 
 namespace nvs {
 
-static constexpr auto TAG = "config";
+static constexpr auto TAG = "nvs";
 
 static constexpr auto kStorageNamespace = "settings";
 
