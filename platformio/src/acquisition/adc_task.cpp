@@ -17,8 +17,7 @@
 
 namespace adc_task {
 
-    static constexpr auto TAG = "adc_task";
-
+static constexpr auto TAG = "adc_task";
 
 constexpr uint32_t kBytesPerValue = sizeof(adc_digi_output_data_t);
 constexpr uint32_t kValuePairsPerBuffer = 50;
@@ -29,29 +28,6 @@ constexpr uint32_t kNumBuffers = 2000 / kValuePairsPerBuffer;
 #if !CONFIG_IDF_TARGET_ESP32
 #error "Unexpected target CPU."
 #endif
-
-// Raw capture buffer. For testing only.
-// NOTE: We assume atomic uint86_t access and don't use a mutex.
-// constexpr uint32_t kCaptureBuffersCount = 500 / kValuePairsPerBuffer;
-// constexpr uint32_t kCaptureValuesCount =
-//     kCaptureBuffersCount * kValuesPerBuffer;
-// constexpr uint32_t kCaptureValuePairsCount = kCaptureBuffersCount * kValuePairsPerBuffer;
-// static adc_digi_output_data_t
-//     captured_values[kCaptureValuesCount];
-
-// static uint8_t captured_buffers_count = 0;
-
-// void raw_capture(adc_digi_output_data_t **values, int *count) {
-//   // Force capture start.
-//   captured_buffers_count = 0;
-//   // Wait for completion.
-//   while (captured_buffers_count < kCaptureBuffersCount) {
-//     vTaskDelay(1);
-//   }
-//   // Return results.
-//   *values = captured_values;
-//   *count = kCaptureValuesCount;
-// }
 
 static const adc_digi_init_config_t adc_dma_config = {
     .max_store_buf_size = kNumBuffers * kBytesPerBuffer,
@@ -109,7 +85,7 @@ void dump_stats() {
   { snapshot = stats; }
   xSemaphoreGive(stats_mutex);
   ESP_LOGI(TAG, "bad: %u, good: %llu, good_swap: %llu", snapshot.bad_pairs,
-         stats.good_67_pairs, stats.good_76_pairs);
+           stats.good_67_pairs, stats.good_76_pairs);
 }
 
 // Accepts a pair of samples, sort them to v1 and v2 and return true,
@@ -156,52 +132,10 @@ void adc_task(void* ignored) {
       assert(false);
     }
 
-    adc_digi_output_data_t* buffer_values = (adc_digi_output_data_t*)&buffer_bytes;
-
-    // For testing. Remove after stabilization.
-    // if (captured_buffers_count < kCaptureBuffersCount) {
-    //   memcpy(&captured_values[captured_buffers_count * kValuesPerBuffer],
-    //          buffer_values, kBytesPerBuffer);
-    //   captured_buffers_count++;
-    // }
+    adc_digi_output_data_t* buffer_values =
+        (adc_digi_output_data_t*)&buffer_bytes;
 
     buffers_count++;
-
-    // if (values[0].type1.channel == 6) {
-    //   if (values[1].type1.channel != 7) {
-    //     printf("%hu\n", values[1].type1.channel);
-    //   }
-    //   assert(values[1].type1.channel == 7);
-    //   if (!in_order) {
-    //     in_order = true;
-    //     order_changes++;
-    //   }
-
-    // } else {
-    //   if (values[0].type1.channel != 7) {
-    //     printf("%hu\n", values[0].type1.channel);
-    //   }
-    //   if (values[1].type1.channel != 6) {
-    //     printf("%hu\n", values[1].type1.channel);
-    //   }
-    //   assert(values[0].type1.channel == 7);
-    //   assert(values[1].type1.channel == 6);
-    //   if (in_order) {
-    //     in_order = false;
-    //     order_changes++;
-    //   }
-    // }
-
-    // if (timer.elapsed_millis() >= 10000) {
-    //   timer.reset();
-    //   printf("ADC: %s, [%4u, %4u]  %u, %u\n", (in_order ? "[6,7]" : "[7,6]"),
-    //          values[0].type1.data, values[1].type1.data, order_changes,
-    //          buffers_count);
-    // }
-
-    // printf("%hu %hu %4hu %4hu\n", values[0].type1.channel,
-    //        values[1].type1.channel, values[0].type1.data,
-    //        values[1].type1.data);
 
     // We expect the buffer to have the same order of pairs.
     analyzer::enter_mutex();
@@ -210,7 +144,8 @@ void adc_task(void* ignored) {
       for (int i = 0; i < kValuesPerBuffer; i += 2) {
         uint16_t v1;
         uint16_t v2;
-        if (!mutex_condition_sample_pair(buffer_values[i], buffer_values[i + 1], &v1, &v2)) {
+        if (!mutex_condition_sample_pair(buffer_values[i], buffer_values[i + 1],
+                                         &v1, &v2)) {
           // Bad pair. Skip.
           continue;
         }

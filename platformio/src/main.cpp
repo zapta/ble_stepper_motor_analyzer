@@ -15,8 +15,8 @@
 #include "misc/util.h"
 // #include "nvs.h"
 // #include "nvs_flash.h"
-#include "settings/nvs.h"
 #include "settings/controls.h"
+#include "settings/nvs.h"
 
 static constexpr auto TAG = "main";
 
@@ -69,20 +69,19 @@ static void loop() {
   }
 
   // Dump state
-  if (loop_counter % 100 == 0) {
-    analyzer::dump_state(state);
-    adc_task::dump_stats();
-  }
+  // if (loop_counter % 100 == 0) {
+  //   analyzer::dump_state(state);
+  //   adc_task::dump_stats();
+  // }
 
   // Dump capture buffer
-  // if (loop_counter % 150 == 5) {
-  //   analyzer::get_last_capture_snapshot(&capture_buffer);
-  //   for (int i = 0; i < capture_buffer.items.size(); i++) {
-  //     const analyzer::AdcCaptureItem* item = capture_buffer.items.get(i);
-  //     printf("%hd,%hd\n", item->v1, item->v2);
-  //   }
-  //   // vTaskDelay(100);
-  // }
+  if (loop_counter % 150 == 5) {
+    analyzer::get_last_capture_snapshot(&capture_buffer);
+    for (int i = 0; i < capture_buffer.items.size(); i++) {
+      const analyzer::AdcCaptureItem* item = capture_buffer.items.get(i);
+      printf("%hd,%hd\n", item->v1, item->v2);
+    }
+  }
 }
 
 // The runtime environment expects a "C" main.

@@ -144,30 +144,7 @@ void get_last_capture_snapshot(AdcCaptureBuffer* buffer) {
   // adc_dma::enable_irq();
 }
 
-// extern void start_adc_capture(uint16_t divider) {
-//   // Force a reasonable range.
-//   if (divider < 1) {
-//     divider = 1;
-//   } else if (divider > 1000) {
-//     divider = 1000;
-//   }
 
-//   // Since ADC capture may be active, data can co-access by ISR.
-//   //__disable_irq();
-//   adc_dma::disable_irq();
-//   {
-//     isr_data.adc_capture_buffer.items.clear();
-//     isr_data.adc_capture_buffer.trigger_found = false;
-//     // This is an arbitrary number of divided samples that we allow
-//     // to wait for a trigger event.
-//     isr_data.adc_capture_pre_trigger_items_left =
-//     kAdcCaptureMaxWaitToTrigger; isr_data.adc_capture_divider = divider;
-//     isr_data.adc_capture_divider_counter = 0;
-//     isr_data.adc_capture_state = ADC_CAPTURE_HALF_FILL;
-//   }
-//   adc_dma::enable_irq();
-//   //__enable_irq();
-// }
 
 // Should be called from ISR from when interrupts are not enabled.
 void isr_reset_adc_capture_buffer() {
@@ -181,10 +158,7 @@ void isr_reset_adc_capture_buffer() {
 
 // Should be called from ISR from when interrupts are not enabled.
 void isr_restart_adc_capture_cycle() {
-  // Since ADC capture may be active, data can co-access by ISR.
-  //__disable_irq();
-  // adc_dma::disable_irq();
-  //{
+  
 
   // Snapshot the last sample, if any.
   isr_data.adc_capture_buffer_snapshot = isr_data.adc_capture_buffer;
@@ -193,15 +167,7 @@ void isr_restart_adc_capture_cycle() {
   isr_data.adc_capture_buffer.seq_number++;
   isr_reset_adc_capture_buffer();
 
-  // isr_data.adc_capture_buffer.items.clear();
-  // isr_data.adc_capture_buffer.divider = isr_data.adc_capture_divider;
-
-  // isr_data.adc_capture_state = ADC_CAPTURE_HALF_FILL;
-  // isr_data.adc_capture_pre_trigger_items_left = kAdcCaptureMaxWaitToTrigger;
-  // isr_data.adc_capture_divider_counter = 0;
-  //}
-  // adc_dma::enable_irq();
-  //__enable_irq();
+  
 }
 
 void sample_histogram(Histogram* histogram) {
@@ -636,11 +602,7 @@ void isr_handle_one_sample(const uint16_t raw_v1, const uint16_t raw_v2) {
   }
 }
 
-// // This is called from the adc task for each sample pair.
-// void handle_one_sample(const uint16_t raw_v1, const uint16_t raw_v2) {
-//   ENTER_MUTEX { isr_handle_one_sample(raw_v1, raw_v2); }
-//   EXIT_MUTEX
-// }
+
 
 // An ISR that is called after a predefined number of calls to
 // isr_handle_one_sample. Used to snapshot the state at fixed time intervals.

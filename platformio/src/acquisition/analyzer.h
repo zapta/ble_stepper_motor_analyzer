@@ -62,12 +62,6 @@ struct AdcCaptureBuffer {
   // is included and so on.
   uint8_t divider;
 
-  // True if capture was synced with a trigger event where
-  // v1 crossed up the y=0 axis. The triggered event, if available
-  // is always at a fixed index at the middle of the returned
-  // captured range.
-  //bool trigger_found;
-
   // The actual items as a circular buffer.
   AdcCaptureItems items;
 };
@@ -197,21 +191,9 @@ void setup(const Settings& settings);
 
 void get_last_capture_snapshot(AdcCaptureBuffer* buffer);
 
-// Is the capture buffer full with data?
-// bool is_adc_capture_ready();
-
-// Call after is_capture_ready() is true, to get a pointer
-// to internal buffer that contains the capture buffer.
-// const AdcCaptureBuffer* adc_capture_buffer();
-
-// Start signal capturing. Data is ready when
-// is_capture_ready() is true. If divider > 1,
-// only one every n ADC samples is captured.
-//void start_adc_capture(uint16_t divider);
-
 // Sample histogram. Does not resets or mutate the
 // histogram tracking.
- void sample_histogram(Histogram* histogram);
+void sample_histogram(Histogram* histogram);
 
 // Sample capture steps items since last call to this function.
 // Returns a pointer to an internal buffer with the consumed
@@ -219,7 +201,7 @@ void get_last_capture_snapshot(AdcCaptureBuffer* buffer);
 const StepsCaptureBuffer* sample_steps_capture();
 
 // Sample the current state into given buffer.
- void sample_state(State* state);
+void sample_state(State* state);
 
 // For notification. Blocking.
 bool pop_next_state(State* state);
@@ -250,7 +232,6 @@ void set_signal_capture_divider(uint8_t divider);
 // calibrate_zeros() to save the current settings in the
 // EEPROM.
 void get_settings(Settings* settings);
-
 
 // Temp
 void dump_dma_state();
