@@ -80,20 +80,12 @@ void test_nvs() {
   // return ESP_OK;
 }
 
-// class A {
-//  public:
-//   A(int val) : val_(val) {}
-//   int val_;
-// };
-
-// A a1(11);
-// int b = 123;
-
 static analyzer::State state;
 
 static analyzer::AdcCaptureBuffer capture_buffer;
 
 void my_main() {
+  printf("main started.\n");
   analyzer::Settings settings = {.offset1 = 2000 - 188,
                                  .offset2 = 2000 - 230,
                                  .is_reverse_direction = false};
@@ -101,7 +93,7 @@ void my_main() {
   adc_task::setup();
 
   // For testing. To detect restarts.
-  printf("\n*** Press button to start...\n");
+  printf("\n*** Press BUTTON to start...\n");
   for (;;) {
     const Button::ButtonEvent button_event = io::BUTTON1.update();
     if (button_event == Button::EVENT_SHORT_CLICK) {
@@ -110,104 +102,68 @@ void my_main() {
     vTaskDelay(10);
   }
 
-  for (int iter = 0;; iter++) {
-    adc_digi_output_data_t* values;
-    int count;
-    adc_task::raw_capture(&values, &count);
-
-    printf("\n---\n");
-    for (int i = 0; i < count; i += 2) {
-      const adc_digi_output_data_t& v1 = values[i];
-      const adc_digi_output_data_t& v2 = values[i + 1];
-      printf("%d, %d, %4d, %4u, %4u\n", v1.type1.channel, v2.type1.channel,
-             i / 2, v1.type1.data, v2.type1.data);
-    }
-    printf("\n");
-
-    // printf("%d\n", count);
-    vTaskDelay(1000);
-    // Blocking.
-    // analyzer::pop_next_state(&state);
-
-    // // Dump state
-    // if (iter % 100 == 0) {
-    //   analyzer::dump_state(state);
-    // }
-    // // Dump capture buffer
-    // if (iter % 500 == 0) {
-    //   analyzer::get_last_capture_snapshot(&capture_buffer);
-    //   char prev_char = '?';
-    //   int prev_count = 0;
-    //   for (int i = 0; i < capture_buffer.items.size(); i++) {
-    //     const analyzer::AdcCaptureItem* item = capture_buffer.items.get(i);
-    //     const char new_char = item->v1 < -1000 ? 'L' : item->v1 > 1000 ? 'H'
-    //     : 'X'; if (new_char == prev_char) {
-    //       prev_count++;
-    //     } else {
-    //       if (prev_count > 0) {
-    //         printf("- %c %03d\n", prev_char, prev_count);
-    //       }
-    //       prev_char = new_char;
-    //       prev_count = 1;
-    //     }
-    //     // printf("%5hd %s\n", item->v1, item->v1 < 0 ? "**" : "******");
-    //   }
-    //   printf("- %c %03d\n", prev_char, prev_count);
-
-    //   //analyzer::dump_adc_capture_buffer(capture_buffer);
-    // }
-  }
-  return;
-
-  ble_service::test();
-
-  // for (;;) {
-  //   A a2(22);
-  //   printf("a1.val_=%d, a2.val_=%d, b=%d\n", a1.val_, a2.val_, b);
-  //   sys_delay_ms(1000);
+  // Dump raw capture.
+  // for (int iter = 0;; iter++) {
+  //   adc_digi_output_data_t* values;
+  //   int count;
+  //   adc_task::raw_capture(&values, &count);
+  //   // printf("\n---\n");
+  //   for (int i = 0; i < count; i += 2) {
+  //     const adc_digi_output_data_t& v1 = values[i];
+  //     const adc_digi_output_data_t& v2 = values[i + 1];
+  //     // printf("%d, %d, %4d, %4u, %4u\n", v1.type1.channel, v2.type1.channel,
+  //     //        i / 2, v1.type1.data, v2.type1.data);
+  //     printf("%hu, %hu\n",
+  //            v1.type1.data, v2.type1.data);
+  //   }
+  //   printf("\n");
+  //   vTaskDelay(100);
   // }
 
-  printf("Initializing...\n");
-  esp_err_t err = nvs_flash_init();
-  if (err == ESP_ERR_NVS_NO_FREE_PAGES ||
-      err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-    printf("Need to create...\n");
+  for (int iter = 0;; iter++) {
+    // Blocking. 50Hz.
+    analyzer::pop_next_state(&state);
 
-    // NVS partition was truncated and needs to be erased
-    // Retry nvs_flash_init
-    ESP_ERROR_CHECK(nvs_flash_erase());
-    err = nvs_flash_init();
-  }
-  ESP_ERROR_CHECK(err);
-  printf("Storage ok\n");
-
-  for (;;) {
-    // Yields to avoid starvations and WDT trigger.
-    util::delay_ms(10);
-    Button::ButtonEvent event = io::BUTTON1.update();
-
-    io::LED1.write(io::BUTTON1.is_pressed());
-    if (event != Button::EVENT_NONE) {
-      printf("Event: %d\n", event);
+    if ((iter & 0x0f) == 0) {
+      io::LED1.toggle();
     }
 
-    // sys_delay_ms(1000);
+    // Dump state
+    if (iter % 100 == 0) {
+      analyzer::dump_state(state);
+      adc_task::dump_stats();
+    }
 
-    // io::LED1.toggle();
-
-    // vTaskDelay(pdMS_TO_TICKS(1000));
-    // util::delay_ms(1000);
-
-    // io::LED1.toggle();
-    // io::LED2.toggle();
-
-    // util::delay_ms(1000);
-
-    // uint64_t t0 = util::time_us();
-    // uint32_t ms = util::time_ms();
-    // uint64_t t1 = util::time_us();
-    // printf("dt=%u %u\n", (uint32_t)(t1 - t0), ms);
+    // Dump capture buffer
+    // if (iter % 150 == 5) {
+    //   analyzer::get_last_capture_snapshot(&capture_buffer);
+    //   for (int i = 0; i < capture_buffer.items.size(); i++) {
+    //     const analyzer::AdcCaptureItem* item = capture_buffer.items.get(i);
+    //     printf("%hd, %hd\n", item->v1, item->v2);
+    //   }
+    //   vTaskDelay(100);
+    // }
   }
+
+  return;
+
+  // ble_service::test();
+
+  // printf("Initializing...\n");
+  // esp_err_t err = nvs_flash_init();
+  // if (err == ESP_ERR_NVS_NO_FREE_PAGES ||
+  //     err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+  //   printf("Need to create...\n");
+
+  //   // NVS partition was truncated and needs to be erased
+  //   // Retry nvs_flash_init
+  //   ESP_ERROR_CHECK(nvs_flash_erase());
+  //   err = nvs_flash_init();
+  // }
+  // ESP_ERROR_CHECK(err);
+  // printf("Storage ok\n");
+
+  //   // vTaskDelay(pdMS_TO_TICKS(1000));
 }
 
 // The runtime environment expects a "C" main.
