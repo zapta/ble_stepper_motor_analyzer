@@ -13,9 +13,10 @@
 #include "io/io.h"
 #include "misc/elapsed.h"
 #include "misc/util.h"
-#include "nvs.h"
-#include "nvs_flash.h"
+// #include "nvs.h"
+// #include "nvs_flash.h"
 #include "settings/nvs.h"
+#include "settings/controls.h"
 
 static constexpr auto TAG = "main";
 
@@ -53,6 +54,13 @@ static uint32_t loop_counter = 0;
 static void loop() {
   loop_counter++;
 
+  Button::ButtonEvent event = io::BUTTON1.update();
+  if (event == Button::EVENT_LONG_PRESS) {
+    controls::zero_calibration();
+  } else if (event == Button::EVENT_SHORT_CLICK) {
+    controls::toggle_direction(nullptr);
+  }
+
   // Blocking. 50Hz.
   analyzer::pop_next_state(&state);
 
@@ -61,20 +69,20 @@ static void loop() {
   }
 
   // Dump state
-  // if (iter % 100 == 0) {
-  //   analyzer::dump_state(state);
-  //   adc_task::dump_stats();
-  // }
+  if (loop_counter % 100 == 0) {
+    analyzer::dump_state(state);
+    adc_task::dump_stats();
+  }
 
   // Dump capture buffer
-  if (loop_counter % 150 == 5) {
-    analyzer::get_last_capture_snapshot(&capture_buffer);
-    for (int i = 0; i < capture_buffer.items.size(); i++) {
-      const analyzer::AdcCaptureItem* item = capture_buffer.items.get(i);
-      printf("%hd,%hd\n", item->v1, item->v2);
-    }
-    // vTaskDelay(100);
-  }
+  // if (loop_counter % 150 == 5) {
+  //   analyzer::get_last_capture_snapshot(&capture_buffer);
+  //   for (int i = 0; i < capture_buffer.items.size(); i++) {
+  //     const analyzer::AdcCaptureItem* item = capture_buffer.items.get(i);
+  //     printf("%hd,%hd\n", item->v1, item->v2);
+  //   }
+  //   // vTaskDelay(100);
+  // }
 }
 
 // The runtime environment expects a "C" main.

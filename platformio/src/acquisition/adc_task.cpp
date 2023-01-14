@@ -7,6 +7,7 @@
 #include "analyzer_private.h"
 #include "driver/adc.h"
 #include "esp_assert.h"
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
@@ -15,6 +16,9 @@
 #include "sdkconfig.h"
 
 namespace adc_task {
+
+    static constexpr auto TAG = "adc_task";
+
 
 constexpr uint32_t kBytesPerValue = sizeof(adc_digi_output_data_t);
 constexpr uint32_t kValuePairsPerBuffer = 50;
@@ -104,7 +108,7 @@ void dump_stats() {
   xSemaphoreTake(stats_mutex, portMAX_DELAY);
   { snapshot = stats; }
   xSemaphoreGive(stats_mutex);
-  printf("adc_task: bad: %u, good: %llu, good_swap: %llu\n", snapshot.bad_pairs,
+  ESP_LOGI(TAG, "bad: %u, good: %llu, good_swap: %llu", snapshot.bad_pairs,
          stats.good_67_pairs, stats.good_76_pairs);
 }
 
@@ -148,7 +152,7 @@ void adc_task(void* ignored) {
 
     // Sanity check the results.
     if (err_code != ESP_OK || num_ret_bytes != kBytesPerBuffer) {
-      printf("ADC read failed: %0x %u\n", err_code, num_ret_bytes);
+      ESP_LOGE(TAG, "ADC read failed: %0x %u", err_code, num_ret_bytes);
       assert(false);
     }
 

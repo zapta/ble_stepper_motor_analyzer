@@ -6,24 +6,22 @@
 #include "analyzer.h"
 
 #include <inttypes.h>
-
-#include "analyzer_private.h"
-// #include <kernel.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-// #include <zephyr.h>
-// #include "adc_dma.h"
+
+#include "analyzer_private.h"
+#include "esp_log.h"
 #include "filters.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "io/io.h"
 #include "misc/circular_buffer.h"
-// #include "freertos/FreeRTOS.h"
-// #include "freertos/task.h"
 
 namespace analyzer {
+
+static constexpr auto TAG = "analyzer";
 
 static SemaphoreHandle_t data_mutex;
 #define ENTER_MUTEX \
@@ -345,7 +343,7 @@ void set_signal_capture_divider(uint8_t divider) {
   EXIT_MUTEX
   // adc_dma::enable_irq();
 
-  printf("Signal capture divider set to %hu\n", divider);
+  ESP_LOGI(TAG, "Signal capture divider set to %hu", divider);
 }
 
 void get_settings(Settings* settings) {
@@ -360,9 +358,9 @@ void get_settings(Settings* settings) {
 }
 
 void dump_state(const State& state) {
-  printf(
+  ESP_LOGI(TAG, 
       "[%6llu][er:%u, %u] [%5d, %5d] [en:%d %u] s:%hhu/%d  steps:%d "
-      "max_steps:%d\n",
+      "max_steps:%d",
       state.tick_count, state.quadrature_errors, state.ticks_with_errors,
       state.v1, state.v2, state.is_energized, state.non_energized_count,
       state.quadrant, state.last_step_direction, state.full_steps,
