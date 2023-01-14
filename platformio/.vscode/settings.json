@@ -2,5 +2,7 @@
     "files.associations": {
         "*.ipp": "cpp",
         "*.tcc": "cpp"
-    }
+    },
+    
+    "files.eol": "\n",
 }
