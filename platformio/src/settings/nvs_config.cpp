@@ -1,5 +1,5 @@
 
-#include "nvs.h"
+#include "settings/nvs_config.h"
 
 #include <memory.h>
 #include <rom/crc.h>
@@ -9,36 +9,36 @@
 #include "nvs.h"
 #include "nvs_flash.h"
 
-namespace nvs {
+namespace nvs_config {
 
-static constexpr auto TAG = "nvs";
+static constexpr auto TAG = "nvs_config";
 
 static constexpr auto kStorageNamespace = "settings";
 
 
-void setup() {
-  esp_err_t err = nvs_flash_init();
-  if (err == ESP_OK) {
-    ESP_LOGI(TAG, "nvs_flash_init() ok.");
-    return;
-  }
+// void setup() {
+//   esp_err_t err = nvs_flash_init();
+//   if (err == ESP_OK) {
+//     ESP_LOGI(TAG, "nvs_flash_init() ok.");
+//     return;
+//   }
 
-  // This is the initial creation in new devices.
-  if (err == ESP_ERR_NVS_NO_FREE_PAGES ||
-      err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-    ESP_LOGW(TAG, "nvs_flash_init() err %04x. Erasing nvs...", err);
-    // This should not fail.
-    ESP_ERROR_CHECK(nvs_flash_erase());
-    ESP_LOGI(TAG, "nvs erased. Initializing again...");
-    // This should not fail.
-    ESP_ERROR_CHECK(nvs_flash_init());
-    ESP_LOGI(TAG, "nvs_flash_init() ok.");
-    return;
-  }
+//   // This is the initial creation in new devices.
+//   if (err == ESP_ERR_NVS_NO_FREE_PAGES ||
+//       err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+//     ESP_LOGW(TAG, "nvs_flash_init() err %04x. Erasing nvs...", err);
+//     // This should not fail.
+//     ESP_ERROR_CHECK(nvs_flash_erase());
+//     ESP_LOGI(TAG, "nvs erased. Initializing again...");
+//     // This should not fail.
+//     ESP_ERROR_CHECK(nvs_flash_init());
+//     ESP_LOGI(TAG, "nvs_flash_init() ok.");
+//     return;
+//   }
 
-  ESP_LOGE(TAG, "nvs_flash_init() fatal error %04x.", err);
-  assert(false);
-}
+//   ESP_LOGE(TAG, "nvs_flash_init() fatal error %04x.", err);
+//   assert(false);
+// }
 
 bool read_acquisition_settings(analyzer::Settings* settings) {
   // Open
@@ -144,4 +144,4 @@ bool write_acquisition_settings(const analyzer::Settings& settings) {
   return err == ESP_OK;
 }
 
-}  // namespace nvs
+}  // namespace nvs_config

@@ -2,6 +2,6 @@
 
 namespace ble_service {
 
-    void test();
+void setup();
 
 }

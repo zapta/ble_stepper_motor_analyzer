@@ -5,6 +5,7 @@
 #include "acquisition/analyzer.h"
 #include "ble/ble_service.h"
 #include "driver/gpio.h"
+#include "misc/util.h"
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_system.h"
@@ -13,10 +14,8 @@
 #include "io/io.h"
 #include "misc/elapsed.h"
 #include "misc/util.h"
-// #include "nvs.h"
-// #include "nvs_flash.h"
 #include "settings/controls.h"
-#include "settings/nvs.h"
+#include "settings/nvs_config.h"
 
 static constexpr auto TAG = "main";
 
@@ -51,11 +50,12 @@ static void setup() {
   io::LED2.clear();
 
   // Init config.
-  nvs::setup();
+  // nvs_config::setup();
+  util::nvs_init();
 
   // Fetch settings.
   analyzer::Settings settings;
-  if (!nvs::read_acquisition_settings(&settings)) {
+  if (!nvs_config::read_acquisition_settings(&settings)) {
     ESP_LOGE(TAG, "Failed to read settings, will use default.");
     settings = kDefaultSettings;
   }
@@ -65,6 +65,9 @@ static void setup() {
   // Init acquisition.
   analyzer::setup(settings);
   adc_task::setup();
+
+  // Init BLE
+  ble_service::setup();
 }
 
 // static uint32_t loop_counter = 0;

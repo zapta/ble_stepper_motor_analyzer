@@ -33,7 +33,10 @@ struct Settings {
 //
 // TODO: Consider compressing the BLE packet to increase the point
 // count.
-constexpr uint16_t kAdcCaptureBufferSize = 400;
+
+// @@@ Should be 400 for compatibility with nrf52.
+// constexpr uint16_t kAdcCaptureBufferSize = 400;
+constexpr uint16_t kAdcCaptureBufferSize = 500;
 
 // Number of captured samples to wait for a trigger. If this number
 // of samples is reached, we force a trigger.

@@ -21,4 +21,6 @@ inline uint64_t time_us() { return (uint64_t)esp_timer_get_time(); }
 // Do not enable in normal operation. Blocks interrupts.
 void dump_tasks();
 
+void nvs_init();
+
 }  // namespace util
