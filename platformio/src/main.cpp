@@ -67,7 +67,7 @@ static void setup() {
   adc_task::setup();
 
   // Init BLE
-  ble_service::setup();
+  // ble_service::setup();
 }
 
 // static uint32_t loop_counter = 0;
