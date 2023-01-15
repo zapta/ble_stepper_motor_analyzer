@@ -3,6 +3,6 @@
         "*.ipp": "cpp",
         "*.tcc": "cpp"
     },
-    
+    // Zapta: Use LF convention for new files.
     "files.eol": "\n",
 }
