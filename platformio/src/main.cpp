@@ -3,7 +3,8 @@
 
 #include "acquisition/adc_task.h"
 #include "acquisition/analyzer.h"
-#include "ble/ble_service.h"
+// #include "ble/ble_service.h"
+#include "ble/ble2.h"
 #include "driver/gpio.h"
 #include "misc/util.h"
 #include "esp_event.h"
@@ -68,6 +69,7 @@ static void setup() {
 
   // Init BLE
   // ble_service::setup();
+   ble2::setup();
 }
 
 // static uint32_t loop_counter = 0;
@@ -128,15 +130,17 @@ static void loop() {
 
   analyzer_counter++;
 
+  ble2::notify();
+
   // if ((loop_counter & 0x0f) == 0) {
   //   io::LED1.toggle();
   // }
 
-  // Dump state
-  if (analyzer_counter % 100 == 0) {
-    analyzer::dump_state(state);
-    adc_task::dump_stats();
-  }
+  // Dump ADC state
+  // if (analyzer_counter % 100 == 0) {
+  //   analyzer::dump_state(state);
+  //   adc_task::dump_stats();
+  // }
 
   // Dump capture buffer
   // if (analyzer_counter % 150 == 0) {

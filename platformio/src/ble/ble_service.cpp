@@ -209,23 +209,11 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 static gatts_profile_inst_t gl_profile = {
     .gatts_cb = gatts_profile_event_handler,
-    .gatts_if = ESP_GATT_IF_NONE, /* Not get the gatt_if, so initial is
-                                     ESP_GATT_IF_NONE */
+    .gatts_if = ESP_GATT_IF_NONE, 
 };
 #pragma GCC diagnostic pop
 
-//     [PROFILE_A_APP_ID] = {
-//         .gatts_cb = gatts_profile_a_event_handler,
-//         .gatts_if = ESP_GATT_IF_NONE,       /* Not get the gatt_if, so
-//         initial is ESP_GATT_IF_NONE */
-//     },
-//     [PROFILE_B_APP_ID] = {
-//         .gatts_cb = gatts_profile_b_event_handler,                   /* This
-//         demo does not implement, similar as profile A */ .gatts_if =
-//         ESP_GATT_IF_NONE,       /* Not get the gatt_if, so initial is
-//         ESP_GATT_IF_NONE */
-//     },
-// };
+
 
 static void gap_event_handler(esp_gap_ble_cb_event_t event,
                               esp_ble_gap_cb_param_t *param) {
@@ -372,14 +360,6 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
 void setup() {
   esp_err_t ret;
 
-  // // Initialize NVS.
-  // ret = nvs_flash_init();
-  // if (ret == ESP_ERR_NVS_NO_FREE_PAGES ||
-  //     ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-  //   ESP_ERROR_CHECK(nvs_flash_erase());
-  //   ret = nvs_flash_init();
-  // }
-  // ESP_ERROR_CHECK(ret);
 
   ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
 
@@ -428,11 +408,7 @@ void setup() {
     ESP_LOGE(GATTS_TAG, "gatts app register error, error code = %x", ret);
     return;
   }
-  //   ret = esp_ble_gatts_app_register(PROFILE_B_APP_ID);
-  //   if (ret) {
-  //     ESP_LOGE(GATTS_TAG, "gatts app register error, error code = %x", ret);
-  //     return;
-  //   }
+
   esp_err_t local_mtu_ret = esp_ble_gatt_set_local_mtu(500);
   if (local_mtu_ret != ESP_OK) {
     ESP_LOGE(GATTS_TAG, "set local  MTU failed, error code = %x",
