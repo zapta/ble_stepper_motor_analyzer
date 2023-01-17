@@ -3,8 +3,7 @@
 
 #include "acquisition/adc_task.h"
 #include "acquisition/analyzer.h"
-// #include "ble/ble_service.h"
-#include "ble/ble2.h"
+#include "ble/ble_service.h"
 #include "driver/gpio.h"
 #include "misc/util.h"
 #include "esp_event.h"
@@ -69,7 +68,7 @@ static void setup() {
 
   // Init BLE
   // ble_service::setup();
-   ble2::setup();
+   ble_service::setup();
 }
 
 // static uint32_t loop_counter = 0;
@@ -119,22 +118,15 @@ static void loop() {
     io::LED2.write(led2_counter > 0 && !(led2_counter & 0x1));
   }
 
-  // if (event == Button::EVENT_LONG_PRESS) {
-  //   controls::zero_calibration();
-  // } else if (event == Button::EVENT_SHORT_CLICK) {
-  //   controls::toggle_direction(nullptr);
-  // }
+
 
   // Blocking. 50Hz.
   analyzer::pop_next_state(&state);
 
   analyzer_counter++;
+  ble_service::notify();
 
-  ble2::notify();
-
-  // if ((loop_counter & 0x0f) == 0) {
-  //   io::LED1.toggle();
-  // }
+ 
 
   // Dump ADC state
   // if (analyzer_counter % 100 == 0) {
