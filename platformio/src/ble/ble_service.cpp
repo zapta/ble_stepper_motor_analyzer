@@ -39,7 +39,25 @@ static constexpr auto TAG = "ble2";
 
 static uint8_t adv_config_done = 0;
 
-uint16_t heart_rate_handle_table[HRS_IDX_NB];
+/* Attributes State Machine */
+enum {
+  IDX_SVC = 0,
+
+  IDX_CHAR_A,
+  IDX_CHAR_VAL_A,
+  IDX_CHAR_CFG_A,
+
+  IDX_CHAR_B,
+  IDX_CHAR_VAL_B,
+
+  IDX_CHAR_C,
+  IDX_CHAR_VAL_C,
+
+  HRS_IDX_NB,  // entries count.
+};
+
+// Parallel to the entries of gatt_db.
+uint16_t handle_table[HRS_IDX_NB];
 
 typedef struct {
   uint8_t *prepare_buf;
@@ -142,7 +160,8 @@ struct gatts_profile_inst {
 // static void dump_address() {
 //   const uint8_t *addr = esp_bt_dev_get_address();
 //   if (addr) {
-//     ESP_LOGI(TAG, "Address is %02x:%02x:%02x:%02x:%02x:%02x", addr[0], addr[1],
+//     ESP_LOGI(TAG, "Address is %02x:%02x:%02x:%02x:%02x:%02x", addr[0],
+//     addr[1],
 //              addr[2], addr[3], addr[4], addr[5]);
 //   } else {
 //     ESP_LOGI(TAG, "Address is NULL");
@@ -182,6 +201,8 @@ static const uint8_t char_prop_read_write_notify =
     ESP_GATT_CHAR_PROP_BIT_NOTIFY;
 static const uint8_t heart_measurement_ccc[2] = {0x00, 0x00};
 static const uint8_t char_value[4] = {0x11, 0x22, 0x33, 0x44};
+
+
 
 /* Full Database Description - Used to add attributes into the database */
 static const esp_gatts_attr_db_t gatt_db[HRS_IDX_NB] = {
@@ -380,10 +401,10 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
       snprintf(device_name, sizeof(device_name), "STP-%02X%02X%02X%02X%02X%02X",
                device_addr[0], device_addr[1], device_addr[2], device_addr[3],
                device_addr[4], device_addr[5]);
-      // NOTE: Device name is copied internally so its safe to pass a temporary 
+      // NOTE: Device name is copied internally so its safe to pass a temporary
       // name pointer
       ESP_LOGI(TAG, "Device name: %s", device_name);
-    //   esp_bt_dev_set_device_name(device_name);
+      //   esp_bt_dev_set_device_name(device_name);
       esp_err_t set_dev_name_ret = esp_ble_gap_set_device_name(device_name);
       if (set_dev_name_ret) {
         ESP_LOGE(TAG, "set device name failed, error code = %x",
@@ -408,15 +429,13 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
       // config adv data
       esp_err_t ret = esp_ble_gap_config_adv_data(&adv_data);
       if (ret) {
-        ESP_LOGE(TAG, "config adv data failed, error code = %x",
-                 ret);
+        ESP_LOGE(TAG, "config adv data failed, error code = %x", ret);
       }
       adv_config_done |= ADV_CONFIG_FLAG;
       // config scan response data
       ret = esp_ble_gap_config_adv_data(&scan_rsp_data);
       if (ret) {
-        ESP_LOGE(TAG,
-                 "config scan response data failed, error code = %x", ret);
+        ESP_LOGE(TAG, "config scan response data failed, error code = %x", ret);
       }
       adv_config_done |= SCAN_RSP_CONFIG_FLAG;
 #endif
@@ -440,7 +459,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
         ESP_LOGI(TAG, "GATT_WRITE_EVT, handle = %d, value len = %d, value :",
                  param->write.handle, param->write.len);
         esp_log_buffer_hex(TAG, param->write.value, param->write.len);
-        if (heart_rate_handle_table[IDX_CHAR_CFG_A] == param->write.handle &&
+        if (handle_table[IDX_CHAR_CFG_A] == param->write.handle &&
             param->write.len == 2) {
           uint16_t descr_value =
               param->write.value[1] << 8 | param->write.value[0];
@@ -540,9 +559,9 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
         ESP_LOGI(TAG,
                  "create attribute table successfully, the number handle = %d",
                  param->add_attr_tab.num_handle);
-        memcpy(heart_rate_handle_table, param->add_attr_tab.handles,
-               sizeof(heart_rate_handle_table));
-        esp_ble_gatts_start_service(heart_rate_handle_table[IDX_SVC]);
+        memcpy(handle_table, param->add_attr_tab.handles,
+               sizeof(handle_table));
+        esp_ble_gatts_start_service(handle_table[IDX_SVC]);
       }
       break;
     }
@@ -686,7 +705,7 @@ void notify() {
   const gatts_profile_inst &profile = heart_rate_profile_tab[PROFILE_APP_IDX];
 
   esp_ble_gatts_send_indicate(profile.gatts_if, profile.conn_id,
-                              heart_rate_handle_table[IDX_CHAR_VAL_A],
+                              handle_table[IDX_CHAR_VAL_A],
                               sizeof(notify_data), notify_data, false);
 
   ESP_LOGI(TAG, "Indicate sent.");
