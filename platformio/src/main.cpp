@@ -124,7 +124,7 @@ static void loop() {
   analyzer::pop_next_state(&state);
 
   analyzer_counter++;
-  ble_service::notify();
+  // ble_service::notify();
 
  
 
