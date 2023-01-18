@@ -1,7 +1,8 @@
 {
     "files.associations": {
         "*.ipp": "cpp",
-        "*.tcc": "cpp"
+        "*.tcc": "cpp",
+        "cmath": "cpp"
     },
     // Zapta: Use LF convention for new files.
     "files.eol": "\n",

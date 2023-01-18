@@ -16,14 +16,21 @@
 #include "freertos/task.h"
 #include "nvs_flash.h"
 
-namespace ble_service {
+// TODO: Add notification control.
+// TODO: merge gatts_profile_event_handler and gatts_event_handler. Remove field profile.gatts_cb.
+// TODO: add mutex.
+// TODO: Set service UUID.
+// TODO: Set first real characteristic
 
-// #define GATTS_TABLE_TAG "GATTS_TABLE_DEMO"
+// Based on this sexample
+// https://github.com/espressif/esp-idf/blob/master/examples/bluetooth/bluedroid/ble/gatt_server_service_table/main/gatts_table_creat_demo.c
+
+namespace ble_service {
 
 static constexpr auto TAG = "ble2";
 
-#define PROFILE_NUM 1
-#define PROFILE_APP_IDX 0
+// #define PROFILE_NUM 1
+// #define PROFILE_APP_IDX 0
 #define ESP_APP_ID 0x55
 #define SVC_INST_ID 0
 
@@ -67,27 +74,6 @@ typedef struct {
 
 static prepare_type_env_t prepare_write_env;
 
-// #define CONFIG_SET_RAW_ADV_DATA
-// #ifdef CONFIG_SET_RAW_ADV_DATA
-// static uint8_t raw_adv_data[] = {
-//     /* flags */
-//     0x02, 0x01, 0x06,
-//     /* tx power*/
-//     0x02, 0x0a, 0xeb,
-//     /* service uuid */
-//     0x03, 0x03, 0xFF, 0x00,
-//     /* device name */
-//     0x0f, 0x09, 'E', 'S', 'P', '_', 'G', 'A', 'T', 'T', 'S', '_', 'D', 'E',
-//     'M', 'O'};
-// static uint8_t raw_scan_rsp_data[] = {
-//     /* flags */
-//     0x02, 0x01, 0x06,
-//     /* tx power */
-//     0x02, 0x0a, 0xeb,
-//     /* service uuid */
-//     0x03, 0x03, 0xFF, 0x00};
-
-// #else
 static uint8_t service_uuid[16] = {
     /* LSB
        <-------------------------------------------------------------------------------->
@@ -146,31 +132,22 @@ static esp_ble_adv_params_t adv_params = {
 };
 #pragma GCC diagnostic pop
 
-struct gatts_profile_inst {
+constexpr uint16_t kInvalidConnId = -1;
+
+struct ProfileDescriptor {
   esp_gatts_cb_t gatts_cb;
   uint16_t gatts_if;
-  uint16_t app_id;
+  // uint16_t app_id;
   uint16_t conn_id;
-  uint16_t service_handle;
-  esp_gatt_srvc_id_t service_id;
-  uint16_t char_handle;
-  esp_bt_uuid_t char_uuid;
-  esp_gatt_perm_t perm;
-  esp_gatt_char_prop_t property;
-  uint16_t descr_handle;
-  esp_bt_uuid_t descr_uuid;
+  // uint16_t service_handle;
+  // esp_gatt_srvc_id_t service_id;
+  // uint16_t char_handle;
+  // esp_bt_uuid_t char_uuid;
+  // esp_gatt_perm_t perm;
+  // esp_gatt_char_prop_t property;
+  // uint16_t descr_handle;
+  // esp_bt_uuid_t descr_uuid;
 };
-
-// static void dump_address() {
-//   const uint8_t *addr = esp_bt_dev_get_address();
-//   if (addr) {
-//     ESP_LOGI(TAG, "Address is %02x:%02x:%02x:%02x:%02x:%02x", addr[0],
-//     addr[1],
-//              addr[2], addr[3], addr[4], addr[5]);
-//   } else {
-//     ESP_LOGI(TAG, "Address is NULL");
-//   }
-// }
 
 static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
                                         esp_gatt_if_t gatts_if,
@@ -181,13 +158,21 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
  * gatts_if returned by ESP_GATTS_REG_EVT */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-static struct gatts_profile_inst profile_table[PROFILE_NUM] = {
-    [PROFILE_APP_IDX] =
-        {
-            .gatts_cb = gatts_profile_event_handler,
-            .gatts_if = ESP_GATT_IF_NONE, /* Not get the gatt_if, so initial is
-                                             ESP_GATT_IF_NONE */
-        },
+// static struct gatts_profile_inst profile_table[PROFILE_NUM] = {
+//     [PROFILE_APP_IDX] =
+//         {
+//             .gatts_cb = gatts_profile_event_handler,
+//             .gatts_if = ESP_GATT_IF_NONE, /* Not get the gatt_if, so initial
+//             is
+//                                              ESP_GATT_IF_NONE */
+//         },
+// };
+
+static ProfileDescriptor profile = {
+    // TODO: Remove this field. We can call the handler directly.
+    .gatts_cb = gatts_profile_event_handler,
+    .gatts_if = ESP_GATT_IF_NONE,  // invalid ifc id.
+    .conn_id = kInvalidConnId,
 };
 #pragma GCC diagnostic pop
 
@@ -271,20 +256,6 @@ static const esp_gatts_attr_db_t gatt_db[HRS_IDX_NB] = {
 static void gap_event_handler(esp_gap_ble_cb_event_t event,
                               esp_ble_gap_cb_param_t *param) {
   switch (event) {
-      // #ifdef CONFIG_SET_RAW_ADV_DATA
-      //     case ESP_GAP_BLE_ADV_DATA_RAW_SET_COMPLETE_EVT:
-      //       adv_config_done &= (~ADV_CONFIG_FLAG);
-      //       if (adv_config_done == 0) {
-      //         esp_ble_gap_start_advertising(&adv_params);
-      //       }
-      //       break;
-      //     case ESP_GAP_BLE_SCAN_RSP_DATA_RAW_SET_COMPLETE_EVT:
-      //       adv_config_done &= (~SCAN_RSP_CONFIG_FLAG);
-      //       if (adv_config_done == 0) {
-      //         esp_ble_gap_start_advertising(&adv_params);
-      //       }
-      //       break;
-      // #else
     case ESP_GAP_BLE_ADV_DATA_SET_COMPLETE_EVT:
       adv_config_done &= (~ADV_CONFIG_FLAG);
       if (adv_config_done == 0) {
@@ -422,24 +393,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
         ESP_LOGE(TAG, "set device name failed, error code = %x",
                  set_dev_name_ret);
       }
-      // #ifdef CONFIG_SET_RAW_ADV_DATA
-      //       esp_err_t raw_adv_ret =
-      //           esp_ble_gap_config_adv_data_raw(raw_adv_data,
-      //           sizeof(raw_adv_data));
-      //       if (raw_adv_ret) {
-      //         ESP_LOGE(TAG, "config raw adv data failed, error code = %x ",
-      //                  raw_adv_ret);
-      //       }
-      //       adv_config_done |= ADV_CONFIG_FLAG;
-      //       esp_err_t raw_scan_ret = esp_ble_gap_config_scan_rsp_data_raw(
-      //           raw_scan_rsp_data, sizeof(raw_scan_rsp_data));
-      //       if (raw_scan_ret) {
-      //         ESP_LOGE(TAG, "config raw scan rsp data failed, error code =
-      //         %x",
-      //                  raw_scan_ret);
-      //       }
-      //       adv_config_done |= SCAN_RSP_CONFIG_FLAG;
-      // #else
+
       // config adv data
       esp_err_t ret = esp_ble_gap_config_adv_data(&adv_data);
       if (ret) {
@@ -479,30 +433,12 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
               param->write.value[1] << 8 | param->write.value[0];
           if (descr_value == 0x0001) {
             ESP_LOGI(TAG, "notify enable");
-            // uint8_t notify_data[15];
-            // for (int i = 0; i < sizeof(notify_data); ++i) {
-            //   notify_data[i] = i % 0xff;
-            // }
-            // // the size of notify_data[] need less than MTU size
-            // esp_ble_gatts_send_indicate(gatts_if, param->write.conn_id,
-            //                             heart_rate_handle_table[IDX_CHAR_A_VAL],
-            //                             sizeof(notify_data), notify_data,
-            //                             false);
           } else if (descr_value == 0x0002) {
             ESP_LOGI(TAG, "indicate enable");
-            // uint8_t indicate_data[15];
-            // for (int i = 0; i < sizeof(indicate_data); ++i) {
-            //   indicate_data[i] = i % 0xff;
-            // }
-            // // the size of indicate_data[] need less than MTU size
-            // esp_ble_gatts_send_indicate(gatts_if, param->write.conn_id,
-            //                             heart_rate_handle_table[IDX_CHAR_A_VAL],
-            //                             sizeof(indicate_data), indicate_data,
-            //                             true);
           } else if (descr_value == 0x0000) {
             ESP_LOGI(TAG, "notify/indicate disable ");
           } else {
-            ESP_LOGE(TAG, "unknown descr value");
+            ESP_LOGE(TAG, "Unexpected descr value");
             esp_log_buffer_hex(TAG, param->write.value, param->write.len);
           }
         }
@@ -541,6 +477,9 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
     case ESP_GATTS_CONNECT_EVT: {
       ESP_LOGI(TAG, "ESP_GATTS_CONNECT_EVT, conn_id = %d",
                param->connect.conn_id);
+      // Verify our assumption that kInvalidConnId can't be a valid id.
+      assert(param->connect.conn_id != kInvalidConnId);
+      profile.conn_id = param->connect.conn_id;
       esp_log_buffer_hex(TAG, param->connect.remote_bda, 6);
       esp_ble_conn_update_params_t conn_params = {};
       memcpy(conn_params.bda, param->connect.remote_bda, sizeof(esp_bd_addr_t));
@@ -557,6 +496,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
     case ESP_GATTS_DISCONNECT_EVT:
       ESP_LOGI(TAG, "ESP_GATTS_DISCONNECT_EVT, reason = 0x%x",
                param->disconnect.reason);
+      profile.conn_id = kInvalidConnId;
       esp_ble_gap_start_advertising(&adv_params);
       break;
 
@@ -592,132 +532,117 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
   /* If event is register event, store the gatts_if for each profile */
   if (event == ESP_GATTS_REG_EVT) {
     if (param->reg.status == ESP_GATT_OK) {
-      profile_table[PROFILE_APP_IDX].gatts_if = gatts_if;
+      // profile_table[PROFILE_APP_IDX].gatts_if = gatts_if;
+      profile.gatts_if = gatts_if;
     } else {
       ESP_LOGE(TAG, "reg app failed, app_id %04x, status %d", param->reg.app_id,
                param->reg.status);
       return;
     }
   }
-  do {
-    int idx;
-    for (idx = 0; idx < PROFILE_NUM; idx++) {
-      /* ESP_GATT_IF_NONE, not specify a certain gatt_if, need to call every
-       * profile cb function */
-      if (gatts_if == ESP_GATT_IF_NONE ||
-          gatts_if == profile_table[idx].gatts_if) {
-        if (profile_table[idx].gatts_cb) {
-          profile_table[idx].gatts_cb(event, gatts_if, param);
-        }
-      }
+
+  // If the gatts if matches the profile or is NONE, call the callback of the
+  // profile.
+  if (gatts_if == ESP_GATT_IF_NONE || gatts_if == profile.gatts_if) {
+    if (profile.gatts_cb) {
+      profile.gatts_cb(event, gatts_if, param);
     }
-  } while (0);
+  }
+
+  // do {
+  //   int idx;
+  //   for (idx = 0; idx < PROFILE_NUM; idx++) {
+  //     /* ESP_GATT_IF_NONE, not specify a certain gatt_if, need to call every
+  //      * profile cb function */
+  //     if (gatts_if == ESP_GATT_IF_NONE ||
+  //         gatts_if == profile_table[idx].gatts_if) {
+  //       if (profile_table[idx].gatts_cb) {
+  //         profile_table[idx].gatts_cb(event, gatts_if, param);
+  //       }
+  //     }
+  //   }
+  // } while (0);
 }
 
 void setup(void) {
-  esp_err_t ret;
-
   ble_util::test_tables();
-
-  /* Initialize NVS. */
-  // ret = nvs_flash_init();
-  // if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret ==
-  // ESP_ERR_NVS_NEW_VERSION_FOUND) {
-  //     ESP_ERROR_CHECK(nvs_flash_erase());
-  //     ret = nvs_flash_init();
-  // }
-  // ESP_ERROR_CHECK( ret );
-  //   dump_address();
-
   ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
 
-  //   dump_address();
-
   esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
-  ret = esp_bt_controller_init(&bt_cfg);
+  // NOTE: Non default bg_cfg values can be set here.
+  esp_err_t ret = esp_bt_controller_init(&bt_cfg);
   if (ret) {
     ESP_LOGE(TAG, "%s enable controller failed: %s", __func__,
              esp_err_to_name(ret));
-    return;
+    assert(0);
   }
-
-  //   dump_address();
 
   ret = esp_bt_controller_enable(ESP_BT_MODE_BLE);
   if (ret) {
     ESP_LOGE(TAG, "%s enable controller failed: %s", __func__,
              esp_err_to_name(ret));
-    return;
+    assert(0);
   }
-
-  //   dump_address();
 
   ret = esp_bluedroid_init();
   if (ret) {
     ESP_LOGE(TAG, "%s init bluetooth failed: %s", __func__,
              esp_err_to_name(ret));
-    return;
+    assert(0);
   }
-
-  //   dump_address();
 
   ret = esp_bluedroid_enable();
   if (ret) {
     ESP_LOGE(TAG, "%s enable bluetooth failed: %s", __func__,
              esp_err_to_name(ret));
-    return;
+    assert(0);
   }
-
-  //   dump_address();
 
   ret = esp_ble_gatts_register_callback(gatts_event_handler);
   if (ret) {
     ESP_LOGE(TAG, "gatts register error, error code = %x", ret);
-    return;
+    assert(0);
   }
-
-  //   dump_address();
 
   ret = esp_ble_gap_register_callback(gap_event_handler);
   if (ret) {
     ESP_LOGE(TAG, "gap register error, error code = %x", ret);
-    return;
+    assert(0);
   }
-
-  //   dump_address();
 
   ret = esp_ble_gatts_app_register(ESP_APP_ID);
   if (ret) {
     ESP_LOGE(TAG, "gatts app register error, error code = %x", ret);
-    return;
+    assert(0);
   }
 
-  //   dump_address();
-
-  esp_err_t local_mtu_ret = esp_ble_gatt_set_local_mtu(500);
-  if (local_mtu_ret) {
-    ESP_LOGE(TAG, "set local  MTU failed, error code = %x", local_mtu_ret);
+  ret = esp_ble_gatt_set_local_mtu(500);
+  if (ret) {
+    ESP_LOGE(TAG, "set local  MTU failed, error code = %x", ret);
+    assert(0);
   }
-  //   dump_address();
 }
 
 static uint8_t notify_data[200] = {};
 static uint32_t notify_count = 0;
 
 void notify() {
+  if (profile.conn_id == kInvalidConnId) {
+    return;
+  }
   notify_count++;
-  ESP_LOGI(TAG, "Sending an indicate...");
+  ESP_LOGI(TAG, "Sending a notification...");
 
   notify_data[0] = (uint8_t)(notify_count >> 8);
   notify_data[1] = (uint8_t)notify_count;
 
-  const gatts_profile_inst &profile = profile_table[PROFILE_APP_IDX];
+  // const gatts_profile_inst &profile = profile_table[PROFILE_APP_IDX];
 
   esp_ble_gatts_send_indicate(profile.gatts_if, profile.conn_id,
                               handle_table[IDX_CHAR_A_VAL], sizeof(notify_data),
                               notify_data, false);
 
-  ESP_LOGI(TAG, "Indicate sent.");
+  ESP_LOGI(TAG, "Notification sent.");
 }
 
 }  // namespace ble_service
