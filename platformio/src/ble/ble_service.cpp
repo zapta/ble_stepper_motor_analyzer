@@ -16,18 +16,17 @@
 #include "freertos/task.h"
 #include "nvs_flash.h"
 
-// TODO: Add notification control.
-// TODO: merge gatts_profile_event_handler and gatts_event_handler. Remove field profile.gatts_cb.
-// TODO: add mutex.
 // TODO: Set service UUID.
 // TODO: Set first real characteristic
+// TODO: add mutex.
 
-// Based on this sexample
+
+// Based on the sexample at
 // https://github.com/espressif/esp-idf/blob/master/examples/bluetooth/bluedroid/ble/gatt_server_service_table/main/gatts_table_creat_demo.c
 
 namespace ble_service {
 
-static constexpr auto TAG = "ble2";
+static constexpr auto TAG = "ble_srv";
 
 // #define PROFILE_NUM 1
 // #define PROFILE_APP_IDX 0
@@ -135,10 +134,12 @@ static esp_ble_adv_params_t adv_params = {
 constexpr uint16_t kInvalidConnId = -1;
 
 struct ProfileDescriptor {
-  esp_gatts_cb_t gatts_cb;
+  // esp_gatts_cb_t gatts_cb;
   uint16_t gatts_if;
   // uint16_t app_id;
-  uint16_t conn_id;
+  uint16_t conn_id;  // kInvalidConnId if no connection.
+
+  bool notification_enabled;
   // uint16_t service_handle;
   // esp_gatt_srvc_id_t service_id;
   // uint16_t char_handle;
@@ -149,15 +150,15 @@ struct ProfileDescriptor {
   // esp_bt_uuid_t descr_uuid;
 };
 
-static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
-                                        esp_gatt_if_t gatts_if,
-                                        esp_ble_gatts_cb_param_t *param);
+// static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
+//                                         esp_gatt_if_t gatts_if,
+//                                         esp_ble_gatts_cb_param_t *param);
 
 //  TODO: Convert to a simple struct. (Array has a single item)
 /* One gatt-based profile one app_id and one gatts_if, this array will store the
  * gatts_if returned by ESP_GATTS_REG_EVT */
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+// #pragma GCC diagnostic push
+// #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 // static struct gatts_profile_inst profile_table[PROFILE_NUM] = {
 //     [PROFILE_APP_IDX] =
 //         {
@@ -170,11 +171,12 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
 
 static ProfileDescriptor profile = {
     // TODO: Remove this field. We can call the handler directly.
-    .gatts_cb = gatts_profile_event_handler,
+    // .gatts_cb = gatts_profile_event_handler,
     .gatts_if = ESP_GATT_IF_NONE,  // invalid ifc id.
     .conn_id = kInvalidConnId,
+    .notification_enabled = false,
 };
-#pragma GCC diagnostic pop
+// #pragma GCC diagnostic pop
 
 /* Service */
 static const uint16_t GATTS_SERVICE_UUID_TEST = 0x00FF;
@@ -372,11 +374,25 @@ void example_exec_write_event_env(prepare_type_env_t *prepare_write_env,
   prepare_write_env->prepare_len = 0;
 }
 
-static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
-                                        esp_gatt_if_t gatts_if,
-                                        esp_ble_gatts_cb_param_t *param) {
+static void gatts_event_handler(esp_gatts_cb_event_t event,
+                                esp_gatt_if_t gatts_if,
+                                esp_ble_gatts_cb_param_t *param) {
   switch (event) {
     case ESP_GATTS_REG_EVT: {
+      assert(param->reg.status == ESP_GATT_OK);
+              profile.gatts_if = gatts_if;
+
+      // @@@ From other handler.
+      // if (param->reg.status == ESP_GATT_OK) {
+      //   // profile_table[PROFILE_APP_IDX].gatts_if = gatts_if;
+      //   profile.gatts_if = gatts_if;
+      // } else {
+      //   ESP_LOGE(TAG, "reg app failed, app_id %04x, status %d",
+      //            param->reg.app_id, param->reg.status);
+      //   return;
+      // }
+
+      // @@@ From this handler.
       // Construct device name from device address.
       const uint8_t *device_addr = esp_bt_dev_get_address();
       assert(device_addr);
@@ -431,12 +447,17 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
             param->write.len == 2) {
           uint16_t descr_value =
               param->write.value[1] << 8 | param->write.value[0];
+          // Disable notify/indicate: 0
+          // Enable notify: 1
+          // Enable indicate: 2
           if (descr_value == 0x0001) {
             ESP_LOGI(TAG, "notify enable");
-          } else if (descr_value == 0x0002) {
-            ESP_LOGI(TAG, "indicate enable");
+            profile.notification_enabled = true;
+          // } else if (descr_value == 0x0002) {
+          //   ESP_LOGI(TAG, "indicate enable");
           } else if (descr_value == 0x0000) {
-            ESP_LOGI(TAG, "notify/indicate disable ");
+            ESP_LOGI(TAG, "notify disable ");
+            profile.notification_enabled = false;
           } else {
             ESP_LOGE(TAG, "Unexpected descr value");
             esp_log_buffer_hex(TAG, param->write.value, param->write.len);
@@ -465,8 +486,8 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
       break;
 
     case ESP_GATTS_CONF_EVT:
-      ESP_LOGI(TAG, "ESP_GATTS_CONF_EVT, status = %d, attr_handle %d",
-               param->conf.status, param->conf.handle);
+      // ESP_LOGI(TAG, "ESP_GATTS_CONF_EVT, status = %d, attr_handle %d",
+      //          param->conf.status, param->conf.handle);
       break;
 
     case ESP_GATTS_START_EVT:
@@ -497,6 +518,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
       ESP_LOGI(TAG, "ESP_GATTS_DISCONNECT_EVT, reason = 0x%x",
                param->disconnect.reason);
       profile.conn_id = kInvalidConnId;
+      profile.notification_enabled = false;
       esp_ble_gap_start_advertising(&adv_params);
       break;
 
@@ -510,8 +532,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
                         doesn't equal to HRS_IDX_NB(%d)",
                  param->add_attr_tab.num_handle, HRS_IDX_NB);
       } else {
-        ESP_LOGI(TAG,
-                 "create attribute table successfully, the number handle = %d",
+        ESP_LOGI(TAG, "create attribute table successfully, num handles = %d",
                  param->add_attr_tab.num_handle);
         memcpy(handle_table, param->add_attr_tab.handles, sizeof(handle_table));
         esp_ble_gatts_start_service(handle_table[IDX_SVC]);
@@ -526,43 +547,45 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
   }
 }
 
-static void gatts_event_handler(esp_gatts_cb_event_t event,
-                                esp_gatt_if_t gatts_if,
-                                esp_ble_gatts_cb_param_t *param) {
-  /* If event is register event, store the gatts_if for each profile */
-  if (event == ESP_GATTS_REG_EVT) {
-    if (param->reg.status == ESP_GATT_OK) {
-      // profile_table[PROFILE_APP_IDX].gatts_if = gatts_if;
-      profile.gatts_if = gatts_if;
-    } else {
-      ESP_LOGE(TAG, "reg app failed, app_id %04x, status %d", param->reg.app_id,
-               param->reg.status);
-      return;
-    }
-  }
+// static void gatts_event_handler(esp_gatts_cb_event_t event,
+//                                 esp_gatt_if_t gatts_if,
+//                                 esp_ble_gatts_cb_param_t *param) {
+//   /* If event is register event, store the gatts_if for each profile */
+//   if (event == ESP_GATTS_REG_EVT) {
+//     if (param->reg.status == ESP_GATT_OK) {
+//       // profile_table[PROFILE_APP_IDX].gatts_if = gatts_if;
+//       profile.gatts_if = gatts_if;
+//     } else {
+//       ESP_LOGE(TAG, "reg app failed, app_id %04x, status %d",
+//       param->reg.app_id,
+//                param->reg.status);
+//       return;
+//     }
+//   }
 
-  // If the gatts if matches the profile or is NONE, call the callback of the
-  // profile.
-  if (gatts_if == ESP_GATT_IF_NONE || gatts_if == profile.gatts_if) {
-    if (profile.gatts_cb) {
-      profile.gatts_cb(event, gatts_if, param);
-    }
-  }
+//   // If the gatts if matches the profile or is NONE, call the callback of the
+//   // profile.
+//   if (gatts_if == ESP_GATT_IF_NONE || gatts_if == profile.gatts_if) {
+//     if (profile.gatts_cb) {
+//       profile.gatts_cb(event, gatts_if, param);
+//     }
+//   }
 
-  // do {
-  //   int idx;
-  //   for (idx = 0; idx < PROFILE_NUM; idx++) {
-  //     /* ESP_GATT_IF_NONE, not specify a certain gatt_if, need to call every
-  //      * profile cb function */
-  //     if (gatts_if == ESP_GATT_IF_NONE ||
-  //         gatts_if == profile_table[idx].gatts_if) {
-  //       if (profile_table[idx].gatts_cb) {
-  //         profile_table[idx].gatts_cb(event, gatts_if, param);
-  //       }
-  //     }
-  //   }
-  // } while (0);
-}
+//   // do {
+//   //   int idx;
+//   //   for (idx = 0; idx < PROFILE_NUM; idx++) {
+//   //     /* ESP_GATT_IF_NONE, not specify a certain gatt_if, need to call
+//   every
+//   //      * profile cb function */
+//   //     if (gatts_if == ESP_GATT_IF_NONE ||
+//   //         gatts_if == profile_table[idx].gatts_if) {
+//   //       if (profile_table[idx].gatts_cb) {
+//   //         profile_table[idx].gatts_cb(event, gatts_if, param);
+//   //       }
+//   //     }
+//   //   }
+//   // } while (0);
+// }
 
 void setup(void) {
   ble_util::test_tables();
@@ -616,7 +639,10 @@ void setup(void) {
     assert(0);
   }
 
-  ret = esp_ble_gatt_set_local_mtu(500);
+  // 247 is the convention to reasonable max MTU which results
+  // in payload size of 247-3 = 244. However, this is negotiated with
+  // the client so can be in practice lower that this max.
+  ret = esp_ble_gatt_set_local_mtu(247);
   if (ret) {
     ESP_LOGE(TAG, "set local  MTU failed, error code = %x", ret);
     assert(0);
@@ -627,22 +653,26 @@ static uint8_t notify_data[200] = {};
 static uint32_t notify_count = 0;
 
 void notify() {
-  if (profile.conn_id == kInvalidConnId) {
+  if (!profile.notification_enabled) {
     return;
   }
+  assert(profile.gatts_if != ESP_GATT_IF_NONE);
+  assert(profile.conn_id != kInvalidConnId);
+
   notify_count++;
-  ESP_LOGI(TAG, "Sending a notification...");
+  // ESP_LOGI(TAG, "Sending a notification...");
 
   notify_data[0] = (uint8_t)(notify_count >> 8);
   notify_data[1] = (uint8_t)notify_count;
 
   // const gatts_profile_inst &profile = profile_table[PROFILE_APP_IDX];
 
+  // Having need_config == false, means notification, not indicate.
   esp_ble_gatts_send_indicate(profile.gatts_if, profile.conn_id,
                               handle_table[IDX_CHAR_A_VAL], sizeof(notify_data),
                               notify_data, false);
 
-  ESP_LOGI(TAG, "Notification sent.");
+  // ESP_LOGI(TAG, "Notification sent.");
 }
 
 }  // namespace ble_service

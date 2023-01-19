@@ -5,7 +5,6 @@
 #include "acquisition/analyzer.h"
 #include "ble/ble_service.h"
 #include "driver/gpio.h"
-#include "misc/util.h"
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_system.h"
@@ -68,7 +67,7 @@ static void setup() {
 
   // Init BLE
   // ble_service::setup();
-   ble_service::setup();
+  ble_service::setup();
 }
 
 // static uint32_t loop_counter = 0;
@@ -118,15 +117,11 @@ static void loop() {
     io::LED2.write(led2_counter > 0 && !(led2_counter & 0x1));
   }
 
-
-
   // Blocking. 50Hz.
   analyzer::pop_next_state(&state);
 
   analyzer_counter++;
-  // ble_service::notify();
-
- 
+  ble_service::notify();
 
   // Dump ADC state
   // if (analyzer_counter % 100 == 0) {
