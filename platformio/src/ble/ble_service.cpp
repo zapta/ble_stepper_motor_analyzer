@@ -73,13 +73,28 @@ typedef struct {
 
 static prepare_type_env_t prepare_write_env;
 
+// static uint8_t service_uuid1[16] = {
+//     /* LSB
+//        <-------------------------------------------------------------------------------->
+//        MSB */
+//     // first uuid, 16bit, [12],[13] is the value
+//     0xfb, 0x34, 0x9b, 0x5f, 0x80, 0x00, 0x00, 0x80,
+//     0x00, 0x10, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00,
+// };
+
+// static uint8_t service_uuid2[16] = {
+//     /* LSB
+//        <-------------------------------------------------------------------------------->
+//        MSB */
+//     // first uuid, 16bit, [12],[13] is the value
+//     0xfb, 0x34, 0x9b, 0x5f, 0x80, 0x00, 0x00, 0x80,
+//     0x00, 0x10, 0x00, 0x00, 0xFE, 0x00, 0x00, 0x00,
+// };
+
+// Bytes are in reversed order.
 static uint8_t service_uuid[16] = {
-    /* LSB
-       <-------------------------------------------------------------------------------->
-       MSB */
-    // first uuid, 16bit, [12],[13] is the value
-    0xfb, 0x34, 0x9b, 0x5f, 0x80, 0x00, 0x00, 0x80,
-    0x00, 0x10, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00,
+    0xd0, 0x4b, 0x8c, 0x01, 0x99, 0x87, 0x30, 0x8a,
+    0x25, 0x45, 0x25, 0x81, 0x34, 0xa0, 0xe1, 0x68,
 };
 
 /* The length of adv data must be less than 31 bytes */
@@ -96,15 +111,15 @@ static esp_ble_adv_data_t adv_data = {
     .p_manufacturer_data = NULL,  // test_manufacturer,
     .service_data_len = 0,
     .p_service_data = NULL,
-    .service_uuid_len = sizeof(service_uuid),
-    .p_service_uuid = service_uuid,
+    .service_uuid_len = 0,
+    .p_service_uuid = nullptr,
     .flag = (ESP_BLE_ADV_FLAG_GEN_DISC | ESP_BLE_ADV_FLAG_BREDR_NOT_SPT),
 };
 
 // scan response data
 static esp_ble_adv_data_t scan_rsp_data = {
     .set_scan_rsp = true,
-    .include_name = true,
+    .include_name = false,  // name is passed in the adv packet.
     .include_txpower = true,
     .min_interval = 0x0006,
     .max_interval = 0x0010,
@@ -113,6 +128,8 @@ static esp_ble_adv_data_t scan_rsp_data = {
     .p_manufacturer_data = NULL,  //&test_manufacturer[0],
     .service_data_len = 0,
     .p_service_data = NULL,
+    // .service_uuid_len = sizeof(service_uuid3),
+    // .p_service_uuid = service_uuid3,
     .service_uuid_len = sizeof(service_uuid),
     .p_service_uuid = service_uuid,
     .flag = (ESP_BLE_ADV_FLAG_GEN_DISC | ESP_BLE_ADV_FLAG_BREDR_NOT_SPT),
@@ -179,12 +196,13 @@ static ProfileDescriptor profile = {
 // #pragma GCC diagnostic pop
 
 /* Service */
-static const uint16_t GATTS_SERVICE_UUID_TEST = 0x00FF;
+// static const uint16_t GATTS_SERVICE_UUID_TEST = 0x00FF;
 static const uint16_t GATTS_CHAR_UUID_TEST_A = 0xFF01;
 static const uint16_t GATTS_CHAR_UUID_TEST_B = 0xFF02;
 static const uint16_t GATTS_CHAR_UUID_TEST_C = 0xFF03;
 
 static const uint16_t primary_service_uuid = ESP_GATT_UUID_PRI_SERVICE;
+
 static const uint16_t character_declaration_uuid = ESP_GATT_UUID_CHAR_DECLARE;
 static const uint16_t character_client_config_uuid =
     ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
@@ -202,8 +220,10 @@ static const esp_gatts_attr_db_t gatt_db[HRS_IDX_NB] = {
     [IDX_SVC] = {{ESP_GATT_AUTO_RSP},
                  {ESP_UUID_LEN_16, (uint8_t *)&primary_service_uuid,
                   ESP_GATT_PERM_READ, sizeof(uint16_t),
-                  sizeof(GATTS_SERVICE_UUID_TEST),
-                  (uint8_t *)&GATTS_SERVICE_UUID_TEST}},
+                  //  sizeof(GATTS_SERVICE_UUID_TEST),
+                  // (uint8_t *)&GATTS_SERVICE_UUID_TEST}},
+                  sizeof(service_uuid),
+                  service_uuid}},
 
     /* Characteristic Declaration */
     [IDX_CHAR_A] = {{ESP_GATT_AUTO_RSP},
@@ -416,13 +436,14 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
         ESP_LOGE(TAG, "config adv data failed, error code = %x", ret);
       }
       adv_config_done |= ADV_CONFIG_FLAG;
+
       // config scan response data
       ret = esp_ble_gap_config_adv_data(&scan_rsp_data);
       if (ret) {
         ESP_LOGE(TAG, "config scan response data failed, error code = %x", ret);
       }
       adv_config_done |= SCAN_RSP_CONFIG_FLAG;
-      // #endif
+    
       esp_err_t create_attr_ret = esp_ble_gatts_create_attr_tab(
           gatt_db, gatts_if, HRS_IDX_NB, SVC_INST_ID);
       if (create_attr_ret) {
