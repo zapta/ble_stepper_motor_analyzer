@@ -1,0 +1,8 @@
+async-timeout
+bleak
+bleak-winrt
+numpy
+PyQt6
+PyQt6-Qt6
+PyQt6-sip
+pyqtgraph
