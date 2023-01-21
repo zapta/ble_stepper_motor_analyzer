@@ -2,6 +2,7 @@
 
 #include <string.h>
 
+#include "ble_handlers.h"
 #include "ble_util.h"
 #include "esp_bt.h"
 #include "esp_bt_device.h"
@@ -19,7 +20,6 @@
 // TODO: Set service UUID.
 // TODO: Set first real characteristic
 // TODO: add mutex.
-
 
 // Based on the sexample at
 // https://github.com/espressif/esp-idf/blob/master/examples/bluetooth/bluedroid/ble/gatt_server_service_table/main/gatts_table_creat_demo.c
@@ -39,32 +39,16 @@ static constexpr auto TAG = "ble_srv";
  */
 #define GATTS_DEMO_CHAR_VAL_LEN_MAX 500
 #define PREPARE_BUF_MAX_SIZE 1024
-#define CHAR_DECLARATION_SIZE (sizeof(uint8_t))
+// #define CHAR_DECLARATION_SIZE (sizeof(uint8_t))
 
+// TODO: What does this value represent? Is it the correct
+// value?
+// static constexpr uint16_t kChrDeclSize = sizeof(uint8_t);
+
+// TODO: Replace this with two booleans.
 #define ADV_CONFIG_FLAG (1 << 0)
 #define SCAN_RSP_CONFIG_FLAG (1 << 1)
-
 static uint8_t adv_config_done = 0;
-
-/* Attributes State Machine */
-enum {
-  IDX_SVC = 0,
-
-  IDX_CHAR_A,
-  IDX_CHAR_A_VAL,
-  IDX_CHAR_A_CFG,
-
-  IDX_CHAR_B,
-  IDX_CHAR_B_VAL,
-
-  IDX_CHAR_C,
-  IDX_CHAR_C_VAL,
-
-  HRS_IDX_NB,  // entries count.
-};
-
-// Parallel to the entries of gatt_db.
-uint16_t handle_table[HRS_IDX_NB];
 
 typedef struct {
   uint8_t *prepare_buf;
@@ -73,31 +57,26 @@ typedef struct {
 
 static prepare_type_env_t prepare_write_env;
 
-// static uint8_t service_uuid1[16] = {
-//     /* LSB
-//        <-------------------------------------------------------------------------------->
-//        MSB */
-//     // first uuid, 16bit, [12],[13] is the value
-//     0xfb, 0x34, 0x9b, 0x5f, 0x80, 0x00, 0x00, 0x80,
-//     0x00, 0x10, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00,
-// };
-
-// static uint8_t service_uuid2[16] = {
-//     /* LSB
-//        <-------------------------------------------------------------------------------->
-//        MSB */
-//     // first uuid, 16bit, [12],[13] is the value
-//     0xfb, 0x34, 0x9b, 0x5f, 0x80, 0x00, 0x00, 0x80,
-//     0x00, 0x10, 0x00, 0x00, 0xFE, 0x00, 0x00, 0x00,
-// };
-
 // Bytes are in reversed order.
-static uint8_t service_uuid[16] = {
-    0xd0, 0x4b, 0x8c, 0x01, 0x99, 0x87, 0x30, 0x8a,
-    0x25, 0x45, 0x25, 0x81, 0x34, 0xa0, 0xe1, 0x68,
-};
+// static uint8_t service_uuid[16] = {
+//     0xd0, 0x4b, 0x8c, 0x01, 0x99, 0x87, 0x30, 0x8a,
+//     0x25, 0x45, 0x25, 0x81, 0x34, 0xa0, 0xe1, 0x68,
+// };
 
-/* The length of adv data must be less than 31 bytes */
+static const uint8_t service_uuid[] = {
+    ENCODE_UUID_128(0x6b6a78d7, 0x8ee0, 0x4a26, 0xba7b, 0x62e357dd9720)};
+
+static const uint8_t model_uuid[] = {ENCODE_UUID_16(0x2A24)};
+
+static const uint8_t revision_uuid[] = {ENCODE_UUID_16(0x2A26)};
+
+static const uint8_t manufacturer_uuid[] = {ENCODE_UUID_16(0x2A29)};
+
+// static const uint16_t kModelChrUuid = ;
+
+// The length of constructed adv and scan respn data must be
+// less than 31 bytes. For this reason we split the device
+// metadata between the two.
 static esp_ble_adv_data_t adv_data = {
     .set_scan_rsp = false,
     .include_name = true,
@@ -128,13 +107,10 @@ static esp_ble_adv_data_t scan_rsp_data = {
     .p_manufacturer_data = NULL,  //&test_manufacturer[0],
     .service_data_len = 0,
     .p_service_data = NULL,
-    // .service_uuid_len = sizeof(service_uuid3),
-    // .p_service_uuid = service_uuid3,
     .service_uuid_len = sizeof(service_uuid),
-    .p_service_uuid = service_uuid,
+    .p_service_uuid = (uint8_t *)service_uuid,
     .flag = (ESP_BLE_ADV_FLAG_GEN_DISC | ESP_BLE_ADV_FLAG_BREDR_NOT_SPT),
 };
-// #endif /* CONFIG_SET_RAW_ADV_DATA */
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
@@ -150,45 +126,13 @@ static esp_ble_adv_params_t adv_params = {
 
 constexpr uint16_t kInvalidConnId = -1;
 
-struct ProfileDescriptor {
-  // esp_gatts_cb_t gatts_cb;
+struct Vars {
   uint16_t gatts_if;
-  // uint16_t app_id;
   uint16_t conn_id;  // kInvalidConnId if no connection.
-
   bool notification_enabled;
-  // uint16_t service_handle;
-  // esp_gatt_srvc_id_t service_id;
-  // uint16_t char_handle;
-  // esp_bt_uuid_t char_uuid;
-  // esp_gatt_perm_t perm;
-  // esp_gatt_char_prop_t property;
-  // uint16_t descr_handle;
-  // esp_bt_uuid_t descr_uuid;
 };
 
-// static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
-//                                         esp_gatt_if_t gatts_if,
-//                                         esp_ble_gatts_cb_param_t *param);
-
-//  TODO: Convert to a simple struct. (Array has a single item)
-/* One gatt-based profile one app_id and one gatts_if, this array will store the
- * gatts_if returned by ESP_GATTS_REG_EVT */
-// #pragma GCC diagnostic push
-// #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-// static struct gatts_profile_inst profile_table[PROFILE_NUM] = {
-//     [PROFILE_APP_IDX] =
-//         {
-//             .gatts_cb = gatts_profile_event_handler,
-//             .gatts_if = ESP_GATT_IF_NONE, /* Not get the gatt_if, so initial
-//             is
-//                                              ESP_GATT_IF_NONE */
-//         },
-// };
-
-static ProfileDescriptor profile = {
-    // TODO: Remove this field. We can call the handler directly.
-    // .gatts_cb = gatts_profile_event_handler,
+static Vars vars = {
     .gatts_if = ESP_GATT_IF_NONE,  // invalid ifc id.
     .conn_id = kInvalidConnId,
     .notification_enabled = false,
@@ -198,82 +142,186 @@ static ProfileDescriptor profile = {
 /* Service */
 // static const uint16_t GATTS_SERVICE_UUID_TEST = 0x00FF;
 static const uint16_t GATTS_CHAR_UUID_TEST_A = 0xFF01;
-static const uint16_t GATTS_CHAR_UUID_TEST_B = 0xFF02;
-static const uint16_t GATTS_CHAR_UUID_TEST_C = 0xFF03;
+// static const uint16_t GATTS_CHAR_UUID_TEST_B = 0xFF02;
+// static const uint16_t GATTS_CHAR_UUID_TEST_C = 0xFF03;
 
-static const uint16_t primary_service_uuid = ESP_GATT_UUID_PRI_SERVICE;
+// static const uint16_t kModelChrUuid = 0xFF03;
+// static const uint16_t kModelChrUuid = 0x2A24;
+// static const uint16_t kModelChrUuid = 0x2A29;
 
-static const uint16_t character_declaration_uuid = ESP_GATT_UUID_CHAR_DECLARE;
-static const uint16_t character_client_config_uuid =
-    ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
+static const uint16_t kPrimaryServiceDeclUuid = ESP_GATT_UUID_PRI_SERVICE;
+static const uint16_t kCharDeclUuid = ESP_GATT_UUID_CHAR_DECLARE;
+static const uint16_t kChrConfigDeclUuid = ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
+
+// static const uint16_t character_client_config_uuid =
+//     ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
+
 static const uint8_t char_prop_read = ESP_GATT_CHAR_PROP_BIT_READ;
 static const uint8_t char_prop_write = ESP_GATT_CHAR_PROP_BIT_WRITE;
-static const uint8_t char_prop_read_write_notify =
+
+static const uint8_t kChrPropertyReadWriteNotify =
     ESP_GATT_CHAR_PROP_BIT_WRITE | ESP_GATT_CHAR_PROP_BIT_READ |
     ESP_GATT_CHAR_PROP_BIT_NOTIFY;
+
+static const uint8_t kChrPropertyReadOnly = ESP_GATT_CHAR_PROP_BIT_READ;
+
+// TODO: What is this?  Related to notification control.
 static const uint8_t heart_measurement_ccc[2] = {0x00, 0x00};
-static const uint8_t char_value[4] = {0x11, 0x22, 0x33, 0x44};
 
-/* Full Database Description - Used to add attributes into the database */
-static const esp_gatts_attr_db_t gatt_db[HRS_IDX_NB] = {
-    // Service Declaration
-    [IDX_SVC] = {{ESP_GATT_AUTO_RSP},
-                 {ESP_UUID_LEN_16, (uint8_t *)&primary_service_uuid,
-                  ESP_GATT_PERM_READ, sizeof(uint16_t),
-                  //  sizeof(GATTS_SERVICE_UUID_TEST),
-                  // (uint8_t *)&GATTS_SERVICE_UUID_TEST}},
-                  sizeof(service_uuid),
-                  service_uuid}},
+static const uint8_t char_value[] = {0x33, 0x44, 0x55, 0x66};
 
-    /* Characteristic Declaration */
-    [IDX_CHAR_A] = {{ESP_GATT_AUTO_RSP},
-                    {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid,
-                     ESP_GATT_PERM_READ, CHAR_DECLARATION_SIZE,
-                     CHAR_DECLARATION_SIZE,
-                     (uint8_t *)&char_prop_read_write_notify}},
+static const uint8_t model_value[] = "Stepper Probe ESP32";
+static constexpr uint16_t model_value_size = sizeof(model_value) - 1;
 
-    /* Characteristic Value */
-    [IDX_CHAR_A_VAL] = {{ESP_GATT_AUTO_RSP},
-                        {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_TEST_A,
-                         ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-                         GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value),
-                         (uint8_t *)char_value}},
+static const uint8_t revision_value[] = "00.00.01";
+static constexpr uint16_t revision_value_size = sizeof(revision_value) - 1;
 
-    /* Client Characteristic Configuration Descriptor */
-    [IDX_CHAR_A_CFG] = {{ESP_GATT_AUTO_RSP},
-                        {ESP_UUID_LEN_16,
-                         (uint8_t *)&character_client_config_uuid,
-                         ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-                         sizeof(uint16_t), sizeof(heart_measurement_ccc),
-                         (uint8_t *)heart_measurement_ccc}},
+static const uint8_t manufacturer_value[] = "Zapta";
+static constexpr uint16_t manufacturer_value_size =
+    sizeof(manufacturer_value) - 1;
 
-    /* Characteristic Declaration */
-    [IDX_CHAR_B] = {{ESP_GATT_AUTO_RSP},
-                    {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid,
-                     ESP_GATT_PERM_READ, CHAR_DECLARATION_SIZE,
-                     CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read}},
+// Attributes indexes in tables.
+enum {
+  ATTR_IDX_SVC,
 
-    /* Characteristic Value */
-    [IDX_CHAR_B_VAL] = {{ESP_GATT_AUTO_RSP},
-                        {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_TEST_B,
-                         ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-                         GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value),
-                         (uint8_t *)char_value}},
+  ATTR_IDX_MODEL,
+  ATTR_IDX_MODEL_VAL,
 
-    /* Characteristic Declaration */
-    [IDX_CHAR_C] = {{ESP_GATT_AUTO_RSP},
-                    {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid,
-                     ESP_GATT_PERM_READ, CHAR_DECLARATION_SIZE,
-                     CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_write}},
+  ATTR_IDX_REVISION,
+  ATTR_IDX_REVISION_VAL,
 
-    /* Characteristic Value */
-    [IDX_CHAR_C_VAL] = {{ESP_GATT_AUTO_RSP},
-                        {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_TEST_C,
-                         ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-                         GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value),
-                         (uint8_t *)char_value}},
+  ATTR_IDX_MANUFECTURER,
+  ATTR_IDX_MANUFECTURER_VAL,
+
+  ATTR_IDX_CHAR_A,
+  ATTR_IDX_CHAR_A_VAL,
+  ATTR_IDX_CHAR_A_CFG,
+
+  // ATTR_IDX_CHAR_B,
+  // ATTR_IDX_CHAR_B_VAL,
+
+  // ATTR_IDX_CHAR_C,
+  // ATTR_IDX_CHAR_C_VAL,
+
+  ATTR_IDX_COUNT,  // Attributes count.
+};
+
+// static uint16_t test_uuid = 0x180a;
+
+// Attributes list of the stepper service. A table like this
+// can define a single primary or secondary service.
+
+static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
+
+    // Service.
+
+    [ATTR_IDX_SVC] = {{ESP_GATT_AUTO_RSP},
+                      {ESP_UUID_LEN_16, (uint8_t *)&kPrimaryServiceDeclUuid,
+                       ESP_GATT_PERM_READ, sizeof(service_uuid),
+                       sizeof(service_uuid), (uint8_t *)service_uuid}},
+
+    // ----- Device Model.
+    //
+    // Characteristic
+    [ATTR_IDX_MODEL] = {{ESP_GATT_AUTO_RSP},
+                        {ESP_UUID_LEN_16, (uint8_t *)&kCharDeclUuid,
+                         ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
+                         sizeof(kChrPropertyReadOnly),
+                         (uint8_t *)&kChrPropertyReadOnly}},
+    // Value.
+    [ATTR_IDX_MODEL_VAL] = {{ESP_GATT_AUTO_RSP},
+                            {sizeof(model_uuid), (uint8_t *)&model_uuid,
+                             ESP_GATT_PERM_READ, model_value_size,
+                             model_value_size, (uint8_t *)&model_value}},
+
+    // ----- Firmware revision
+    //
+    // Characteristic
+    [ATTR_IDX_REVISION] = {{ESP_GATT_AUTO_RSP},
+                           {ESP_UUID_LEN_16, (uint8_t *)&kCharDeclUuid,
+                            ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
+                            sizeof(kChrPropertyReadOnly),
+                            (uint8_t *)&kChrPropertyReadOnly}},
+    // Value.
+    [ATTR_IDX_REVISION_VAL] = {{ESP_GATT_AUTO_RSP},
+                               {sizeof(revision_uuid),
+                                (uint8_t *)&revision_uuid, ESP_GATT_PERM_READ,
+                                revision_value_size, revision_value_size,
+                                (uint8_t *)&revision_value}},
+
+    // ----- Manufacturer name
+    //
+    // Characteristic
+    [ATTR_IDX_MANUFECTURER] = {{ESP_GATT_AUTO_RSP},
+                               {ESP_UUID_LEN_16, (uint8_t *)&kCharDeclUuid,
+                                ESP_GATT_PERM_READ,
+                                sizeof(kChrPropertyReadOnly),
+                                sizeof(kChrPropertyReadOnly),
+                                (uint8_t *)&kChrPropertyReadOnly}},
+    // Value.
+    [ATTR_IDX_MANUFECTURER_VAL] = {{ESP_GATT_AUTO_RSP},
+                               {sizeof(manufacturer_uuid),
+                                (uint8_t *)&manufacturer_uuid,
+                                ESP_GATT_PERM_READ, manufacturer_value_size,
+                                manufacturer_value_size,
+                                (uint8_t *)&manufacturer_value}},
+
+    // ----- XYZ charateristic.
+
+    // Characteristic Declaration
+    // TODO: Why max len is 1?
+    [ATTR_IDX_CHAR_A] = {{ESP_GATT_AUTO_RSP},
+                         {ESP_UUID_LEN_16, (uint8_t *)&kCharDeclUuid,
+                          ESP_GATT_PERM_READ,
+                          sizeof(kChrPropertyReadWriteNotify),
+                          sizeof(kChrPropertyReadWriteNotify),
+                          (uint8_t *)&kChrPropertyReadWriteNotify}},
+
+    // Characteristic Value
+    [ATTR_IDX_CHAR_A_VAL] = {{ESP_GATT_AUTO_RSP},
+                             {ESP_UUID_LEN_16,
+                              (uint8_t *)&GATTS_CHAR_UUID_TEST_A,
+                              ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+                              GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value),
+                              (uint8_t *)&char_value}},
+
+    // Client Characteristic Configuration Descriptor
+    [ATTR_IDX_CHAR_A_CFG] = {{ESP_GATT_AUTO_RSP},
+                             {ESP_UUID_LEN_16, (uint8_t *)&kChrConfigDeclUuid,
+                              ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+                              sizeof(uint16_t), sizeof(heart_measurement_ccc),
+                              (uint8_t *)&heart_measurement_ccc}},
+
+    // // Characteristic Declaration
+    // [ATTR_IDX_CHAR_B] = {{ESP_GATT_AUTO_RSP},
+    //                 {ESP_UUID_LEN_16, (uint8_t *)&kCharDeclUuid,
+    //                  ESP_GATT_PERM_READ, kChrDeclSize,
+    //                  kChrDeclSize, (uint8_t *)&char_prop_read}},
+
+    // // Characteristic Value
+    // [ATTR_IDX_CHAR_B_VAL] = {{ESP_GATT_AUTO_RSP},
+    //                     {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_TEST_B,
+    //                      ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+    //                      GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value),
+    //                      (uint8_t *)char_value}},
+
+    // // Characteristic Declaration
+    // [ATTR_IDX_CHAR_C] = {{ESP_GATT_AUTO_RSP},
+    //                 {ESP_UUID_LEN_16, (uint8_t *)&kCharDeclUuid,
+    //                  ESP_GATT_PERM_READ, kChrDeclSize,
+    //                  kChrDeclSize, (uint8_t *)&char_prop_write}},
+
+    // // Characteristic Value
+    // [ATTR_IDX_CHAR_C_VAL] = {{ESP_GATT_AUTO_RSP},
+    //                     {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_TEST_C,
+    //                      ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+    //                      GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value),
+    //                      (uint8_t *)char_value}},
 
 };
+
+// Parallel to the entries of attr_table.
+uint16_t handle_table[ATTR_IDX_COUNT];
 
 static void gap_event_handler(esp_gap_ble_cb_event_t event,
                               esp_ble_gap_cb_param_t *param) {
@@ -330,7 +378,7 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event,
 
 void example_prepare_write_event_env(esp_gatt_if_t gatts_if,
                                      prepare_type_env_t *prepare_write_env,
-                                     esp_ble_gatts_cb_param_t *param) {
+                                     const esp_ble_gatts_cb_param_t *param) {
   ESP_LOGI(TAG, "prepare write, handle = %d, value len = %d",
            param->write.handle, param->write.len);
   esp_gatt_status_t status = ESP_GATT_OK;
@@ -379,7 +427,7 @@ void example_prepare_write_event_env(esp_gatt_if_t gatts_if,
 }
 
 void example_exec_write_event_env(prepare_type_env_t *prepare_write_env,
-                                  esp_ble_gatts_cb_param_t *param) {
+                                  const esp_ble_gatts_cb_param_t *param) {
   if (param->exec_write.exec_write_flag == ESP_GATT_PREP_WRITE_EXEC &&
       prepare_write_env->prepare_buf) {
     esp_log_buffer_hex(TAG, prepare_write_env->prepare_buf,
@@ -400,7 +448,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
   switch (event) {
     case ESP_GATTS_REG_EVT: {
       assert(param->reg.status == ESP_GATT_OK);
-              profile.gatts_if = gatts_if;
+      vars.gatts_if = gatts_if;
 
       // @@@ From other handler.
       // if (param->reg.status == ESP_GATT_OK) {
@@ -443,9 +491,9 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
         ESP_LOGE(TAG, "config scan response data failed, error code = %x", ret);
       }
       adv_config_done |= SCAN_RSP_CONFIG_FLAG;
-    
+
       esp_err_t create_attr_ret = esp_ble_gatts_create_attr_tab(
-          gatt_db, gatts_if, HRS_IDX_NB, SVC_INST_ID);
+          attr_table, gatts_if, ATTR_IDX_COUNT, SVC_INST_ID);
       if (create_attr_ret) {
         ESP_LOGE(TAG, "create attr table failed, error code = %x",
                  create_attr_ret);
@@ -464,7 +512,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
         ESP_LOGI(TAG, "GATT_WRITE_EVT, handle = %d, value len = %d, value :",
                  param->write.handle, param->write.len);
         esp_log_buffer_hex(TAG, param->write.value, param->write.len);
-        if (handle_table[IDX_CHAR_A_CFG] == param->write.handle &&
+        if (handle_table[ATTR_IDX_CHAR_A_CFG] == param->write.handle &&
             param->write.len == 2) {
           uint16_t descr_value =
               param->write.value[1] << 8 | param->write.value[0];
@@ -473,12 +521,12 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
           // Enable indicate: 2
           if (descr_value == 0x0001) {
             ESP_LOGI(TAG, "notify enable");
-            profile.notification_enabled = true;
-          // } else if (descr_value == 0x0002) {
-          //   ESP_LOGI(TAG, "indicate enable");
+            vars.notification_enabled = true;
+            // } else if (descr_value == 0x0002) {
+            //   ESP_LOGI(TAG, "indicate enable");
           } else if (descr_value == 0x0000) {
             ESP_LOGI(TAG, "notify disable ");
-            profile.notification_enabled = false;
+            vars.notification_enabled = false;
           } else {
             ESP_LOGE(TAG, "Unexpected descr value");
             esp_log_buffer_hex(TAG, param->write.value, param->write.len);
@@ -521,7 +569,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
                param->connect.conn_id);
       // Verify our assumption that kInvalidConnId can't be a valid id.
       assert(param->connect.conn_id != kInvalidConnId);
-      profile.conn_id = param->connect.conn_id;
+      vars.conn_id = param->connect.conn_id;
       esp_log_buffer_hex(TAG, param->connect.remote_bda, 6);
       esp_ble_conn_update_params_t conn_params = {};
       memcpy(conn_params.bda, param->connect.remote_bda, sizeof(esp_bd_addr_t));
@@ -538,8 +586,8 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
     case ESP_GATTS_DISCONNECT_EVT:
       ESP_LOGI(TAG, "ESP_GATTS_DISCONNECT_EVT, reason = 0x%x",
                param->disconnect.reason);
-      profile.conn_id = kInvalidConnId;
-      profile.notification_enabled = false;
+      vars.conn_id = kInvalidConnId;
+      vars.notification_enabled = false;
       esp_ble_gap_start_advertising(&adv_params);
       break;
 
@@ -547,16 +595,17 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       if (param->add_attr_tab.status != ESP_GATT_OK) {
         ESP_LOGE(TAG, "create attribute table failed, error code=0x%x",
                  param->add_attr_tab.status);
-      } else if (param->add_attr_tab.num_handle != HRS_IDX_NB) {
+      } else if (param->add_attr_tab.num_handle != ATTR_IDX_COUNT) {
         ESP_LOGE(TAG,
                  "create attribute table abnormally, num_handle (%d) \
                         doesn't equal to HRS_IDX_NB(%d)",
-                 param->add_attr_tab.num_handle, HRS_IDX_NB);
+                 param->add_attr_tab.num_handle, ATTR_IDX_COUNT);
       } else {
         ESP_LOGI(TAG, "create attribute table successfully, num handles = %d",
                  param->add_attr_tab.num_handle);
         memcpy(handle_table, param->add_attr_tab.handles, sizeof(handle_table));
-        esp_ble_gatts_start_service(handle_table[IDX_SVC]);
+        esp_ble_gatts_start_service(handle_table[ATTR_IDX_SVC]);
+        // esp_ble_gatts_start_service(handle_table[ATTR_IDX_SVC]);
       }
       break;
     }
@@ -567,46 +616,6 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       break;
   }
 }
-
-// static void gatts_event_handler(esp_gatts_cb_event_t event,
-//                                 esp_gatt_if_t gatts_if,
-//                                 esp_ble_gatts_cb_param_t *param) {
-//   /* If event is register event, store the gatts_if for each profile */
-//   if (event == ESP_GATTS_REG_EVT) {
-//     if (param->reg.status == ESP_GATT_OK) {
-//       // profile_table[PROFILE_APP_IDX].gatts_if = gatts_if;
-//       profile.gatts_if = gatts_if;
-//     } else {
-//       ESP_LOGE(TAG, "reg app failed, app_id %04x, status %d",
-//       param->reg.app_id,
-//                param->reg.status);
-//       return;
-//     }
-//   }
-
-//   // If the gatts if matches the profile or is NONE, call the callback of the
-//   // profile.
-//   if (gatts_if == ESP_GATT_IF_NONE || gatts_if == profile.gatts_if) {
-//     if (profile.gatts_cb) {
-//       profile.gatts_cb(event, gatts_if, param);
-//     }
-//   }
-
-//   // do {
-//   //   int idx;
-//   //   for (idx = 0; idx < PROFILE_NUM; idx++) {
-//   //     /* ESP_GATT_IF_NONE, not specify a certain gatt_if, need to call
-//   every
-//   //      * profile cb function */
-//   //     if (gatts_if == ESP_GATT_IF_NONE ||
-//   //         gatts_if == profile_table[idx].gatts_if) {
-//   //       if (profile_table[idx].gatts_cb) {
-//   //         profile_table[idx].gatts_cb(event, gatts_if, param);
-//   //       }
-//   //     }
-//   //   }
-//   // } while (0);
-// }
 
 void setup(void) {
   ble_util::test_tables();
@@ -674,11 +683,11 @@ static uint8_t notify_data[200] = {};
 static uint32_t notify_count = 0;
 
 void notify() {
-  if (!profile.notification_enabled) {
+  if (!vars.notification_enabled) {
     return;
   }
-  assert(profile.gatts_if != ESP_GATT_IF_NONE);
-  assert(profile.conn_id != kInvalidConnId);
+  assert(vars.gatts_if != ESP_GATT_IF_NONE);
+  assert(vars.conn_id != kInvalidConnId);
 
   notify_count++;
   // ESP_LOGI(TAG, "Sending a notification...");
@@ -689,9 +698,9 @@ void notify() {
   // const gatts_profile_inst &profile = profile_table[PROFILE_APP_IDX];
 
   // Having need_config == false, means notification, not indicate.
-  esp_ble_gatts_send_indicate(profile.gatts_if, profile.conn_id,
-                              handle_table[IDX_CHAR_A_VAL], sizeof(notify_data),
-                              notify_data, false);
+  esp_ble_gatts_send_indicate(vars.gatts_if, vars.conn_id,
+                              handle_table[ATTR_IDX_CHAR_A_VAL],
+                              sizeof(notify_data), notify_data, false);
 
   // ESP_LOGI(TAG, "Notification sent.");
 }
