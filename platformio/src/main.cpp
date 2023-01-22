@@ -3,6 +3,7 @@
 
 #include "acquisition/adc_task.h"
 #include "acquisition/analyzer.h"
+#include "acquisition/acq_consts.h"
 #include "ble/ble_service.h"
 #include "driver/gpio.h"
 #include "esp_event.h"
@@ -66,8 +67,8 @@ static void setup() {
   adc_task::setup();
 
   // Init BLE
-  // ble_service::setup();
-  ble_service::setup();
+  // TODO: Make this configured by board resistors.
+  ble_service::setup(0, acq_consts::xCC6920BSO5A_ADC_TICKS_PER_AMP);
 }
 
 // static uint32_t loop_counter = 0;

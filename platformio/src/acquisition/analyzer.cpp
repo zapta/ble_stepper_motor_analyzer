@@ -66,7 +66,7 @@ constexpr int kMaxOffset = 4095;  // 12 bits max
 
 // We capture steps every this number of ADC ticks.
 constexpr uint16_t kStepsCaptureDivider =
-    acq_consts::TIME_TICKS_PER_SEC / kStepsCaptursPerSec;
+    acq_consts::kTimeTicksPerSec / kStepsCaptursPerSec;
 
 enum AdcCaptureState {
   // Blind filling half of the capture buffer. In this state we don't
@@ -358,7 +358,7 @@ static inline void isr_add_step_to_histogram(uint8_t quadrant,
       entry_direction == UNKNOWN_DIRECTION) {
     return;
   }
-  uint32_t steps_per_sec = acq_consts::TIME_TICKS_PER_SEC /
+  uint32_t steps_per_sec = acq_consts::kTimeTicksPerSec /
                            ticks_in_step;  // speed in steps per second
   if (steps_per_sec < 10) {
     return;  // ignore very slow steps as they dominate the time.

@@ -111,6 +111,7 @@ static const TableEntry gap_ble_events_table[] = {
     ENTRY(ESP_GAP_BLE_EVT_MAX),
 };
 
+
 // Common function to lookup a name table.
 static const char* find_name(int value, const TableEntry* table,
                              int table_size) {

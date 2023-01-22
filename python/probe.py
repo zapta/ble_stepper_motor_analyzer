@@ -110,28 +110,29 @@ class Probe:
         for s in self.__client.services.services.values():
             logger.info(f"* Service: {s}")
 
-        device_info_service = await self.__find_service_or_disconnect("Device Info", "180a")
-        if not device_info_service:
-            return False
+        # device_info_service = await self.__find_service_or_disconnect("Device Info", "180a")
+        # if not device_info_service:
+        #     return False
 
-        stepper_service = await self.__find_service_or_disconnect("Stepper", "68e1a034-8125-4525-8a30-8799018c4bd0")
+        # stepper_service = await self.__find_service_or_disconnect("Stepper", "68e1a034-8125-4525-8a30-8799018c4bd0")
+        stepper_service = await self.__find_service_or_disconnect("Stepper", "6b6a78d7-8ee0-4a26-ba7b-62e357dd9720")
         if not stepper_service:
             return False
 
-        model_number_bytes = await self.__read_chrc_or_disconnect(device_info_service, "Model Number", "2A24")
+        model_number_bytes = await self.__read_chrc_or_disconnect(stepper_service, "Model Number", "2A24")
         if not model_number_bytes:
             return False
 
-        manufacturer_bytes = await self.__read_chrc_or_disconnect(device_info_service, "Manufacturer", "2A29")
+        manufacturer_bytes = await self.__read_chrc_or_disconnect(stepper_service, "Manufacturer", "2A29")
         if not manufacturer_bytes:
             return False
 
-        probe_info_bytes = await self.__read_chrc_or_disconnect(stepper_service, "Probe Info", "37e75add-a610-448d-9fd3-3e3130e2c7f2")
+        probe_info_bytes = await self.__read_chrc_or_disconnect(stepper_service, "Probe Info", "ff01")
         if not probe_info_bytes:
             return False
 
         # Get stepper state characteristic.
-        stepper_state_chrc = await self.__find_chrc_or_disconnect(stepper_service, "Stepper State", "37e75add-a610-448d-9fd3-3e3130e2c7f1")
+        stepper_state_chrc = await self.__find_chrc_or_disconnect(stepper_service, "Stepper State", "ff02")
         if not stepper_state_chrc:
             return False
 

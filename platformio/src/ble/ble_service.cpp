@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include "acquisition/acq_consts.h"
+#include "acquisition/analyzer.h"
 #include "ble_handlers.h"
 #include "ble_util.h"
 #include "esp_bt.h"
@@ -23,6 +25,8 @@
 
 // Based on the sexample at
 // https://github.com/espressif/esp-idf/blob/master/examples/bluetooth/bluedroid/ble/gatt_server_service_table/main/gatts_table_creat_demo.c
+
+using gatts_read_evt_param = esp_ble_gatts_cb_param_t::gatts_read_evt_param;
 
 namespace ble_service {
 
@@ -66,11 +70,15 @@ static prepare_type_env_t prepare_write_env;
 static const uint8_t service_uuid[] = {
     ENCODE_UUID_128(0x6b6a78d7, 0x8ee0, 0x4a26, 0xba7b, 0x62e357dd9720)};
 
-static const uint8_t model_uuid[] = {ENCODE_UUID_16(0x2A24)};
+static const uint8_t model_uuid[] = {ENCODE_UUID_16(0x2a24)};
 
-static const uint8_t revision_uuid[] = {ENCODE_UUID_16(0x2A26)};
+static const uint8_t revision_uuid[] = {ENCODE_UUID_16(0x2a26)};
 
-static const uint8_t manufacturer_uuid[] = {ENCODE_UUID_16(0x2A29)};
+static const uint8_t manufacturer_uuid[] = {ENCODE_UUID_16(0x2a29)};
+
+static const uint8_t probe_info_uuid[] = {ENCODE_UUID_16(0xff01)};
+
+static const uint8_t stepper_state_uuid[] = {ENCODE_UUID_16(0xff02)};
 
 // static const uint16_t kModelChrUuid = ;
 
@@ -108,7 +116,7 @@ static esp_ble_adv_data_t scan_rsp_data = {
     .service_data_len = 0,
     .p_service_data = NULL,
     .service_uuid_len = sizeof(service_uuid),
-    .p_service_uuid = (uint8_t *)service_uuid,
+    .p_service_uuid = const_cast<uint8_t *>(service_uuid),
     .flag = (ESP_BLE_ADV_FLAG_GEN_DISC | ESP_BLE_ADV_FLAG_BREDR_NOT_SPT),
 };
 
@@ -127,21 +135,33 @@ static esp_ble_adv_params_t adv_params = {
 constexpr uint16_t kInvalidConnId = -1;
 
 struct Vars {
+  uint8_t hardware_config;
+  uint16_t adc_ticks_per_amp;
   uint16_t gatts_if;
   uint16_t conn_id;  // kInvalidConnId if no connection.
+  uint16_t conn_mtu;
   bool notification_enabled;
+  // Temp buffer for constructing read values.
+  // uint8_t value_buffer[300];
+  // Used for apps provided responses. Large.
+  esp_gatt_rsp_t rsp;
 };
 
 static Vars vars = {
+    .hardware_config = 0,
+    .adc_ticks_per_amp = 0,
     .gatts_if = ESP_GATT_IF_NONE,  // invalid ifc id.
     .conn_id = kInvalidConnId,
+    .conn_mtu = 0,  //
     .notification_enabled = false,
+    // .value_buffer = {},
+    .rsp = {},
 };
 // #pragma GCC diagnostic pop
 
 /* Service */
 // static const uint16_t GATTS_SERVICE_UUID_TEST = 0x00FF;
-static const uint16_t GATTS_CHAR_UUID_TEST_A = 0xFF01;
+static const uint16_t GATTS_CHAR_UUID_TEST_A = 0xFF09;
 // static const uint16_t GATTS_CHAR_UUID_TEST_B = 0xFF02;
 // static const uint16_t GATTS_CHAR_UUID_TEST_C = 0xFF03;
 
@@ -149,9 +169,17 @@ static const uint16_t GATTS_CHAR_UUID_TEST_A = 0xFF01;
 // static const uint16_t kModelChrUuid = 0x2A24;
 // static const uint16_t kModelChrUuid = 0x2A29;
 
-static const uint16_t kPrimaryServiceDeclUuid = ESP_GATT_UUID_PRI_SERVICE;
-static const uint16_t kCharDeclUuid = ESP_GATT_UUID_CHAR_DECLARE;
-static const uint16_t kChrConfigDeclUuid = ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
+// static const uint16_t kPrimaryServiceDeclUuid = ESP_GATT_UUID_PRI_SERVICE;
+static const uint8_t kPrimaryServiceDeclUuid[] = {
+    ENCODE_UUID_16(ESP_GATT_UUID_PRI_SERVICE)};
+
+// static const uint16_t kCharDeclUuid = ESP_GATT_UUID_CHAR_DECLARE;
+static const uint8_t kCharDeclUuid[] = {
+    ENCODE_UUID_16(ESP_GATT_UUID_CHAR_DECLARE)};
+
+// static const uint16_t kChrConfigDeclUuid = ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
+static const uint8_t kChrConfigDeclUuid[] = {
+    ENCODE_UUID_16(ESP_GATT_UUID_CHAR_CLIENT_CONFIG)};
 
 // static const uint16_t character_client_config_uuid =
 //     ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
@@ -170,15 +198,18 @@ static const uint8_t heart_measurement_ccc[2] = {0x00, 0x00};
 
 static const uint8_t char_value[] = {0x33, 0x44, 0x55, 0x66};
 
-static const uint8_t model_value[] = "Stepper Probe ESP32";
-static constexpr uint16_t model_value_size = sizeof(model_value) - 1;
+static const uint8_t model_str_value[] = "Stepper Probe ESP32";
+static constexpr uint16_t model_str_value_len = sizeof(model_str_value) - 1;
 
-static const uint8_t revision_value[] = "00.00.01";
-static constexpr uint16_t revision_value_size = sizeof(revision_value) - 1;
+static const uint8_t revision_str_value[] = "00.00.01";
+static constexpr uint16_t revision_str_value_len =
+    sizeof(revision_str_value) - 1;
 
-static const uint8_t manufacturer_value[] = "Zapta";
-static constexpr uint16_t manufacturer_value_size =
-    sizeof(manufacturer_value) - 1;
+static const uint8_t manufacturer_str_value[] = "Zapta";
+static constexpr uint16_t manufacturer_str_value_len =
+    sizeof(manufacturer_str_value) - 1;
+
+// static uint8_t probe_info_value[] = {0x01, 0x02};
 
 // Attributes indexes in tables.
 enum {
@@ -192,6 +223,13 @@ enum {
 
   ATTR_IDX_MANUFECTURER,
   ATTR_IDX_MANUFECTURER_VAL,
+
+  ATTR_IDX_PROBE_INFO,
+  ATTR_IDX_PROBE_INFO_VAL,
+
+  ATTR_IDX_STEPPER_STATE,
+  ATTR_IDX_STEPPER_STATE_VAL,
+
 
   ATTR_IDX_CHAR_A,
   ATTR_IDX_CHAR_A_VAL,
@@ -216,62 +254,100 @@ static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
     // Service.
 
     [ATTR_IDX_SVC] = {{ESP_GATT_AUTO_RSP},
-                      {ESP_UUID_LEN_16, (uint8_t *)&kPrimaryServiceDeclUuid,
+                      {ESP_UUID_LEN_16,
+                       const_cast<uint8_t *>(kPrimaryServiceDeclUuid),
                        ESP_GATT_PERM_READ, sizeof(service_uuid),
-                       sizeof(service_uuid), (uint8_t *)service_uuid}},
+                       sizeof(service_uuid),
+                       const_cast<uint8_t *>(service_uuid)}},
 
     // ----- Device Model.
     //
     // Characteristic
     [ATTR_IDX_MODEL] = {{ESP_GATT_AUTO_RSP},
-                        {ESP_UUID_LEN_16, (uint8_t *)&kCharDeclUuid,
+                        {ESP_UUID_LEN_16, const_cast<uint8_t *>(kCharDeclUuid),
                          ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
                          sizeof(kChrPropertyReadOnly),
-                         (uint8_t *)&kChrPropertyReadOnly}},
+                         const_cast<uint8_t *>(&kChrPropertyReadOnly)}},
     // Value.
     [ATTR_IDX_MODEL_VAL] = {{ESP_GATT_AUTO_RSP},
-                            {sizeof(model_uuid), (uint8_t *)&model_uuid,
-                             ESP_GATT_PERM_READ, model_value_size,
-                             model_value_size, (uint8_t *)&model_value}},
+                            {sizeof(model_uuid),
+                             const_cast<uint8_t *>(model_uuid),
+                             ESP_GATT_PERM_READ, model_str_value_len,
+                             model_str_value_len,
+                             const_cast<uint8_t *>(model_str_value)}},
 
     // ----- Firmware revision
     //
     // Characteristic
     [ATTR_IDX_REVISION] = {{ESP_GATT_AUTO_RSP},
-                           {ESP_UUID_LEN_16, (uint8_t *)&kCharDeclUuid,
+                           {ESP_UUID_LEN_16,
+                            const_cast<uint8_t *>(kCharDeclUuid),
                             ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
                             sizeof(kChrPropertyReadOnly),
                             (uint8_t *)&kChrPropertyReadOnly}},
     // Value.
     [ATTR_IDX_REVISION_VAL] = {{ESP_GATT_AUTO_RSP},
                                {sizeof(revision_uuid),
-                                (uint8_t *)&revision_uuid, ESP_GATT_PERM_READ,
-                                revision_value_size, revision_value_size,
-                                (uint8_t *)&revision_value}},
+                                const_cast<uint8_t *>(revision_uuid),
+                                ESP_GATT_PERM_READ, revision_str_value_len,
+                                revision_str_value_len,
+                                const_cast<uint8_t *>(revision_str_value)}},
 
     // ----- Manufacturer name
     //
     // Characteristic
-    [ATTR_IDX_MANUFECTURER] = {{ESP_GATT_AUTO_RSP},
-                               {ESP_UUID_LEN_16, (uint8_t *)&kCharDeclUuid,
-                                ESP_GATT_PERM_READ,
-                                sizeof(kChrPropertyReadOnly),
-                                sizeof(kChrPropertyReadOnly),
-                                (uint8_t *)&kChrPropertyReadOnly}},
+    [ATTR_IDX_MANUFECTURER] =
+        {{ESP_GATT_AUTO_RSP},
+         {ESP_UUID_LEN_16, const_cast<uint8_t *>(kCharDeclUuid),
+          ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
+          sizeof(kChrPropertyReadOnly), (uint8_t *)&kChrPropertyReadOnly}},
     // Value.
-    [ATTR_IDX_MANUFECTURER_VAL] = {{ESP_GATT_AUTO_RSP},
-                               {sizeof(manufacturer_uuid),
-                                (uint8_t *)&manufacturer_uuid,
-                                ESP_GATT_PERM_READ, manufacturer_value_size,
-                                manufacturer_value_size,
-                                (uint8_t *)&manufacturer_value}},
+    [ATTR_IDX_MANUFECTURER_VAL] =
+        {{ESP_GATT_AUTO_RSP},
+         {sizeof(manufacturer_uuid), const_cast<uint8_t *>(manufacturer_uuid),
+          ESP_GATT_PERM_READ, manufacturer_str_value_len,
+          manufacturer_str_value_len,
+          const_cast<uint8_t *>(manufacturer_str_value)}},
+
+    // ----- Probe info
+    //
+    // Characteristic
+    [ATTR_IDX_PROBE_INFO] = {{ESP_GATT_AUTO_RSP},
+                             {ESP_UUID_LEN_16,
+                              const_cast<uint8_t *>(kCharDeclUuid),
+                              ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
+                              sizeof(kChrPropertyReadOnly),
+                              const_cast<uint8_t *>(&kChrPropertyReadOnly)}},
+    // Value
+    [ATTR_IDX_PROBE_INFO_VAL] = {{ESP_GATT_RSP_BY_APP},
+                                 {sizeof(probe_info_uuid),
+                                  const_cast<uint8_t *>(probe_info_uuid),
+                                  ESP_GATT_PERM_READ, 100, 0, nullptr}},
+
+
+
+ // ----- Probe info
+    //
+    // Characteristic
+    [ATTR_IDX_STEPPER_STATE] = {{ESP_GATT_AUTO_RSP},
+                             {ESP_UUID_LEN_16,
+                              const_cast<uint8_t *>(kCharDeclUuid),
+                              ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
+                              sizeof(kChrPropertyReadOnly),
+                              const_cast<uint8_t *>(&kChrPropertyReadOnly)}},
+    // Value
+    [ATTR_IDX_STEPPER_STATE_VAL] = {{ESP_GATT_RSP_BY_APP},
+                                 {sizeof(stepper_state_uuid),
+                                  const_cast<uint8_t *>(stepper_state_uuid),
+                                  ESP_GATT_PERM_READ, 100, 0, nullptr}},
+
+
 
     // ----- XYZ charateristic.
 
     // Characteristic Declaration
-    // TODO: Why max len is 1?
     [ATTR_IDX_CHAR_A] = {{ESP_GATT_AUTO_RSP},
-                         {ESP_UUID_LEN_16, (uint8_t *)&kCharDeclUuid,
+                         {ESP_UUID_LEN_16, const_cast<uint8_t *>(kCharDeclUuid),
                           ESP_GATT_PERM_READ,
                           sizeof(kChrPropertyReadWriteNotify),
                           sizeof(kChrPropertyReadWriteNotify),
@@ -292,36 +368,70 @@ static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
                               sizeof(uint16_t), sizeof(heart_measurement_ccc),
                               (uint8_t *)&heart_measurement_ccc}},
 
-    // // Characteristic Declaration
-    // [ATTR_IDX_CHAR_B] = {{ESP_GATT_AUTO_RSP},
-    //                 {ESP_UUID_LEN_16, (uint8_t *)&kCharDeclUuid,
-    //                  ESP_GATT_PERM_READ, kChrDeclSize,
-    //                  kChrDeclSize, (uint8_t *)&char_prop_read}},
-
-    // // Characteristic Value
-    // [ATTR_IDX_CHAR_B_VAL] = {{ESP_GATT_AUTO_RSP},
-    //                     {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_TEST_B,
-    //                      ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-    //                      GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value),
-    //                      (uint8_t *)char_value}},
-
-    // // Characteristic Declaration
-    // [ATTR_IDX_CHAR_C] = {{ESP_GATT_AUTO_RSP},
-    //                 {ESP_UUID_LEN_16, (uint8_t *)&kCharDeclUuid,
-    //                  ESP_GATT_PERM_READ, kChrDeclSize,
-    //                  kChrDeclSize, (uint8_t *)&char_prop_write}},
-
-    // // Characteristic Value
-    // [ATTR_IDX_CHAR_C_VAL] = {{ESP_GATT_AUTO_RSP},
-    //                     {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_TEST_C,
-    //                      ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-    //                      GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value),
-    //                      (uint8_t *)char_value}},
-
 };
 
 // Parallel to the entries of attr_table.
 uint16_t handle_table[ATTR_IDX_COUNT];
+
+// For read events only.
+void send_read_error_response(esp_gatt_if_t gatts_if,
+                              const gatts_read_evt_param &read_param,
+                              esp_gatt_status_t gatt_error) {
+  // TODO: This is a large variable. Do we need to clear entirely?
+  memset(&vars.rsp, 0, sizeof(vars.rsp));
+  vars.rsp.attr_value.handle = read_param.handle;
+  vars.rsp.attr_value.len = 0;
+  esp_ble_gatts_send_response(gatts_if, read_param.conn_id, read_param.trans_id,
+                              gatt_error, &vars.rsp);
+}
+
+void on_probe_info_read(esp_gatt_if_t gatts_if,
+                        const gatts_read_evt_param &read_param) {
+  ESP_LOGI(TAG, "on_probe_info_read() called");
+
+  // TODO: This is a large variable. Do we need to clear entirely?
+  memset(&vars.rsp, 0, sizeof(vars.rsp));
+
+  // Encode packet the response.
+  ble_util::BigEndianEncoder enc(vars.rsp.attr_value.value,
+                                 sizeof(vars.rsp.attr_value.value));
+  enc.encode_uint8(0x1);  // Packet format version
+  enc.encode_uint8(vars.hardware_config);
+  enc.encode_uint16(vars.adc_ticks_per_amp);
+  enc.encode_uint24(acq_consts::kTimeTicksPerSec);
+  enc.encode_uint16(acq_consts::kBucketStepsPerSecond);
+  assert(enc.size() == 9);
+
+  vars.rsp.attr_value.len = enc.size();
+  vars.rsp.attr_value.handle = read_param.handle;
+  esp_ble_gatts_send_response(gatts_if, read_param.conn_id, read_param.trans_id,
+                              ESP_GATT_OK, &vars.rsp);
+  ESP_LOGI(TAG, "on_probe_info_read() sent response with %d bytes", enc.size());
+}
+
+void on_stepper_state_read(esp_gatt_if_t gatts_if,
+                        const gatts_read_evt_param &read_param) {
+  ESP_LOGI(TAG, "on_stepper_state_read() called");
+
+  // TODO: This is a large variable. Do we need to clear entirely?
+  memset(&vars.rsp, 0, sizeof(vars.rsp));
+
+  // Encode packet the response.
+  ble_util::BigEndianEncoder enc(vars.rsp.attr_value.value,
+                                 sizeof(vars.rsp.attr_value.value));
+  enc.encode_uint8(0x1);  // Packet format version
+  enc.encode_uint8(vars.hardware_config);
+  enc.encode_uint16(vars.adc_ticks_per_amp);
+  enc.encode_uint24(acq_consts::kTimeTicksPerSec);
+  enc.encode_uint16(acq_consts::kBucketStepsPerSecond);
+  assert(enc.size() == 9);
+
+  vars.rsp.attr_value.len = enc.size();
+  vars.rsp.attr_value.handle = read_param.handle;
+  esp_ble_gatts_send_response(gatts_if, read_param.conn_id, read_param.trans_id,
+                              ESP_GATT_OK, &vars.rsp);
+  ESP_LOGI(TAG, "on_stepper_state_read() sent response with %d bytes", enc.size());
+}
 
 static void gap_event_handler(esp_gap_ble_cb_event_t event,
                               esp_ble_gap_cb_param_t *param) {
@@ -370,7 +480,7 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event,
       break;
 
     default:
-      ESP_LOGI(TAG, "Gap handler: unknown event %d, %s", event,
+      ESP_LOGI(TAG, "Gap event handler: unknown event %d, %s", event,
                ble_util::gap_ble_event_name(event));
       break;
   }
@@ -500,9 +610,38 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       }
     } break;
 
-    case ESP_GATTS_READ_EVT:
+    // Handle read event. 
+    case ESP_GATTS_READ_EVT: {
       ESP_LOGI(TAG, "ESP_GATTS_READ_EVT");
-      break;
+      const gatts_read_evt_param& read_param = param->read;
+
+      // For characteristics with auto resp we don't need to do
+      // anything here.
+      if (!read_param.need_rsp) {
+        ESP_LOGI(TAG, "ESP_GATTS_READ_EVT, rsp not needed.");
+        return;
+      }
+
+      // Here when a read with a user constructed response. In our
+      // app all of those reads expect offset == 0.
+      if (read_param.offset != 0) {
+        ESP_LOGE(TAG, "Read request has an invalid offset: %hu",
+                 read_param.offset);
+        send_read_error_response(gatts_if, read_param, ESP_GATT_INVALID_OFFSET);
+        return;
+      }
+      // Dispatch by characteristic.
+      if (read_param.handle == handle_table[ATTR_IDX_PROBE_INFO_VAL]) {
+        on_probe_info_read(gatts_if, param->read);
+        return;
+      }
+      if (read_param.handle == handle_table[ATTR_IDX_STEPPER_STATE_VAL]) {
+        on_probe_stepper_read(gatts_if, param->read);
+        return;
+      }
+      ESP_LOGE(TAG, "ESP_GATTS_READ_EVT: unexpected handle: %hu", read_param.handle);
+      send_read_error_response(gatts_if, read_param, ESP_GATT_NOT_FOUND);
+    } break;
 
     // Notification control.
     case ESP_GATTS_WRITE_EVT:
@@ -552,6 +691,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
 
     case ESP_GATTS_MTU_EVT:
       ESP_LOGI(TAG, "ESP_GATTS_MTU_EVT, MTU %d", param->mtu.mtu);
+      vars.conn_mtu = param->mtu.mtu;
       break;
 
     case ESP_GATTS_CONF_EVT:
@@ -570,6 +710,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       // Verify our assumption that kInvalidConnId can't be a valid id.
       assert(param->connect.conn_id != kInvalidConnId);
       vars.conn_id = param->connect.conn_id;
+      vars.conn_mtu = 23;  // Initial BLE MTU.
       esp_log_buffer_hex(TAG, param->connect.remote_bda, 6);
       esp_ble_conn_update_params_t conn_params = {};
       memcpy(conn_params.bda, param->connect.remote_bda, sizeof(esp_bd_addr_t));
@@ -583,10 +724,13 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       esp_ble_gap_update_conn_params(&conn_params);
     } break;
 
+    // On connection disconnection.
     case ESP_GATTS_DISCONNECT_EVT:
       ESP_LOGI(TAG, "ESP_GATTS_DISCONNECT_EVT, reason = 0x%x",
                param->disconnect.reason);
       vars.conn_id = kInvalidConnId;
+      vars.conn_mtu = 0;
+
       vars.notification_enabled = false;
       esp_ble_gap_start_advertising(&adv_params);
       break;
@@ -610,16 +754,24 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       break;
     }
 
+      // TODO: explain here when this is called.
+    case ESP_GATTS_RESPONSE_EVT:
+      ESP_LOGI(TAG, "ESP_GATTS_RESPONSE_EVT error rsp: %d", param->rsp.status);
+      break;
+
     default:
-      ESP_LOGI(TAG, "Profile handler: unknown event %d, %s", event,
+      ESP_LOGI(TAG, "Gatt event handler: unknown event %d, %s", event,
                ble_util::gatts_event_name(event));
       break;
   }
 }
 
-void setup(void) {
+void setup(uint8_t hardware_config, uint16_t adc_ticks_per_amp) {
   ble_util::test_tables();
   ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
+
+  vars.hardware_config = hardware_config;
+  vars.adc_ticks_per_amp = adc_ticks_per_amp;
 
   esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
   // NOTE: Non default bg_cfg values can be set here.

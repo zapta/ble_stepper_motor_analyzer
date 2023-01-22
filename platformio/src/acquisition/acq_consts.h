@@ -17,7 +17,7 @@ constexpr uint16_t xTMCS1108A4B_ADC_TICKS_PER_AMP =
 
 // How many time the pair of channels is sampled per second.
 // This time ticks are used as the data time base.
-constexpr uint32_t TIME_TICKS_PER_SEC = 40000;
+constexpr uint32_t kTimeTicksPerSec = 40000;
 
 // Number of histogram buckets, each bucket represents
 // a band of step speeds.
