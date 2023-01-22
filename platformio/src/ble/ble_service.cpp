@@ -18,12 +18,11 @@
 #include "freertos/task.h"
 #include "nvs_flash.h"
 
-// TODO: add mutex.
-// TODO: Does the max size in the ESP_GATT_RSP_BY_APP characteristics values
-//   matter?
 // TODO: Add to the handles table the on read and write handlers
 //   and use lookup.
-// TODO: pass and encoder to the on read function and handle the respnse sending by shared code.
+// TODO: pass and encoder to the on read function and handle the respnse sending
+// by shared code.
+// TODO: add mutex.
 
 // Based on the sexample at
 // https://github.com/espressif/esp-idf/blob/master/examples/bluetooth/bluedroid/ble/gatt_server_service_table/main/gatts_table_creat_demo.c
@@ -328,7 +327,7 @@ static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
     [ATTR_IDX_PROBE_INFO_VAL] = {{ESP_GATT_RSP_BY_APP},
                                  {sizeof(probe_info_uuid),
                                   const_cast<uint8_t *>(probe_info_uuid),
-                                  ESP_GATT_PERM_READ, 100, 0, nullptr}},
+                                  ESP_GATT_PERM_READ, 0, 0, nullptr}},
 
     // ----- Stepper state.
     //
@@ -344,7 +343,7 @@ static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
     [ATTR_IDX_STEPPER_STATE_VAL] = {{ESP_GATT_RSP_BY_APP},
                                     {sizeof(stepper_state_uuid),
                                      const_cast<uint8_t *>(stepper_state_uuid),
-                                     ESP_GATT_PERM_READ, 100, 0, nullptr}},
+                                     ESP_GATT_PERM_READ, 0, 0, nullptr}},
 
     // ----- Current histogram.
     //
@@ -360,7 +359,7 @@ static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
                                         {sizeof(current_histogram_uuid),
                                          const_cast<uint8_t *>(
                                              current_histogram_uuid),
-                                         ESP_GATT_PERM_READ, 244, 0, nullptr}},
+                                         ESP_GATT_PERM_READ, 0, 0, nullptr}},
 
     // ----- XYZ charateristic.
 
@@ -393,45 +392,49 @@ static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
 uint16_t handle_table[ATTR_IDX_COUNT];
 
 // For read events only.
-static void send_read_error_response(esp_gatt_if_t gatts_if,
-                                     const gatts_read_evt_param &read_param,
-                                     esp_gatt_status_t gatt_error) {
-  // TODO: This is a large variable. Do we need to clear entirely?
-  memset(&vars.rsp, 0, sizeof(vars.rsp));
-  vars.rsp.attr_value.handle = read_param.handle;
-  vars.rsp.attr_value.len = 0;
-  esp_ble_gatts_send_response(gatts_if, read_param.conn_id, read_param.trans_id,
-                              gatt_error, &vars.rsp);
-}
+// static void send_read_error_response(esp_gatt_if_t gatts_if,
+//                                      const gatts_read_evt_param &read_param,
+//                                      esp_gatt_status_t gatt_error) {
+//   // TODO: This is a large variable. Do we need to clear entirely?
+//   memset(&vars.rsp, 0, sizeof(vars.rsp));
+//   vars.rsp.attr_value.handle = read_param.handle;
+//   vars.rsp.attr_value.len = 0;
+//   esp_ble_gatts_send_response(gatts_if, read_param.conn_id,
+//   read_param.trans_id,
+//                               gatt_error, &vars.rsp);
+// }
 
-static void on_probe_info_read(esp_gatt_if_t gatts_if,
-                               const gatts_read_evt_param &read_param) {
+static esp_gatt_status_t on_probe_info_read(
+    const gatts_read_evt_param &read_param, ble_util::Serializer *ser) {
   ESP_LOGI(TAG, "on_probe_info_read() called");
 
   // TODO: This is a large variable. Do we need to clear entirely?
-  memset(&vars.rsp, 0, sizeof(vars.rsp));
+  // memset(&vars.rsp, 0, sizeof(vars.rsp));
 
-  // Encode packet the response.
-  ble_util::BigEndianEncoder enc(vars.rsp.attr_value.value,
-                                 sizeof(vars.rsp.attr_value.value));
-  enc.encode_uint8(0x1);  // Packet format version
-  enc.encode_uint8(vars.hardware_config);
-  enc.encode_uint16(vars.adc_ticks_per_amp);
-  enc.encode_uint24(acq_consts::kTimeTicksPerSec);
-  enc.encode_uint16(acq_consts::kBucketStepsPerSecond);
-  assert(enc.size() == 9);
+  // Serialize the response.
+  // ble_util::Serializer enc(vars.rsp.attr_value.value,
+  //                          sizeof(vars.rsp.attr_value.value));
 
-  vars.rsp.attr_value.len = enc.size();
-  vars.rsp.attr_value.handle = read_param.handle;
-  esp_ble_gatts_send_response(gatts_if, read_param.conn_id, read_param.trans_id,
-                              ESP_GATT_OK, &vars.rsp);
-  ESP_LOGI(TAG, "on_probe_info_read() sent response with %d bytes", enc.size());
+  assert(ser->size() == 0);
+  ser->append_uint8(0x1);  // Packet format version
+  ser->append_uint8(vars.hardware_config);
+  ser->append_uint16(vars.adc_ticks_per_amp);
+  ser->append_uint24(acq_consts::kTimeTicksPerSec);
+  ser->append_uint16(acq_consts::kBucketStepsPerSecond);
+  assert(ser->size() == 9);
+
+  // vars.rsp.attr_value.len = enc.size();
+  // vars.rsp.attr_value.handle = read_param.handle;
+  // esp_ble_gatts_send_response(gatts_if, read_param.conn_id,
+  // read_param.trans_id,
+  //                             ESP_GATT_OK, &vars.rsp);
+  // ESP_LOGI(TAG, "on_probe_info_read() sent response with %d bytes",
+  //          ser->size());
+  return ESP_GATT_OK;
 }
 
-static void encode_state(const analyzer::State &state,
-                         ble_util::BigEndianEncoder *enc) {
-  assert(enc->is_empty());
-
+static void serialize_state(const analyzer::State &state,
+                            ble_util::Serializer *ser) {
   // Flags.
   // * bit5 : true IFF energized.
   // * bit4 : true IFF reversed direction.
@@ -445,28 +448,29 @@ static void encode_state(const analyzer::State &state,
                         (state.is_reverse_direction ? 0x10 : 0) |
                         (state.quadrant & 0x03);
 
-  enc->encode_uint48(state.tick_count);
-  enc->encode_int32(state.full_steps);
-  enc->encode_uint8(flags);
-  enc->encode_int16(state.v1);
-  enc->encode_int16(state.v2);
-  enc->encode_uint32(state.non_energized_count);
-  assert(enc->size() == 19);
+  assert(ser->size() == 0);
+  ser->append_uint48(state.tick_count);
+  ser->encode_int32(state.full_steps);
+  ser->append_uint8(flags);
+  ser->append_int16(state.v1);
+  ser->append_int16(state.v2);
+  ser->append_uint32(state.non_energized_count);
+  assert(ser->size() == 19);
 }
 
-static void on_stepper_state_read(esp_gatt_if_t gatts_if,
-                                  const gatts_read_evt_param &read_param) {
+static esp_gatt_status_t on_stepper_state_read(
+    const gatts_read_evt_param &read_param, ble_util::Serializer *ser) {
   ESP_LOGI(TAG, "on_stepper_state_read() called");
 
   // TODO: This is a large variable. Do we need to clear entirely?
-  memset(&vars.rsp, 0, sizeof(vars.rsp));
+  // memset(&vars.rsp, 0, sizeof(vars.rsp));
 
   analyzer::sample_state(&vars.stepper_state);
 
   // Encode packet the response.
-  ble_util::BigEndianEncoder enc(vars.rsp.attr_value.value,
-                                 sizeof(vars.rsp.attr_value.value));
-  encode_state(vars.stepper_state, &enc);
+  // ble_util::Serializer enc(vars.rsp.attr_value.value,
+  //                          sizeof(vars.rsp.attr_value.value));
+  serialize_state(vars.stepper_state, ser);
   // Flags.
   // * bit5 : true IFF energized.
   // * bit4 : true IFF reversed direction.
@@ -488,44 +492,46 @@ static void on_stepper_state_read(esp_gatt_if_t gatts_if,
   // enc.encode_uint32(state.non_energized_count);
   // assert(enc.size() == 19);
 
-  vars.rsp.attr_value.len = enc.size();
-  vars.rsp.attr_value.handle = read_param.handle;
-  esp_ble_gatts_send_response(gatts_if, read_param.conn_id, read_param.trans_id,
-                              ESP_GATT_OK, &vars.rsp);
-  ESP_LOGI(TAG, "on_stepper_state_read() sent response with %d bytes",
-           enc.size());
+  // vars.rsp.attr_value.len = enc.size();
+  // vars.rsp.attr_value.handle = read_param.handle;
+  // esp_ble_gatts_send_response(gatts_if, read_param.conn_id,
+  // read_param.trans_id,
+  //                             ESP_GATT_OK, &vars.rsp);
+  // ESP_LOGI(TAG, "on_stepper_state_read() sent response with %d bytes",
+  //          ser->size());
+
+  return ESP_GATT_OK;
 }
 
-static void on_current_histogram_read(esp_gatt_if_t gatts_if,
-                                  const gatts_read_evt_param &read_param) {
+static esp_gatt_status_t on_current_histogram_read(
+    const gatts_read_evt_param &read_param, ble_util::Serializer *ser) {
   ESP_LOGI(TAG, "on_current_histogram_read() called");
 
   // TODO: This is a large variable. Do we need to clear entirely?
-  memset(&vars.rsp, 0, sizeof(vars.rsp));
+  // memset(&vars.rsp, 0, sizeof(vars.rsp));
 
   analyzer::sample_histogram(&vars.histogram);
-
 
   // analyzer::sample_state(&vars.stepper_state);
 
   // Encode packet the response.
-  ble_util::BigEndianEncoder enc(vars.rsp.attr_value.value,
-                                 sizeof(vars.rsp.attr_value.value));
+  // ble_util::Serializer enc(vars.rsp.attr_value.value,
+  //                          sizeof(vars.rsp.attr_value.value));
 
-// Encode the result value.
+  // Encode the result value.
   // uint8_t *const p0 = static_cast<uint8_t *>(buf);
   // uint8_t *p = p0;
 
   // Format id (1 byte)
   // *p++ = 0x10;  // Format id.
 
-  enc.encode_uint8(0x10);  // format id.
+  assert(ser->size() == 0);
+  ser->append_uint8(0x10);  // format id.
 
   // Num points: (1 byte)
   // *p++ = acq_consts::kNumHistogramBuckets;
 
-    enc.encode_uint8(acq_consts::kNumHistogramBuckets);  // Num of points
-
+  ser->append_uint8(acq_consts::kNumHistogramBuckets);  // Num of points
 
   // Format bucket values, (2 bytes each)
   for (int i = 0; i < acq_consts::kNumHistogramBuckets; i++) {
@@ -540,12 +546,10 @@ static void on_current_histogram_read(esp_gatt_if_t gatts_if,
         value = 1;
       }
     }
-    enc.encode_uint16(value);
+    ser->append_uint16(value);
     // *p++ = value >> 8;  // MSB
     // *p++ = value;       // LSB
   }
-
-
 
   // encode_state(vars.stepper_state, &enc);
   // Flags.
@@ -569,15 +573,16 @@ static void on_current_histogram_read(esp_gatt_if_t gatts_if,
   // enc.encode_uint32(state.non_energized_count);
   // assert(enc.size() == 19);
 
-  vars.rsp.attr_value.len = enc.size();
-  vars.rsp.attr_value.handle = read_param.handle;
-  esp_ble_gatts_send_response(gatts_if, read_param.conn_id, read_param.trans_id,
-                              ESP_GATT_OK, &vars.rsp);
-  ESP_LOGI(TAG, "on_current_histogram_read() sent response with %d bytes",
-           enc.size());
+  // vars.rsp.attr_value.len = ser->size();
+  // vars.rsp.attr_value.handle = read_param.handle;
+  // esp_ble_gatts_send_response(gatts_if, read_param.conn_id,
+  // read_param.trans_id,
+  //                             ESP_GATT_OK, &vars.rsp);
+  // ESP_LOGI(TAG, "on_current_histogram_read() sent response with %d bytes",
+  //          ser->size());
+
+  return ESP_GATT_OK;
 }
-
-
 
 static void gap_event_handler(esp_gap_ble_cb_event_t event,
                               esp_ble_gap_cb_param_t *param) {
@@ -728,31 +733,29 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       // name pointer
       ESP_LOGI(TAG, "Device name: %s", device_name);
       //   esp_bt_dev_set_device_name(device_name);
-      esp_err_t set_dev_name_ret = esp_ble_gap_set_device_name(device_name);
-      if (set_dev_name_ret) {
-        ESP_LOGE(TAG, "set device name failed, error code = %x",
-                 set_dev_name_ret);
+      esp_err_t err = esp_ble_gap_set_device_name(device_name);
+      if (err) {
+        ESP_LOGE(TAG, "set device name failed, error code = %x", err);
       }
 
       // config adv data
-      esp_err_t ret = esp_ble_gap_config_adv_data(&adv_data);
-      if (ret) {
-        ESP_LOGE(TAG, "config adv data failed, error code = %x", ret);
+      err = esp_ble_gap_config_adv_data(&adv_data);
+      if (err) {
+        ESP_LOGE(TAG, "config adv data failed, error code = %x", err);
       }
       adv_config_done |= ADV_CONFIG_FLAG;
 
       // config scan response data
-      ret = esp_ble_gap_config_adv_data(&scan_rsp_data);
-      if (ret) {
-        ESP_LOGE(TAG, "config scan response data failed, error code = %x", ret);
+      err = esp_ble_gap_config_adv_data(&scan_rsp_data);
+      if (err) {
+        ESP_LOGE(TAG, "config scan response data failed, error code = %x", err);
       }
       adv_config_done |= SCAN_RSP_CONFIG_FLAG;
 
-      esp_err_t create_attr_ret = esp_ble_gatts_create_attr_tab(
-          attr_table, gatts_if, ATTR_IDX_COUNT, SVC_INST_ID);
-      if (create_attr_ret) {
-        ESP_LOGE(TAG, "create attr table failed, error code = %x",
-                 create_attr_ret);
+      err = esp_ble_gatts_create_attr_tab(attr_table, gatts_if, ATTR_IDX_COUNT,
+                                          SVC_INST_ID);
+      if (err) {
+        ESP_LOGE(TAG, "create attr table failed, error code = %x", err);
       }
     } break;
 
@@ -769,29 +772,41 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       }
 
       // Here when a read with a user constructed response. In our
-      // app all of those reads expect offset == 0.
+      // // app all of those reads expect offset == 0.
+      // if (read_param.offset != 0) {
+      //   ESP_LOGE(TAG, "Read request has an invalid offset: %hu",
+      //            read_param.offset);
+      //   send_read_error_response(gatts_if, read_param,
+      //   ESP_GATT_INVALID_OFFSET); return;
+      // }
+
+      // TODO: This is a large variable. Do we need to clear entirely?
+      memset(&vars.rsp, 0, sizeof(vars.rsp));
+
+      ble_util::Serializer ser(vars.rsp.attr_value.value,
+                               sizeof(vars.rsp.attr_value.value));
+      esp_gatt_status_t status = ESP_GATT_NOT_FOUND;
+
       if (read_param.offset != 0) {
-        ESP_LOGE(TAG, "Read request has an invalid offset: %hu",
-                 read_param.offset);
-        send_read_error_response(gatts_if, read_param, ESP_GATT_INVALID_OFFSET);
-        return;
+        status = ESP_GATT_INVALID_OFFSET;
+      } else if (read_param.handle == handle_table[ATTR_IDX_PROBE_INFO_VAL]) {
+        status = on_probe_info_read(read_param, &ser);
+      } else if (read_param.handle ==
+                 handle_table[ATTR_IDX_STEPPER_STATE_VAL]) {
+        status = on_stepper_state_read(read_param, &ser);
+      } else if (read_param.handle ==
+                 handle_table[ATTR_IDX_CURRENT_HISTOGRAM_VAL]) {
+        status = on_current_histogram_read(read_param, &ser);
       }
-      // Dispatch by characteristic.
-      if (read_param.handle == handle_table[ATTR_IDX_PROBE_INFO_VAL]) {
-        on_probe_info_read(gatts_if, param->read);
-        return;
-      }
-      if (read_param.handle == handle_table[ATTR_IDX_STEPPER_STATE_VAL]) {
-        on_stepper_state_read(gatts_if, param->read);
-        return;
-      }
-      if (read_param.handle == handle_table[ATTR_IDX_CURRENT_HISTOGRAM_VAL]) {
-        on_current_histogram_read(gatts_if, param->read);
-        return;
-      }
-      ESP_LOGE(TAG, "ESP_GATTS_READ_EVT: unexpected handle: %hu",
-               read_param.handle);
-      send_read_error_response(gatts_if, read_param, ESP_GATT_NOT_FOUND);
+
+      const uint16_t len = (status == ESP_GATT_OK) ? ser.size() : 0;
+      ESP_LOGE(TAG, "ESP_GATTS_READ_EVT: response status: %hu %s, len: %hu",
+               status, ble_util::gatts_status_name(status), len);
+      vars.rsp.attr_value.len = len;
+      vars.rsp.attr_value.handle = read_param.handle;
+      esp_ble_gatts_send_response(gatts_if, read_param.conn_id,
+                                  read_param.trans_id, status, &vars.rsp);
+
     } break;
 
     // Notification control.
@@ -846,8 +861,8 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       break;
 
     case ESP_GATTS_CONF_EVT:
-      // ESP_LOGI(TAG, "ESP_GATTS_CONF_EVT, status = %d, attr_handle %d",
-      //          param->conf.status, param->conf.handle);
+       ESP_LOGI(TAG, "ESP_GATTS_CONF_EVT, status = %d, attr_handle %d",
+                param->conf.status, param->conf.handle);
       break;
 
     case ESP_GATTS_START_EVT:
@@ -917,14 +932,14 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       break;
 
     default:
-      ESP_LOGI(TAG, "Gatt event handler: unknown event %d, %s", event,
+      ESP_LOGI(TAG, "Gatt event handler: ignored event %d, %s", event,
                ble_util::gatts_event_name(event));
       break;
   }
 }
 
 void setup(uint8_t hardware_config, uint16_t adc_ticks_per_amp) {
-  ble_util::test_tables();
+  // ble_util::setup();
   ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
 
   vars.hardware_config = hardware_config;

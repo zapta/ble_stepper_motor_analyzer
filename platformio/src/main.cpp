@@ -1,9 +1,9 @@
 
 #include <stdio.h>
 
+#include "acquisition/acq_consts.h"
 #include "acquisition/adc_task.h"
 #include "acquisition/analyzer.h"
-#include "acquisition/acq_consts.h"
 #include "ble/ble_service.h"
 #include "driver/gpio.h"
 #include "esp_event.h"
@@ -16,6 +16,7 @@
 #include "misc/util.h"
 #include "settings/controls.h"
 #include "settings/nvs_config.h"
+#include "tools/enum_code_gen.h"
 
 static constexpr auto TAG = "main";
 
@@ -65,6 +66,8 @@ static void setup() {
   // Init acquisition.
   analyzer::setup(settings);
   adc_task::setup();
+
+  // enum_code_gen::gen_tables_code();
 
   // Init BLE
   // TODO: Make this configured by board resistors.
@@ -142,6 +145,9 @@ static void loop() {
 
 // The runtime environment expects a "C" main.
 extern "C" void app_main() {
+  // Use this to updated the ESPIDF enum names tables.
+  // enum_code_gen::gen_tables_code();
+
   setup();
   for (;;) {
     loop();

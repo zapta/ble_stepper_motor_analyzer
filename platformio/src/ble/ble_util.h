@@ -38,37 +38,38 @@
 
 namespace ble_util {
 
-class BigEndianEncoder {
+class Serializer {
  public:
-  BigEndianEncoder(uint8_t* p_start, uint16_t size)
+  Serializer(uint8_t* p_start, uint16_t size)
       : _p_start(p_start), _p_end(p_start + size), _p_next(p_start){};
 
   int capacity() { return _p_end - _p_start; }
   int size() { return _p_next - _p_start; }
-  bool is_empty() { return _p_next == _p_start; }
+  // bool is_empty() { return _p_next == _p_start; }
+  void reset() { _p_next = _p_start; }
 
-  inline void encode_uint8(uint8_t v) {
+  inline void append_uint8(uint8_t v) {
     check_avail(1);
     *_p_next++ = v;
   }
 
-  inline void encode_uint16(uint16_t v) {
+  inline void append_uint16(uint16_t v) {
     check_avail(2);
     *_p_next++ = v >> 8;
     *_p_next++ = v >> 0;
   }
 
-  inline void encode_int16(int16_t v) { encode_uint16((uint16_t)v); }
+  inline void append_int16(int16_t v) { append_uint16((uint16_t)v); }
 
 
-  inline void encode_uint24(uint32_t v) {
+  inline void append_uint24(uint32_t v) {
     check_avail(3);
     *_p_next++ = v >> 16;
     *_p_next++ = v >> 8;
     *_p_next++ = v >> 0;
   }
 
-  inline void encode_uint32(uint32_t v) {
+  inline void append_uint32(uint32_t v) {
     check_avail(4);
     *_p_next++ = v >> 24;
     *_p_next++ = v >> 16;
@@ -76,9 +77,9 @@ class BigEndianEncoder {
     *_p_next++ = v >> 0;
   }
 
-  inline void encode_int32(int32_t v) { encode_uint32((uint32_t)v); }
+  inline void encode_int32(int32_t v) { append_uint32((uint32_t)v); }
 
-  inline void encode_uint48(uint64_t v) {
+  inline void append_uint48(uint64_t v) {
     check_avail(6);
     *_p_next++ = v >> 40;
     *_p_next++ = v >> 32;
@@ -89,8 +90,8 @@ class BigEndianEncoder {
   }
 
  private:
-  const uint8_t* _p_start;
-  const uint8_t* _p_end;
+   uint8_t* const _p_start;
+   uint8_t* const _p_end;
   uint8_t* _p_next;
 
   static constexpr const char* ENCODER_TAG = "msb_enc";
@@ -106,6 +107,13 @@ class BigEndianEncoder {
 
 const char* gatts_event_name(esp_gatts_cb_event_t event);
 const char* gap_ble_event_name(esp_gap_ble_cb_event_t event);
+const char* gatts_status_name(esp_gatt_status_t status );
 
-void test_tables();
+
+// void test_tables();
+// void setup() ;
+
+// void gen_tables_code();
+
+
 }  // namespace ble_util
