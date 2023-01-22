@@ -157,7 +157,7 @@ class Probe:
             return False
 
         # Get capture signal characteristic.
-        capture_signal_chrc = await self.__find_chrc_or_disconnect(stepper_service, "Command", "37e75add-a610-448d-9fd3-3e3130e2c7f7")
+        capture_signal_chrc = await self.__find_chrc_or_disconnect(stepper_service, "Capture", "37e75add-a610-448d-9fd3-3e3130e2c7f7")
         if not capture_signal_chrc:
             return False
 

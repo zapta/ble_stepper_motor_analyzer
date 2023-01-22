@@ -45,6 +45,7 @@ class BigEndianEncoder {
 
   int capacity() { return _p_end - _p_start; }
   int size() { return _p_next - _p_start; }
+  bool is_empty() { return _p_next == _p_start; }
 
   inline void encode_uint8(uint8_t v) {
     check_avail(1);
@@ -57,6 +58,9 @@ class BigEndianEncoder {
     *_p_next++ = v >> 0;
   }
 
+  inline void encode_int16(int16_t v) { encode_uint16((uint16_t)v); }
+
+
   inline void encode_uint24(uint32_t v) {
     check_avail(3);
     *_p_next++ = v >> 16;
@@ -66,6 +70,18 @@ class BigEndianEncoder {
 
   inline void encode_uint32(uint32_t v) {
     check_avail(4);
+    *_p_next++ = v >> 24;
+    *_p_next++ = v >> 16;
+    *_p_next++ = v >> 8;
+    *_p_next++ = v >> 0;
+  }
+
+  inline void encode_int32(int32_t v) { encode_uint32((uint32_t)v); }
+
+  inline void encode_uint48(uint64_t v) {
+    check_avail(6);
+    *_p_next++ = v >> 40;
+    *_p_next++ = v >> 32;
     *_p_next++ = v >> 24;
     *_p_next++ = v >> 16;
     *_p_next++ = v >> 8;

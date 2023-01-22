@@ -4,7 +4,6 @@
 
 #include "acquisition/acq_consts.h"
 #include "acquisition/analyzer.h"
-#include "ble_handlers.h"
 #include "ble_util.h"
 #include "esp_bt.h"
 #include "esp_bt_device.h"
@@ -19,9 +18,12 @@
 #include "freertos/task.h"
 #include "nvs_flash.h"
 
-// TODO: Set service UUID.
-// TODO: Set first real characteristic
 // TODO: add mutex.
+// TODO: Does the max size in the ESP_GATT_RSP_BY_APP characteristics values
+//   matter?
+// TODO: Add to the handles table the on read and write handlers
+//   and use lookup.
+// TODO: pass and encoder to the on read function and handle the respnse sending by shared code.
 
 // Based on the sexample at
 // https://github.com/espressif/esp-idf/blob/master/examples/bluetooth/bluedroid/ble/gatt_server_service_table/main/gatts_table_creat_demo.c
@@ -71,14 +73,11 @@ static const uint8_t service_uuid[] = {
     ENCODE_UUID_128(0x6b6a78d7, 0x8ee0, 0x4a26, 0xba7b, 0x62e357dd9720)};
 
 static const uint8_t model_uuid[] = {ENCODE_UUID_16(0x2a24)};
-
 static const uint8_t revision_uuid[] = {ENCODE_UUID_16(0x2a26)};
-
 static const uint8_t manufacturer_uuid[] = {ENCODE_UUID_16(0x2a29)};
-
 static const uint8_t probe_info_uuid[] = {ENCODE_UUID_16(0xff01)};
-
 static const uint8_t stepper_state_uuid[] = {ENCODE_UUID_16(0xff02)};
+static const uint8_t current_histogram_uuid[] = {ENCODE_UUID_16(0xff03)};
 
 // static const uint16_t kModelChrUuid = ;
 
@@ -141,6 +140,8 @@ struct Vars {
   uint16_t conn_id;  // kInvalidConnId if no connection.
   uint16_t conn_mtu;
   bool notification_enabled;
+  analyzer::State stepper_state;
+  analyzer::Histogram histogram;
   // Temp buffer for constructing read values.
   // uint8_t value_buffer[300];
   // Used for apps provided responses. Large.
@@ -150,11 +151,12 @@ struct Vars {
 static Vars vars = {
     .hardware_config = 0,
     .adc_ticks_per_amp = 0,
-    .gatts_if = ESP_GATT_IF_NONE,  // invalid ifc id.
+    .gatts_if = ESP_GATT_IF_NONE,
     .conn_id = kInvalidConnId,
     .conn_mtu = 0,  //
     .notification_enabled = false,
-    // .value_buffer = {},
+    .stepper_state = {},
+    .histogram = {},
     .rsp = {},
 };
 // #pragma GCC diagnostic pop
@@ -230,6 +232,10 @@ enum {
   ATTR_IDX_STEPPER_STATE,
   ATTR_IDX_STEPPER_STATE_VAL,
 
+  ATTR_IDX_CURRENT_HISTOGRAM,
+  ATTR_IDX_CURRENT_HISTOGRAM_VAL,
+
+  //-------------
 
   ATTR_IDX_CHAR_A,
   ATTR_IDX_CHAR_A_VAL,
@@ -324,24 +330,37 @@ static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
                                   const_cast<uint8_t *>(probe_info_uuid),
                                   ESP_GATT_PERM_READ, 100, 0, nullptr}},
 
-
-
- // ----- Probe info
+    // ----- Stepper state.
     //
     // Characteristic
     [ATTR_IDX_STEPPER_STATE] = {{ESP_GATT_AUTO_RSP},
-                             {ESP_UUID_LEN_16,
-                              const_cast<uint8_t *>(kCharDeclUuid),
-                              ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
-                              sizeof(kChrPropertyReadOnly),
-                              const_cast<uint8_t *>(&kChrPropertyReadOnly)}},
+                                {ESP_UUID_LEN_16,
+                                 const_cast<uint8_t *>(kCharDeclUuid),
+                                 ESP_GATT_PERM_READ,
+                                 sizeof(kChrPropertyReadOnly),
+                                 sizeof(kChrPropertyReadOnly),
+                                 const_cast<uint8_t *>(&kChrPropertyReadOnly)}},
     // Value
     [ATTR_IDX_STEPPER_STATE_VAL] = {{ESP_GATT_RSP_BY_APP},
-                                 {sizeof(stepper_state_uuid),
-                                  const_cast<uint8_t *>(stepper_state_uuid),
-                                  ESP_GATT_PERM_READ, 100, 0, nullptr}},
+                                    {sizeof(stepper_state_uuid),
+                                     const_cast<uint8_t *>(stepper_state_uuid),
+                                     ESP_GATT_PERM_READ, 100, 0, nullptr}},
 
-
+    // ----- Current histogram.
+    //
+    // Characteristic
+    [ATTR_IDX_CURRENT_HISTOGRAM] =
+        {{ESP_GATT_AUTO_RSP},
+         {ESP_UUID_LEN_16, const_cast<uint8_t *>(kCharDeclUuid),
+          ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
+          sizeof(kChrPropertyReadOnly),
+          const_cast<uint8_t *>(&kChrPropertyReadOnly)}},
+    // Value
+    [ATTR_IDX_CURRENT_HISTOGRAM_VAL] = {{ESP_GATT_RSP_BY_APP},
+                                        {sizeof(current_histogram_uuid),
+                                         const_cast<uint8_t *>(
+                                             current_histogram_uuid),
+                                         ESP_GATT_PERM_READ, 244, 0, nullptr}},
 
     // ----- XYZ charateristic.
 
@@ -374,9 +393,9 @@ static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
 uint16_t handle_table[ATTR_IDX_COUNT];
 
 // For read events only.
-void send_read_error_response(esp_gatt_if_t gatts_if,
-                              const gatts_read_evt_param &read_param,
-                              esp_gatt_status_t gatt_error) {
+static void send_read_error_response(esp_gatt_if_t gatts_if,
+                                     const gatts_read_evt_param &read_param,
+                                     esp_gatt_status_t gatt_error) {
   // TODO: This is a large variable. Do we need to clear entirely?
   memset(&vars.rsp, 0, sizeof(vars.rsp));
   vars.rsp.attr_value.handle = read_param.handle;
@@ -385,8 +404,8 @@ void send_read_error_response(esp_gatt_if_t gatts_if,
                               gatt_error, &vars.rsp);
 }
 
-void on_probe_info_read(esp_gatt_if_t gatts_if,
-                        const gatts_read_evt_param &read_param) {
+static void on_probe_info_read(esp_gatt_if_t gatts_if,
+                               const gatts_read_evt_param &read_param) {
   ESP_LOGI(TAG, "on_probe_info_read() called");
 
   // TODO: This is a large variable. Do we need to clear entirely?
@@ -409,29 +428,156 @@ void on_probe_info_read(esp_gatt_if_t gatts_if,
   ESP_LOGI(TAG, "on_probe_info_read() sent response with %d bytes", enc.size());
 }
 
-void on_stepper_state_read(esp_gatt_if_t gatts_if,
-                        const gatts_read_evt_param &read_param) {
+static void encode_state(const analyzer::State &state,
+                         ble_util::BigEndianEncoder *enc) {
+  assert(enc->is_empty());
+
+  // Flags.
+  // * bit5 : true IFF energized.
+  // * bit4 : true IFF reversed direction.
+  // * bit1 : quadrant MSB.
+  // * bit0 : quadrant LSB.
+  //
+  // Quarant is in the range [0, 3].
+  // All other bits are reserved and readers should treat them
+  // as undefined.
+  const uint8_t flags = (state.is_energized ? 0x20 : 0) |
+                        (state.is_reverse_direction ? 0x10 : 0) |
+                        (state.quadrant & 0x03);
+
+  enc->encode_uint48(state.tick_count);
+  enc->encode_int32(state.full_steps);
+  enc->encode_uint8(flags);
+  enc->encode_int16(state.v1);
+  enc->encode_int16(state.v2);
+  enc->encode_uint32(state.non_energized_count);
+  assert(enc->size() == 19);
+}
+
+static void on_stepper_state_read(esp_gatt_if_t gatts_if,
+                                  const gatts_read_evt_param &read_param) {
   ESP_LOGI(TAG, "on_stepper_state_read() called");
 
   // TODO: This is a large variable. Do we need to clear entirely?
   memset(&vars.rsp, 0, sizeof(vars.rsp));
 
+  analyzer::sample_state(&vars.stepper_state);
+
   // Encode packet the response.
   ble_util::BigEndianEncoder enc(vars.rsp.attr_value.value,
                                  sizeof(vars.rsp.attr_value.value));
-  enc.encode_uint8(0x1);  // Packet format version
-  enc.encode_uint8(vars.hardware_config);
-  enc.encode_uint16(vars.adc_ticks_per_amp);
-  enc.encode_uint24(acq_consts::kTimeTicksPerSec);
-  enc.encode_uint16(acq_consts::kBucketStepsPerSecond);
-  assert(enc.size() == 9);
+  encode_state(vars.stepper_state, &enc);
+  // Flags.
+  // * bit5 : true IFF energized.
+  // * bit4 : true IFF reversed direction.
+  // * bit1 : quadrant MSB.
+  // * bit0 : quadrant LSB.
+  //
+  // Quarant is in the range [0, 3].
+  // All other bits are reserved and readers should treat them
+  // as undefined.
+  // const uint8_t flags = (state.is_energized ? 0x20 : 0) |
+  //                       (state.is_reverse_direction ? 0x10 : 0) |
+  //                       (state.quadrant & 0x03);
+
+  // enc.encode_uint48(state.tick_count);
+  // enc.encode_int32(state.full_steps);
+  // enc.encode_uint8(flags);
+  // enc.encode_int16(state.v1);
+  // enc.encode_int16(state.v2);
+  // enc.encode_uint32(state.non_energized_count);
+  // assert(enc.size() == 19);
 
   vars.rsp.attr_value.len = enc.size();
   vars.rsp.attr_value.handle = read_param.handle;
   esp_ble_gatts_send_response(gatts_if, read_param.conn_id, read_param.trans_id,
                               ESP_GATT_OK, &vars.rsp);
-  ESP_LOGI(TAG, "on_stepper_state_read() sent response with %d bytes", enc.size());
+  ESP_LOGI(TAG, "on_stepper_state_read() sent response with %d bytes",
+           enc.size());
 }
+
+static void on_current_histogram_read(esp_gatt_if_t gatts_if,
+                                  const gatts_read_evt_param &read_param) {
+  ESP_LOGI(TAG, "on_current_histogram_read() called");
+
+  // TODO: This is a large variable. Do we need to clear entirely?
+  memset(&vars.rsp, 0, sizeof(vars.rsp));
+
+  analyzer::sample_histogram(&vars.histogram);
+
+
+  // analyzer::sample_state(&vars.stepper_state);
+
+  // Encode packet the response.
+  ble_util::BigEndianEncoder enc(vars.rsp.attr_value.value,
+                                 sizeof(vars.rsp.attr_value.value));
+
+// Encode the result value.
+  // uint8_t *const p0 = static_cast<uint8_t *>(buf);
+  // uint8_t *p = p0;
+
+  // Format id (1 byte)
+  // *p++ = 0x10;  // Format id.
+
+  enc.encode_uint8(0x10);  // format id.
+
+  // Num points: (1 byte)
+  // *p++ = acq_consts::kNumHistogramBuckets;
+
+    enc.encode_uint8(acq_consts::kNumHistogramBuckets);  // Num of points
+
+
+  // Format bucket values, (2 bytes each)
+  for (int i = 0; i < acq_consts::kNumHistogramBuckets; i++) {
+    const analyzer::HistogramBucket &bucket = vars.histogram.buckets[i];
+    uint16_t value;
+    if (bucket.total_steps == 0) {
+      value = 0;
+    } else {
+      value = bucket.total_step_peak_currents / bucket.total_steps;
+      if (value == 0) {
+        // We use 0 to indicate zero steps.
+        value = 1;
+      }
+    }
+    enc.encode_uint16(value);
+    // *p++ = value >> 8;  // MSB
+    // *p++ = value;       // LSB
+  }
+
+
+
+  // encode_state(vars.stepper_state, &enc);
+  // Flags.
+  // * bit5 : true IFF energized.
+  // * bit4 : true IFF reversed direction.
+  // * bit1 : quadrant MSB.
+  // * bit0 : quadrant LSB.
+  //
+  // Quarant is in the range [0, 3].
+  // All other bits are reserved and readers should treat them
+  // as undefined.
+  // const uint8_t flags = (state.is_energized ? 0x20 : 0) |
+  //                       (state.is_reverse_direction ? 0x10 : 0) |
+  //                       (state.quadrant & 0x03);
+
+  // enc.encode_uint48(state.tick_count);
+  // enc.encode_int32(state.full_steps);
+  // enc.encode_uint8(flags);
+  // enc.encode_int16(state.v1);
+  // enc.encode_int16(state.v2);
+  // enc.encode_uint32(state.non_energized_count);
+  // assert(enc.size() == 19);
+
+  vars.rsp.attr_value.len = enc.size();
+  vars.rsp.attr_value.handle = read_param.handle;
+  esp_ble_gatts_send_response(gatts_if, read_param.conn_id, read_param.trans_id,
+                              ESP_GATT_OK, &vars.rsp);
+  ESP_LOGI(TAG, "on_current_histogram_read() sent response with %d bytes",
+           enc.size());
+}
+
+
 
 static void gap_event_handler(esp_gap_ble_cb_event_t event,
                               esp_ble_gap_cb_param_t *param) {
@@ -610,10 +756,10 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       }
     } break;
 
-    // Handle read event. 
+    // Handle read event.
     case ESP_GATTS_READ_EVT: {
       ESP_LOGI(TAG, "ESP_GATTS_READ_EVT");
-      const gatts_read_evt_param& read_param = param->read;
+      const gatts_read_evt_param &read_param = param->read;
 
       // For characteristics with auto resp we don't need to do
       // anything here.
@@ -636,10 +782,15 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
         return;
       }
       if (read_param.handle == handle_table[ATTR_IDX_STEPPER_STATE_VAL]) {
-        on_probe_stepper_read(gatts_if, param->read);
+        on_stepper_state_read(gatts_if, param->read);
         return;
       }
-      ESP_LOGE(TAG, "ESP_GATTS_READ_EVT: unexpected handle: %hu", read_param.handle);
+      if (read_param.handle == handle_table[ATTR_IDX_CURRENT_HISTOGRAM_VAL]) {
+        on_current_histogram_read(gatts_if, param->read);
+        return;
+      }
+      ESP_LOGE(TAG, "ESP_GATTS_READ_EVT: unexpected handle: %hu",
+               read_param.handle);
       send_read_error_response(gatts_if, read_param, ESP_GATT_NOT_FOUND);
     } break;
 
@@ -754,9 +905,15 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       break;
     }
 
-      // TODO: explain here when this is called.
+    // TODO: explain here when this is called. Is it just for
+    // app provided responses?
     case ESP_GATTS_RESPONSE_EVT:
-      ESP_LOGI(TAG, "ESP_GATTS_RESPONSE_EVT error rsp: %d", param->rsp.status);
+      if (param->rsp.status == ESP_GATT_OK)
+        ESP_LOGI(TAG, "ESP_GATTS_RESPONSE_EVT rsp OK");
+      else {
+        ESP_LOGW(TAG, "ESP_GATTS_RESPONSE_EVT rsp error: %d",
+                 param->rsp.status);
+      }
       break;
 
     default:
@@ -821,7 +978,9 @@ void setup(uint8_t hardware_config, uint16_t adc_ticks_per_amp) {
     assert(0);
   }
 
-  // 247 is the convention to reasonable max MTU which results
+  // Set MTU to max of 247 which means max payload data
+  // can be 247-3 = 244 bytes long.
+  // https://discord.com/channels/720317445772017664/733036837576376341/971235966973018193
   // in payload size of 247-3 = 244. However, this is negotiated with
   // the client so can be in practice lower that this max.
   ret = esp_ble_gatt_set_local_mtu(247);
