@@ -137,17 +137,17 @@ class Probe:
             return False
 
         # Get current histogram characteristic.
-        stepper_current_histogram_chrc = await self.__find_chrc_or_disconnect(stepper_service, "Current Histogram", "37e75add-a610-448d-9fd3-3e3130e2c7f3")
+        stepper_current_histogram_chrc = await self.__find_chrc_or_disconnect(stepper_service, "Current Histogram", "ff03")
         if not stepper_current_histogram_chrc:
             return False
 
         # Get time histogram characteristic.
-        stepper_time_histogram_chrc = await self.__find_chrc_or_disconnect(stepper_service, "Time Histogram", "37e75add-a610-448d-9fd3-3e3130e2c7f4")
+        stepper_time_histogram_chrc = await self.__find_chrc_or_disconnect(stepper_service, "Time Histogram", "ff04")
         if not stepper_time_histogram_chrc:
             return False
 
         # Get distance histogram characteristic.
-        stepper_distance_histogram_chrc = await self.__find_chrc_or_disconnect(stepper_service, "Distance Histogram", "37e75add-a610-448d-9fd3-3e3130e2c7f5")
+        stepper_distance_histogram_chrc = await self.__find_chrc_or_disconnect(stepper_service, "Distance Histogram", "ff05")
         if not stepper_distance_histogram_chrc:
             return False
 

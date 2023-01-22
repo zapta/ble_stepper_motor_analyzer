@@ -77,6 +77,9 @@ static const uint8_t manufacturer_uuid[] = {ENCODE_UUID_16(0x2a29)};
 static const uint8_t probe_info_uuid[] = {ENCODE_UUID_16(0xff01)};
 static const uint8_t stepper_state_uuid[] = {ENCODE_UUID_16(0xff02)};
 static const uint8_t current_histogram_uuid[] = {ENCODE_UUID_16(0xff03)};
+static const uint8_t time_histogram_uuid[] = {ENCODE_UUID_16(0xff04)};
+static const uint8_t distance_histogram_uuid[] = {ENCODE_UUID_16(0xff05)};
+
 
 // static const uint16_t kModelChrUuid = ;
 
@@ -234,6 +237,12 @@ enum {
   ATTR_IDX_CURRENT_HISTOGRAM,
   ATTR_IDX_CURRENT_HISTOGRAM_VAL,
 
+  ATTR_IDX_TIME_HISTOGRAM,
+  ATTR_IDX_TIME_HISTOGRAM_VAL,
+
+  ATTR_IDX_DISTANCE_HISTOGRAM,
+  ATTR_IDX_DISTANCE_HISTOGRAM_VAL,
+
   //-------------
 
   ATTR_IDX_CHAR_A,
@@ -359,6 +368,38 @@ static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
                                         {sizeof(current_histogram_uuid),
                                          const_cast<uint8_t *>(
                                              current_histogram_uuid),
+                                         ESP_GATT_PERM_READ, 0, 0, nullptr}},
+
+    // ----- Time histogram.
+    //
+    // Characteristic
+    [ATTR_IDX_TIME_HISTOGRAM] =
+        {{ESP_GATT_AUTO_RSP},
+         {ESP_UUID_LEN_16, const_cast<uint8_t *>(kCharDeclUuid),
+          ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
+          sizeof(kChrPropertyReadOnly),
+          const_cast<uint8_t *>(&kChrPropertyReadOnly)}},
+    // Value
+    [ATTR_IDX_TIME_HISTOGRAM_VAL] = {{ESP_GATT_RSP_BY_APP},
+                                     {sizeof(time_histogram_uuid),
+                                      const_cast<uint8_t *>(
+                                          time_histogram_uuid),
+                                      ESP_GATT_PERM_READ, 0, 0, nullptr}},
+
+                                       // ----- Distance histogram.
+    //
+    // Characteristic
+    [ATTR_IDX_DISTANCE_HISTOGRAM] =
+        {{ESP_GATT_AUTO_RSP},
+         {ESP_UUID_LEN_16, const_cast<uint8_t *>(kCharDeclUuid),
+          ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
+          sizeof(kChrPropertyReadOnly),
+          const_cast<uint8_t *>(&kChrPropertyReadOnly)}},
+    // Value
+    [ATTR_IDX_DISTANCE_HISTOGRAM_VAL] = {{ESP_GATT_RSP_BY_APP},
+                                        {sizeof(distance_histogram_uuid),
+                                         const_cast<uint8_t *>(
+                                             distance_histogram_uuid),
                                          ESP_GATT_PERM_READ, 0, 0, nullptr}},
 
     // ----- XYZ charateristic.
@@ -507,31 +548,12 @@ static esp_gatt_status_t on_current_histogram_read(
     const gatts_read_evt_param &read_param, ble_util::Serializer *ser) {
   ESP_LOGI(TAG, "on_current_histogram_read() called");
 
-  // TODO: This is a large variable. Do we need to clear entirely?
-  // memset(&vars.rsp, 0, sizeof(vars.rsp));
-
   analyzer::sample_histogram(&vars.histogram);
-
-  // analyzer::sample_state(&vars.stepper_state);
-
-  // Encode packet the response.
-  // ble_util::Serializer enc(vars.rsp.attr_value.value,
-  //                          sizeof(vars.rsp.attr_value.value));
-
-  // Encode the result value.
-  // uint8_t *const p0 = static_cast<uint8_t *>(buf);
-  // uint8_t *p = p0;
-
-  // Format id (1 byte)
-  // *p++ = 0x10;  // Format id.
 
   assert(ser->size() == 0);
   ser->append_uint8(0x10);  // format id.
 
-  // Num points: (1 byte)
-  // *p++ = acq_consts::kNumHistogramBuckets;
-
-  ser->append_uint8(acq_consts::kNumHistogramBuckets);  // Num of points
+  ser->append_uint8(acq_consts::kNumHistogramBuckets);  // Num of buckets
 
   // Format bucket values, (2 bytes each)
   for (int i = 0; i < acq_consts::kNumHistogramBuckets; i++) {
@@ -547,39 +569,96 @@ static esp_gatt_status_t on_current_histogram_read(
       }
     }
     ser->append_uint16(value);
-    // *p++ = value >> 8;  // MSB
-    // *p++ = value;       // LSB
   }
 
-  // encode_state(vars.stepper_state, &enc);
-  // Flags.
-  // * bit5 : true IFF energized.
-  // * bit4 : true IFF reversed direction.
-  // * bit1 : quadrant MSB.
-  // * bit0 : quadrant LSB.
-  //
-  // Quarant is in the range [0, 3].
-  // All other bits are reserved and readers should treat them
-  // as undefined.
-  // const uint8_t flags = (state.is_energized ? 0x20 : 0) |
-  //                       (state.is_reverse_direction ? 0x10 : 0) |
-  //                       (state.quadrant & 0x03);
+  return ESP_GATT_OK;
+}
 
-  // enc.encode_uint48(state.tick_count);
-  // enc.encode_int32(state.full_steps);
-  // enc.encode_uint8(flags);
-  // enc.encode_int16(state.v1);
-  // enc.encode_int16(state.v2);
-  // enc.encode_uint32(state.non_energized_count);
-  // assert(enc.size() == 19);
+static esp_gatt_status_t on_time_histogram_read(
+    const gatts_read_evt_param &read_param, ble_util::Serializer *ser) {
+  ESP_LOGI(TAG, "on_time_histogram_read() called");
 
-  // vars.rsp.attr_value.len = ser->size();
-  // vars.rsp.attr_value.handle = read_param.handle;
-  // esp_ble_gatts_send_response(gatts_if, read_param.conn_id,
-  // read_param.trans_id,
-  //                             ESP_GATT_OK, &vars.rsp);
-  // ESP_LOGI(TAG, "on_current_histogram_read() sent response with %d bytes",
-  //          ser->size());
+  analyzer::sample_histogram(&vars.histogram);
+
+  assert(ser->size() == 0);
+  ser->append_uint8(0x20);                              // format id.
+  ser->append_uint8(acq_consts::kNumHistogramBuckets);  // Num of buckets
+
+  // Find total time value.
+  uint64_t total_ticks = 0;
+  for (int i = 0; i < acq_consts::kNumHistogramBuckets; i++) {
+    total_ticks += vars.histogram.buckets[i].total_ticks_in_steps;
+  }
+
+  if (total_ticks < 10) {
+    // Special case: When the total time is low, we just set the entire
+    // histogram as zero. This also prevents divide by zero.
+    for (int i = 0; i < acq_consts::kNumHistogramBuckets; i++) {
+      ser->append_uint16(0);
+    }
+  } else {
+    // Normal case: encide relative values as permils (0.1%) of the
+    // totoal time. [0, 1000]
+    for (int i = 0; i < acq_consts::kNumHistogramBuckets; i++) {
+      const uint16_t normalized_val =
+          (vars.histogram.buckets[i].total_ticks_in_steps * 1000) / total_ticks;
+      ser->append_uint16(normalized_val);
+    }
+  }
+
+  return ESP_GATT_OK;
+}
+
+static esp_gatt_status_t on_distance_histogram_read(
+    const gatts_read_evt_param &read_param, ble_util::Serializer *ser) {
+  ESP_LOGI(TAG, "on_distance_histogram_read() called");
+
+  analyzer::sample_histogram(&vars.histogram);
+
+  assert(ser->size() == 0);
+  
+
+ // Encode the result value.
+  // uint8_t *const p0 = static_cast<uint8_t *>(buf);
+  // uint8_t *p = p0;
+
+  ser->append_uint8(0x30);  // Format id.
+  // Format id (1 byte)
+  // *p++ = 0x30;  // Format id.
+
+ser->append_uint8(acq_consts::kNumHistogramBuckets); // Num buckets
+  // Num points: (1 byte)
+  // *p++ = acq_consts::kNumHistogramBuckets;
+
+  // Find max distance value
+  uint64_t total_steps = 0;
+  for (int i = 0; i < acq_consts::kNumHistogramBuckets; i++) {
+    // if (histogram_snapshot.buckets[i].total_steps > max_value) {
+      total_steps += vars.histogram.buckets[i].total_steps;
+    // }
+  }
+
+
+  if (total_steps < 10) {
+        // Special case: When the total time is low, we just set the entire
+    // histogram as zero. This also prevents divide by zero.
+    for (int i = 0; i < acq_consts::kNumHistogramBuckets; i++) {
+      ser->append_uint16(0);
+      // *p++ = 0;
+      // *p++ = 0;
+    }
+  } else {
+    // Normal case: encide relative values as permils (0.1%) of the
+    // total. [0, 1000].
+    for (int i = 0; i < acq_consts::kNumHistogramBuckets; i++) {
+      const uint16_t normalized_val =
+          (vars.histogram.buckets[i].total_steps * 1000) / total_steps;
+      ser->append_uint16(normalized_val);
+      // *p++ = normalized_val >> 8;
+      // *p++ = normalized_val;
+      // printk("%d: %llu\n", i, histogram_sample.buckets[i].total_steps);
+    }
+  }
 
   return ESP_GATT_OK;
 }
@@ -797,6 +876,12 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       } else if (read_param.handle ==
                  handle_table[ATTR_IDX_CURRENT_HISTOGRAM_VAL]) {
         status = on_current_histogram_read(read_param, &ser);
+      } else if (read_param.handle ==
+                 handle_table[ATTR_IDX_TIME_HISTOGRAM_VAL]) {
+        status = on_time_histogram_read(read_param, &ser);
+      } else if (read_param.handle ==
+                 handle_table[ATTR_IDX_DISTANCE_HISTOGRAM_VAL]) {
+        status = on_distance_histogram_read(read_param, &ser);
       }
 
       const uint16_t len = (status == ESP_GATT_OK) ? ser.size() : 0;
@@ -861,8 +946,8 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       break;
 
     case ESP_GATTS_CONF_EVT:
-       ESP_LOGI(TAG, "ESP_GATTS_CONF_EVT, status = %d, attr_handle %d",
-                param->conf.status, param->conf.handle);
+      ESP_LOGI(TAG, "ESP_GATTS_CONF_EVT, status = %d, attr_handle %d",
+               param->conf.status, param->conf.handle);
       break;
 
     case ESP_GATTS_START_EVT:
