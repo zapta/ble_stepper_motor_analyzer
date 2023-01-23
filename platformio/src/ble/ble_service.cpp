@@ -18,7 +18,10 @@
 #include "freertos/task.h"
 #include "nvs_flash.h"
 
-// TODO: add mutex.
+// TODO: add command end point (write only)
+// TODO: add capture end point (read only, rsp by app)
+// TODO: change the attr declarations to use macros.
+// TODO: add mutex around the vars ? (sync with notify?).
 
 // Based on the sexample at
 // https://github.com/espressif/esp-idf/blob/master/examples/bluetooth/bluedroid/ble/gatt_server_service_table/main/gatts_table_creat_demo.c
@@ -32,6 +35,7 @@ static constexpr auto TAG = "ble_srv";
 
 // #define PROFILE_NUM 1
 // #define PROFILE_APP_IDX 0
+
 #define ESP_APP_ID 0x55
 #define SVC_INST_ID 0
 
@@ -207,13 +211,13 @@ static const uint8_t kChrPropertyReadOnly = ESP_GATT_CHAR_PROP_BIT_READ;
 // TODO: Do we need this?
 // static uint8_t heart_measurement_ccc[2] = {0x00, 0x00};
 
-// TODO: Shoudl this be const? Is it nofication status?
+// TODO: what does it do?
 static uint8_t state_ccc_val[2] = {0x00, 0x00};
 
 // static const uint8_t char_value[] = {0x33, 0x44, 0x55, 0x66};
 
 static const uint8_t model_str_value[] = "Stepper Probe ESP32";
-static constexpr uint16_t model_str_value_len = sizeof(model_str_value) - 1;
+// static constexpr uint16_t model_str_value_len = sizeof(model_str_value) - 1;
 
 static const uint8_t revision_str_value[] = "00.00.01";
 static constexpr uint16_t revision_str_value_len =
@@ -274,32 +278,57 @@ enum {
 // Attributes list of the stepper service. A table like this
 // can define a single primary or secondary service.
 
+#define LEN_BYTES(x) sizeof(x), const_cast<uint8_t *>(x)
+
+#define LEN_LEN_BYTES(x) sizeof(x), sizeof(x), const_cast<uint8_t *>(x)
+
+#define LEN_LEN_STR(x) \
+  (sizeof(x) - 1), (sizeof(x) - 1), const_cast<uint8_t *>(x)
+
 static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
 
     // Service.
 
+    // [ATTR_IDX_SVC] = {{ESP_GATT_AUTO_RSP},
+    //                   {ESP_UUID_LEN_16,
+    //                    const_cast<uint8_t *>(kPrimaryServiceDeclUuid),
+    //                    ESP_GATT_PERM_READ, sizeof(service_uuid),
+    //                    sizeof(service_uuid),
+    //                    const_cast<uint8_t *>(service_uuid)}},
+
     [ATTR_IDX_SVC] = {{ESP_GATT_AUTO_RSP},
-                      {ESP_UUID_LEN_16,
-                       const_cast<uint8_t *>(kPrimaryServiceDeclUuid),
-                       ESP_GATT_PERM_READ, sizeof(service_uuid),
-                       sizeof(service_uuid),
-                       const_cast<uint8_t *>(service_uuid)}},
+                      {LEN_BYTES(kPrimaryServiceDeclUuid),
+                       ESP_GATT_PERM_READ, LEN_LEN_BYTES(service_uuid)}},
 
     // ----- Device Model.
     //
     // Characteristic
-    [ATTR_IDX_MODEL] = {{ESP_GATT_AUTO_RSP},
-                        {ESP_UUID_LEN_16, const_cast<uint8_t *>(kCharDeclUuid),
-                         ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
-                         sizeof(kChrPropertyReadOnly),
-                         const_cast<uint8_t *>(&kChrPropertyReadOnly)}},
+    // [ATTR_IDX_MODEL] = {{ESP_GATT_AUTO_RSP},
+    //                     {ESP_UUID_LEN_16, const_cast<uint8_t
+    //                     *>(kCharDeclUuid),
+    //                      ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
+    //                      sizeof(kChrPropertyReadOnly),
+    //                      const_cast<uint8_t *>(&kChrPropertyReadOnly)}},
+
+    [ATTR_IDX_MODEL] =
+
+        {{ESP_GATT_AUTO_RSP},
+         {ESP_UUID_LEN_16, const_cast<uint8_t *>(kCharDeclUuid),
+          ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
+          sizeof(kChrPropertyReadOnly),
+          const_cast<uint8_t *>(&kChrPropertyReadOnly)}},
+
     // Value.
+    // [ATTR_IDX_MODEL_VAL] = {{ESP_GATT_AUTO_RSP},
+    //                         {sizeof(model_uuid),
+    //                          const_cast<uint8_t *>(model_uuid),
+    //                          ESP_GATT_PERM_READ, model_str_value_len,
+    //                          model_str_value_len,
+    //                          const_cast<uint8_t *>(model_str_value)}},
+
     [ATTR_IDX_MODEL_VAL] = {{ESP_GATT_AUTO_RSP},
-                            {sizeof(model_uuid),
-                             const_cast<uint8_t *>(model_uuid),
-                             ESP_GATT_PERM_READ, model_str_value_len,
-                             model_str_value_len,
-                             const_cast<uint8_t *>(model_str_value)}},
+                            {LEN_BYTES(model_uuid), ESP_GATT_PERM_READ,
+                             LEN_LEN_STR(model_str_value)}},
 
     // ----- Firmware revision
     //
@@ -343,6 +372,7 @@ static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
                               ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
                               sizeof(kChrPropertyReadOnly),
                               const_cast<uint8_t *>(&kChrPropertyReadOnly)}},
+
     // Value
     [ATTR_IDX_PROBE_INFO_VAL] = {{ESP_GATT_RSP_BY_APP},
                                  {sizeof(probe_info_uuid),
@@ -1093,10 +1123,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
   }
 }
 
-bool is_connected() {
-  return vars.conn_id != kInvalidConnId;
-}
-
+bool is_connected() { return vars.conn_id != kInvalidConnId; }
 
 void setup(uint8_t hardware_config, uint16_t adc_ticks_per_amp) {
   // ble_util::setup();
