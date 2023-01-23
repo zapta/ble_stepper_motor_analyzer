@@ -103,7 +103,7 @@ static void loop() {
   // Update is_connected periodically.
   if (periodic_timer.elapsed_millis() >= 500) {
     periodic_timer.reset();
-    is_connected = false;  // ble_service::is_connected();
+    is_connected =  ble_service::is_connected();
   }
 
   // Update LED blinks.  Blinking indicates analyzer works
