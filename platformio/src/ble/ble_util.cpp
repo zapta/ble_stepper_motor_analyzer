@@ -1,8 +1,5 @@
 #include "ble_util.h"
 
-// #include <map>
-// #include "string.h"
-
 namespace ble_util {
 
 static constexpr auto TAG = "ble_util";
@@ -388,7 +385,8 @@ static const char* gatts_status_table[256] = {
 };
 
 // Common function to lookup a name in a table.
-static inline const char* lookup_name(int value, const char* table[], int table_size) {
+static inline const char* lookup_name(int value, const char* table[],
+                                      int table_size) {
   if (value < 0 && value >= table_size) {
     return "(invalid)";
   }
@@ -409,80 +407,5 @@ const char* gatts_status_name(esp_gatt_status_t status) {
   return lookup_name(status, gatts_status_table,
                      ARRAY_SIZE(gatts_status_table));
 }
-
-// static void test(const ListEntry* table, int table_size) {
-//   for (int i = 0; i < table_size; i++) {
-//     assert(table[i].value == i);
-//   }
-// }
-// void test_tables() {
-//   test(gatts_events_list, ARRAY_SIZE(gatts_events_list));
-//   test(gap_ble_events_list, ARRAY_SIZE(gap_ble_events_list));
-// }
-
-// This list is sparse in the sense that the numeric values don't match the
-// array indexes. We use it during setup to build a proper table.
-
-// std::map<int, const char*> gatt_status_map;
-
-// static const char* gatts_status_table[256] = {};
-
-// Populate a table from a list. In a table, the value of the entries match
-// their index to speedup lookup.
-// static void populate_table(const char* description, const ListEntry list[],
-//                            const char* table[], int list_size, int
-//                            table_size) {
-//   // Assuming that all entries in the table are cleared to nullptr;
-//   for (int i = 0; i < list_size; i++) {
-//     const ListEntry& entry = list[i];
-//     if (entry.value < 0 || entry.value >= table_size) {
-//       // This will result in this value looked up as '(unknown)'.
-//       // Not a big deal but increase table size if reasonable.
-//       ESP_LOGW(TAG, "Dropping %s %s", description, entry.name);
-//     } else {
-//       table[i] = entry.name;
-//     }
-//   }
-// }
-
-// static void gen_table_code(const char* table_name, int table_size,
-//                            const ListEntry list[], int list_size) {
-//   printf("\nstatic const char* %s[%d] = {\n", table_name, table_size);
-//   for (int i = 0; i < table_size; i++) {
-//     const char* name = nullptr;
-//     for (int j = 0; j < list_size; j++) {
-//       if (list[j].value == i) {
-//         name = list[j].name;
-//         break;
-//       }
-//       printf("  \"%s\",\n", name ? name : "nullptr");
-//     }
-//   }
-//   printf("};\n\n");
-// }
-
-// const char* gatts_status_name(esp_gatt_status_t status) {
-//   if (status < 0 || status > 256 || !gatts_status_table[status]) {
-//     return "(unknown)";
-//   }
-//   return gatts_status_table[status];
-// }
-
-// void setup() {
-//   populate_table("gatts event", gatts_events_list, gatts_events_table,
-//                  ARRAY_SIZE(gatts_events_list),
-//                  ARRAY_SIZE(gatts_events_table));
-//   populate_table("gap_ble_event", gap_ble_events_list, gap_ble_events_table,
-//                  ARRAY_SIZE(gap_ble_events_list),
-//                  ARRAY_SIZE(gap_ble_events_table));
-//   populate_table("gatts_status", gatts_status_list, gatts_status_table,
-//                  ARRAY_SIZE(gatts_status_list),
-//                  ARRAY_SIZE(gatts_status_table));
-// }
-
-// void gen_tables_code() {
-//   gen_table_code("gatts event_table", 30, gatts_events_list,
-//                  ARRAY_SIZE(gatts_events_list));
-// }
 
 }  // namespace ble_util

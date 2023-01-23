@@ -38,6 +38,7 @@
 
 namespace ble_util {
 
+// Serialized data to a byte buffer. Big endian order.
 class Serializer {
  public:
   Serializer(uint8_t* p_start, uint16_t size)
@@ -60,7 +61,6 @@ class Serializer {
   }
 
   inline void append_int16(int16_t v) { append_uint16((uint16_t)v); }
-
 
   inline void append_uint24(uint32_t v) {
     check_avail(3);
@@ -90,8 +90,8 @@ class Serializer {
   }
 
  private:
-   uint8_t* const _p_start;
-   uint8_t* const _p_end;
+  uint8_t* const _p_start;
+  uint8_t* const _p_end;
   uint8_t* _p_next;
 
   static constexpr const char* ENCODER_TAG = "msb_enc";
@@ -107,13 +107,6 @@ class Serializer {
 
 const char* gatts_event_name(esp_gatts_cb_event_t event);
 const char* gap_ble_event_name(esp_gap_ble_cb_event_t event);
-const char* gatts_status_name(esp_gatt_status_t status );
-
-
-// void test_tables();
-// void setup() ;
-
-// void gen_tables_code();
-
+const char* gatts_status_name(esp_gatt_status_t status);
 
 }  // namespace ble_util

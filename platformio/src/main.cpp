@@ -125,7 +125,7 @@ static void loop() {
   analyzer::pop_next_state(&state);
 
   analyzer_counter++;
-  ble_service::notify();
+  ble_service::notify_state_if_enabled(state);
 
   // Dump ADC state
   // if (analyzer_counter % 100 == 0) {
