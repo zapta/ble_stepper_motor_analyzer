@@ -86,6 +86,7 @@ static const uint8_t stepper_state_uuid[] = {ENCODE_UUID_16(0xff02)};
 static const uint8_t current_histogram_uuid[] = {ENCODE_UUID_16(0xff03)};
 static const uint8_t time_histogram_uuid[] = {ENCODE_UUID_16(0xff04)};
 static const uint8_t distance_histogram_uuid[] = {ENCODE_UUID_16(0xff05)};
+static const uint8_t command_uuid[] = {ENCODE_UUID_16(0xff06)};
 
 // static const uint16_t kModelChrUuid = ;
 
@@ -204,15 +205,18 @@ static const uint8_t kChrConfigDeclUuid[] = {
 
 static const uint8_t kChrPropertyReadNotify =
     ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
-
 static const uint8_t kChrPropertyReadOnly = ESP_GATT_CHAR_PROP_BIT_READ;
+static const uint8_t kChrPropertyWriteOnly = ESP_GATT_CHAR_PROP_BIT_WRITE;
 
 // TODO: What is this?  Related to notification control.
 // TODO: Do we need this?
 // static uint8_t heart_measurement_ccc[2] = {0x00, 0x00};
 
 // TODO: what does it do?
-static uint8_t state_ccc_val[2] = {0x00, 0x00};
+static uint8_t state_ccc_val[2] = {};
+
+// TODO: why do we need this?
+static uint8_t command_val[10] = {};
 
 // static const uint8_t char_value[] = {0x33, 0x44, 0x55, 0x66};
 
@@ -258,6 +262,9 @@ enum {
   ATTR_IDX_DISTANCE_HISTOGRAM,
   ATTR_IDX_DISTANCE_HISTOGRAM_VAL,
 
+  ATTR_IDX_COMMAND,
+  ATTR_IDX_COMMAND_VAL,
+
   //-------------
 
   // ATTR_IDX_CHAR_A,
@@ -278,12 +285,16 @@ enum {
 // Attributes list of the stepper service. A table like this
 // can define a single primary or secondary service.
 
+// NOTE: The macros cast the data to non const as required by
+// the API. Use const data with care.
+
 #define LEN_BYTES(x) sizeof(x), const_cast<uint8_t *>(x)
 
-#define LEN_LEN_BYTES(x) sizeof(x), sizeof(x), const_cast<uint8_t *>(x)
+#define LEN_LEN_BYTES(x) sizeof(x), sizeof(x), (uint8_t *)(x)
 
-#define LEN_LEN_STR(x) \
-  (sizeof(x) - 1), (sizeof(x) - 1), const_cast<uint8_t *>(x)
+#define LEN_LEN_STR(x) (sizeof(x) - 1), (sizeof(x) - 1), (uint8_t *)(x)
+
+#define LEN_LEN_NULL 0, 0, nullptr
 
 static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
 
@@ -297,8 +308,8 @@ static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
     //                    const_cast<uint8_t *>(service_uuid)}},
 
     [ATTR_IDX_SVC] = {{ESP_GATT_AUTO_RSP},
-                      {LEN_BYTES(kPrimaryServiceDeclUuid),
-                       ESP_GATT_PERM_READ, LEN_LEN_BYTES(service_uuid)}},
+                      {LEN_BYTES(kPrimaryServiceDeclUuid), ESP_GATT_PERM_READ,
+                       LEN_LEN_BYTES(service_uuid)}},
 
     // ----- Device Model.
     //
@@ -450,6 +461,41 @@ static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
                                           const_cast<uint8_t *>(
                                               distance_histogram_uuid),
                                           ESP_GATT_PERM_READ, 0, 0, nullptr}},
+
+    // ----- Command.
+    //
+    // Characteristic
+    [ATTR_IDX_COMMAND] = {{ESP_GATT_AUTO_RSP},
+                          {
+                              ESP_UUID_LEN_16,
+                              const_cast<uint8_t *>(kCharDeclUuid),
+                              // LEN_BYTES(kCharDeclUuid),
+                              // ESP_GATT_PERM_READ,
+                              ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
+                              sizeof(kChrPropertyReadOnly),
+                              const_cast<uint8_t *>(&kChrPropertyReadOnly)
+
+                              //  LEN_LEN_BYTES(kChrPropertyReadOnly)
+
+                          }},
+
+    // Value
+    // [ATTR_IDX_COMMAND_VAL] = {{ESP_GATT_AUTO_RSP},
+    //                                      {LEN_BYTES(command_uuid),
+    //                                       //
+    //                                       {sizeof(distance_histogram_uuid),
+    //                                       //   const_cast<uint8_t *>(
+    //                                       //       distance_histogram_uuid),
+    //                                       // ESP_GATT_PERM_READ,
+    //                                       ESP_GATT_PERM_WRITE,
+    //                                       // 0, 0, nullptr,
+    //                                       LEN_LEN_BYTES(command_val)}},
+
+    [ATTR_IDX_COMMAND_VAL] = {{ESP_GATT_AUTO_RSP},
+                              {sizeof(command_uuid),
+                               const_cast<uint8_t *>(command_uuid),
+                               ESP_GATT_PERM_READ, sizeof(command_val),
+                               sizeof(command_val), command_val}},
 
     // ----- XYZ charateristic.
 
