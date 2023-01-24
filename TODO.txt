@@ -1,3 +1,4 @@
+[firmware] In ble_host, convert strings to unit8_t arrays to avoid the -1.
 
 [hardware] Determine adc capacitor values, if any. Measure frequency response.
 

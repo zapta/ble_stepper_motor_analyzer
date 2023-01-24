@@ -1,4 +1,4 @@
-#include "ble_service.h"
+#include "ble_host.h"
 
 #include <algorithm>
 #include <string.h>
@@ -26,7 +26,7 @@
 using gatts_read_evt_param = esp_ble_gatts_cb_param_t::gatts_read_evt_param;
 using gatts_write_evt_param = esp_ble_gatts_cb_param_t::gatts_write_evt_param;
 
-namespace ble_service {
+namespace ble_host {
 
 static constexpr auto TAG = "ble_srv";
 
@@ -1056,4 +1056,4 @@ void notify_state_if_enabled(const analyzer::State& state) {
   }
 }
 
-}  // namespace ble_service
+}  // namespace ble_host

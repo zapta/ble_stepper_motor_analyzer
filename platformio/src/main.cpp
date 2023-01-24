@@ -4,7 +4,7 @@
 #include "acquisition/acq_consts.h"
 #include "acquisition/adc_task.h"
 #include "acquisition/analyzer.h"
-#include "ble/ble_service.h"
+#include "ble/ble_host.h"
 #include "driver/gpio.h"
 #include "esp_event.h"
 #include "esp_log.h"
@@ -94,7 +94,7 @@ static void setup() {
   ESP_LOGI(TAG, "ADC ticks per amp: %hu", adc_ticks_per_amp);
 
   // Initialize ble service.
-  ble_service::setup(hardware_config, adc_ticks_per_amp);
+  ble_host::setup(hardware_config, adc_ticks_per_amp);
 }
 
 // static uint32_t loop_counter = 0;
@@ -127,7 +127,7 @@ static void loop() {
   // Update is_connected periodically.
   if (periodic_timer.elapsed_millis() >= 500) {
     periodic_timer.reset();
-    is_connected = ble_service::is_connected();
+    is_connected = ble_host::is_connected();
   }
 
   // Update LED blinks.  Blinking indicates analyzer works
@@ -149,7 +149,7 @@ static void loop() {
   analyzer::pop_next_state(&state);
 
   analyzer_counter++;
-  ble_service::notify_state_if_enabled(state);
+  ble_host::notify_state_if_enabled(state);
 
   // Dump ADC state
   if (analyzer_counter % 100 == 0) {
