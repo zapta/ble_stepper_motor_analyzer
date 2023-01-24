@@ -21,7 +21,8 @@
 static constexpr auto TAG = "main";
 
 static const analyzer::Settings kDefaultSettings = {
-    .offset1 = 1800, .offset2 = 1800, .is_reverse_direction = false};
+  .offset1 = 1800, .offset2 = 1800, .is_reverse_direction = false
+};
 
 static analyzer::State state;
 
@@ -45,6 +46,25 @@ static void start_led2_blinks(uint16_t n) {
   io::LED2.write(led2_counter > 0);
 }
 
+// Determine hardware configuration based on configuration
+// resistors.
+static uint16_t determine_adc_ticks_per_amp(uint8_t hardware_config) {
+  switch (hardware_config) {
+    case 0: // For broken nrf52 boards.
+      // CFG1, CFG2 resistors not installed.
+      return acq_consts::CC6920BSO5A_MV_PER_AMP;
+      break;
+    case 1:
+      // Only CFG1 resistors is installed.
+      return acq_consts::TMCS1108A4B_MV_PER_AMP;
+      break;
+    // Configurations 0, 1 are reserved.
+    default:
+      ESP_LOGE(TAG, "Unexpected hardware config %hhu", hardware_config);
+      return 0;
+  }
+}
+
 static void setup() {
   // Set initial LEDs values.
   io::LED1.clear();
@@ -61,17 +81,20 @@ static void setup() {
     settings = kDefaultSettings;
   }
   ESP_LOGI(TAG, "Settings: %d, %d, %d", settings.offset1, settings.offset2,
-           settings.is_reverse_direction);
+      settings.is_reverse_direction);
 
   // Init acquisition.
   analyzer::setup(settings);
   adc_task::setup();
 
-  // enum_code_gen::gen_tables_code();
+  // Determine confiuration to pass to ble service.
+  const uint8_t hardware_config = io::read_hardware_config();
+  ESP_LOGI(TAG, "Hardware config: %hhu", hardware_config);
+  const uint16_t adc_ticks_per_amp = determine_adc_ticks_per_amp(hardware_config);
+  ESP_LOGI(TAG, "ADC ticks per amp: %hu", adc_ticks_per_amp);
 
-  // Init BLE
-  // TODO: Make this configured by board resistors.
-  ble_service::setup(0, acq_consts::xCC6920BSO5A_ADC_TICKS_PER_AMP);
+  // Initialize ble service.
+  ble_service::setup(hardware_config, adc_ticks_per_amp);
 }
 
 // static uint32_t loop_counter = 0;
@@ -88,7 +111,8 @@ static void loop() {
     if (button_event == Button::EVENT_SHORT_CLICK) {
       bool new_is_reversed_direcction;
       const bool ok = controls::toggle_direction(&new_is_reversed_direcction);
-      const uint16_t num_blinks = !ok ? 10 : new_is_reversed_direcction ? 2 : 1;
+      const uint16_t num_blinks = !ok ? 10 : new_is_reversed_direcction ? 2
+                                                                        : 1;
       start_led2_blinks(num_blinks);
     }
 
@@ -103,7 +127,7 @@ static void loop() {
   // Update is_connected periodically.
   if (periodic_timer.elapsed_millis() >= 500) {
     periodic_timer.reset();
-    is_connected =  ble_service::is_connected();
+    is_connected = ble_service::is_connected();
   }
 
   // Update LED blinks.  Blinking indicates analyzer works

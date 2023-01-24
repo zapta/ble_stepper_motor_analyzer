@@ -1,9 +1,9 @@
 
-[firmware] Add hardware control inputs.
+[firmware] Calibrate current sensors.
+
+[firmware] Clean up code (delete commented out code, etc)
 
 [firmware] Add mutex to ble service (for notify).
 
-[firmware] BLE, move some messages to debug level.
 
-[firmware] BLE,change the attr declarations to use macros.
 

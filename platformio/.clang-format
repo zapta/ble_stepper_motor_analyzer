@@ -1,0 +1,12 @@
+---
+# See configurator at https://zed0.co.uk/clang-format-configurator/
+# Google example at https://github.com/kehanXue/google-style-clang-format/blob/master/.clang-format
+Language: Cpp
+BasedOnStyle: WebKit
+IndentWidth: 2
+BreakBeforeBraces: Attach
+IndentCaseLabels: true
+ColumnLimit: 80
+BreakBeforeBinaryOperators: None
+Cpp11BracedListStyle: true
+SpacesBeforeTrailingComments: 2

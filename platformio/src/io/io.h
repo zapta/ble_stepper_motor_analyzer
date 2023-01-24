@@ -19,12 +19,14 @@ extern OutputPin TEST1;
 // Active low.
 extern Button BUTTON1;
 
-// Read hardware configuration.
+// Read hardware configuration. Can be called
+// only once.
+//
 // Returns:
-// 0 - CFG1, CFG2, not installed.
-// 1 - Only CFG1 installed.
-// 2 - Only CFG2 installed.
-// 3 - Both CXG1, CFG2 installed.
+// 0 - CFG1, CFG2 resistors, not installed.
+// 1 - Only CFG1 resistor installed.
+// 2 - Only CFG2 resistor installed.
+// 3 - Both CXG1, CFG2 resistors installed.
 extern uint8_t read_hardware_config();
 
 }  // namespace io

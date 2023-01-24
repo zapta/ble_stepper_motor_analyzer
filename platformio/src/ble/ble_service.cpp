@@ -21,7 +21,6 @@
 #include "nvs_flash.h"
 #include "settings/controls.h"
 
-
 // Based on the sexample at
 // https://github.com/espressif/esp-idf/blob/master/examples/bluetooth/bluedroid/ble/gatt_server_service_table/main/gatts_table_creat_demo.c
 
@@ -110,7 +109,7 @@ static esp_ble_adv_data_t adv_data = {
     .max_interval = 0x0010,  // slave connection max interval, Time =
                              // max_interval * 1.25 msec
     .appearance = 0x00,
-    .manufacturer_len = 0,        // TEST_MANUFACTURER_DATA_LEN,
+    .manufacturer_len = 0,  // TEST_MANUFACTURER_DATA_LEN,
     .p_manufacturer_data = NULL,  // test_manufacturer,
     .service_data_len = 0,
     .p_service_data = NULL,
@@ -127,12 +126,12 @@ static esp_ble_adv_data_t scan_rsp_data = {
     .min_interval = 0x0006,
     .max_interval = 0x0010,
     .appearance = 0x00,
-    .manufacturer_len = 0,        // TEST_MANUFACTURER_DATA_LEN,
+    .manufacturer_len = 0,  // TEST_MANUFACTURER_DATA_LEN,
     .p_manufacturer_data = NULL,  //&test_manufacturer[0],
     .service_data_len = 0,
     .p_service_data = NULL,
     .service_uuid_len = sizeof(service_uuid),
-    .p_service_uuid = const_cast<uint8_t *>(service_uuid),
+    .p_service_uuid = const_cast<uint8_t*>(service_uuid),
     .flag = (ESP_BLE_ADV_FLAG_GEN_DISC | ESP_BLE_ADV_FLAG_BREDR_NOT_SPT),
 };
 
@@ -312,11 +311,11 @@ enum {
 // NOTE: The macros cast the data to non const as required by
 // the API. Use const data with care.
 
-#define LEN_BYTES(x) sizeof(x), const_cast<uint8_t *>(x)
+#define LEN_BYTES(x) sizeof(x), const_cast<uint8_t*>(x)
 
-#define LEN_LEN_BYTES(x) sizeof(x), sizeof(x), (uint8_t *)(x)
+#define LEN_LEN_BYTES(x) sizeof(x), sizeof(x), (uint8_t*)(x)
 
-#define LEN_LEN_STR(x) (sizeof(x) - 1), (sizeof(x) - 1), (uint8_t *)(x)
+#define LEN_LEN_STR(x) (sizeof(x) - 1), (sizeof(x) - 1), (uint8_t*)(x)
 
 #define LEN_LEN_NULL 0, 0, nullptr
 
@@ -332,8 +331,8 @@ static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
     //                    const_cast<uint8_t *>(service_uuid)}},
 
     [ATTR_IDX_SVC] = {{ESP_GATT_AUTO_RSP},
-                      {LEN_BYTES(kPrimaryServiceDeclUuid), ESP_GATT_PERM_READ,
-                       LEN_LEN_BYTES(service_uuid)}},
+        {LEN_BYTES(kPrimaryServiceDeclUuid), ESP_GATT_PERM_READ,
+            LEN_LEN_BYTES(service_uuid)}},
 
     // ----- Device Model.
     //
@@ -348,10 +347,10 @@ static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
     [ATTR_IDX_MODEL] =
 
         {{ESP_GATT_AUTO_RSP},
-         {ESP_UUID_LEN_16, const_cast<uint8_t *>(kCharDeclUuid),
-          ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
-          sizeof(kChrPropertyReadOnly),
-          const_cast<uint8_t *>(&kChrPropertyReadOnly)}},
+            {ESP_UUID_LEN_16, const_cast<uint8_t*>(kCharDeclUuid),
+                ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
+                sizeof(kChrPropertyReadOnly),
+                const_cast<uint8_t*>(&kChrPropertyReadOnly)}},
 
     // Value.
     // [ATTR_IDX_MODEL_VAL] = {{ESP_GATT_AUTO_RSP},
@@ -362,161 +361,138 @@ static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
     //                          const_cast<uint8_t *>(model_str_value)}},
 
     [ATTR_IDX_MODEL_VAL] = {{ESP_GATT_AUTO_RSP},
-                            {LEN_BYTES(model_uuid), ESP_GATT_PERM_READ,
-                             LEN_LEN_STR(model_str_value)}},
+        {LEN_BYTES(model_uuid), ESP_GATT_PERM_READ,
+            LEN_LEN_STR(model_str_value)}},
 
     // ----- Firmware revision
     //
     // Characteristic
     [ATTR_IDX_REVISION] = {{ESP_GATT_AUTO_RSP},
-                           {ESP_UUID_LEN_16,
-                            const_cast<uint8_t *>(kCharDeclUuid),
-                            ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
-                            sizeof(kChrPropertyReadOnly),
-                            (uint8_t *)&kChrPropertyReadOnly}},
+        {ESP_UUID_LEN_16, const_cast<uint8_t*>(kCharDeclUuid),
+            ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
+            sizeof(kChrPropertyReadOnly), (uint8_t*)&kChrPropertyReadOnly}},
     // Value.
     [ATTR_IDX_REVISION_VAL] = {{ESP_GATT_AUTO_RSP},
-                               {sizeof(revision_uuid),
-                                const_cast<uint8_t *>(revision_uuid),
-                                ESP_GATT_PERM_READ, revision_str_value_len,
-                                revision_str_value_len,
-                                const_cast<uint8_t *>(revision_str_value)}},
+        {sizeof(revision_uuid), const_cast<uint8_t*>(revision_uuid),
+            ESP_GATT_PERM_READ, revision_str_value_len, revision_str_value_len,
+            const_cast<uint8_t*>(revision_str_value)}},
 
     // ----- Manufacturer name
     //
     // Characteristic
-    [ATTR_IDX_MANUFECTURER] =
-        {{ESP_GATT_AUTO_RSP},
-         {ESP_UUID_LEN_16, const_cast<uint8_t *>(kCharDeclUuid),
-          ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
-          sizeof(kChrPropertyReadOnly), (uint8_t *)&kChrPropertyReadOnly}},
+    [ATTR_IDX_MANUFECTURER] = {{ESP_GATT_AUTO_RSP},
+        {ESP_UUID_LEN_16, const_cast<uint8_t*>(kCharDeclUuid),
+            ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
+            sizeof(kChrPropertyReadOnly), (uint8_t*)&kChrPropertyReadOnly}},
     // Value.
-    [ATTR_IDX_MANUFECTURER_VAL] =
-        {{ESP_GATT_AUTO_RSP},
-         {sizeof(manufacturer_uuid), const_cast<uint8_t *>(manufacturer_uuid),
-          ESP_GATT_PERM_READ, manufacturer_str_value_len,
-          manufacturer_str_value_len,
-          const_cast<uint8_t *>(manufacturer_str_value)}},
+    [ATTR_IDX_MANUFECTURER_VAL] = {{ESP_GATT_AUTO_RSP},
+        {sizeof(manufacturer_uuid), const_cast<uint8_t*>(manufacturer_uuid),
+            ESP_GATT_PERM_READ, manufacturer_str_value_len,
+            manufacturer_str_value_len,
+            const_cast<uint8_t*>(manufacturer_str_value)}},
 
     // ----- Probe info
     //
     // Characteristic
     [ATTR_IDX_PROBE_INFO] = {{ESP_GATT_AUTO_RSP},
-                             {ESP_UUID_LEN_16,
-                              const_cast<uint8_t *>(kCharDeclUuid),
-                              ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
-                              sizeof(kChrPropertyReadOnly),
-                              const_cast<uint8_t *>(&kChrPropertyReadOnly)}},
+        {ESP_UUID_LEN_16, const_cast<uint8_t*>(kCharDeclUuid),
+            ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
+            sizeof(kChrPropertyReadOnly),
+            const_cast<uint8_t*>(&kChrPropertyReadOnly)}},
 
     // Value
     [ATTR_IDX_PROBE_INFO_VAL] = {{ESP_GATT_RSP_BY_APP},
-                                 {sizeof(probe_info_uuid),
-                                  const_cast<uint8_t *>(probe_info_uuid),
-                                  ESP_GATT_PERM_READ, 0, 0, nullptr}},
+        {sizeof(probe_info_uuid), const_cast<uint8_t*>(probe_info_uuid),
+            ESP_GATT_PERM_READ, 0, 0, nullptr}},
 
     // ----- Stepper state.
     //
     // Characteristic
     //@@@
-    [ATTR_IDX_STEPPER_STATE] =
-        {{ESP_GATT_AUTO_RSP},
-         {ESP_UUID_LEN_16, const_cast<uint8_t *>(kCharDeclUuid),
-          ESP_GATT_PERM_READ, sizeof(kChrPropertyReadNotify),
-          sizeof(kChrPropertyReadNotify),
-          const_cast<uint8_t *>(&kChrPropertyReadNotify)}},
+    [ATTR_IDX_STEPPER_STATE] = {{ESP_GATT_AUTO_RSP},
+        {ESP_UUID_LEN_16, const_cast<uint8_t*>(kCharDeclUuid),
+            ESP_GATT_PERM_READ, sizeof(kChrPropertyReadNotify),
+            sizeof(kChrPropertyReadNotify),
+            const_cast<uint8_t*>(&kChrPropertyReadNotify)}},
     // Value
     [ATTR_IDX_STEPPER_STATE_VAL] = {{ESP_GATT_RSP_BY_APP},
-                                    {sizeof(stepper_state_uuid),
-                                     const_cast<uint8_t *>(stepper_state_uuid),
-                                     ESP_GATT_PERM_READ, 0, 0, nullptr}},
+        {sizeof(stepper_state_uuid), const_cast<uint8_t*>(stepper_state_uuid),
+            ESP_GATT_PERM_READ, 0, 0, nullptr}},
 
     // Client Characteristic Configuration Descriptor
     [ATTR_IDX_STEPPER_STATE_CCC] = {{ESP_GATT_AUTO_RSP},
-                                    {ESP_UUID_LEN_16,
-                                     (uint8_t *)&kChrConfigDeclUuid,
-                                     ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-                                     sizeof(state_ccc_val),
-                                     sizeof(state_ccc_val), state_ccc_val}},
+        {ESP_UUID_LEN_16, (uint8_t*)&kChrConfigDeclUuid,
+            ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE, sizeof(state_ccc_val),
+            sizeof(state_ccc_val), state_ccc_val}},
 
     // ----- Current histogram.
     //
     // Characteristic
-    [ATTR_IDX_CURRENT_HISTOGRAM] =
-        {{ESP_GATT_AUTO_RSP},
-         {ESP_UUID_LEN_16, const_cast<uint8_t *>(kCharDeclUuid),
-          ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
-          sizeof(kChrPropertyReadOnly),
-          const_cast<uint8_t *>(&kChrPropertyReadOnly)}},
+    [ATTR_IDX_CURRENT_HISTOGRAM] = {{ESP_GATT_AUTO_RSP},
+        {ESP_UUID_LEN_16, const_cast<uint8_t*>(kCharDeclUuid),
+            ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
+            sizeof(kChrPropertyReadOnly),
+            const_cast<uint8_t*>(&kChrPropertyReadOnly)}},
     // Value
     [ATTR_IDX_CURRENT_HISTOGRAM_VAL] = {{ESP_GATT_RSP_BY_APP},
-                                        {sizeof(current_histogram_uuid),
-                                         const_cast<uint8_t *>(
-                                             current_histogram_uuid),
-                                         ESP_GATT_PERM_READ, 0, 0, nullptr}},
+        {sizeof(current_histogram_uuid),
+            const_cast<uint8_t*>(current_histogram_uuid), ESP_GATT_PERM_READ, 0,
+            0, nullptr}},
 
     // ----- Time histogram.
     //
     // Characteristic
-    [ATTR_IDX_TIME_HISTOGRAM] =
-        {{ESP_GATT_AUTO_RSP},
-         {ESP_UUID_LEN_16, const_cast<uint8_t *>(kCharDeclUuid),
-          ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
-          sizeof(kChrPropertyReadOnly),
-          const_cast<uint8_t *>(&kChrPropertyReadOnly)}},
+    [ATTR_IDX_TIME_HISTOGRAM] = {{ESP_GATT_AUTO_RSP},
+        {ESP_UUID_LEN_16, const_cast<uint8_t*>(kCharDeclUuid),
+            ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
+            sizeof(kChrPropertyReadOnly),
+            const_cast<uint8_t*>(&kChrPropertyReadOnly)}},
     // Value
     [ATTR_IDX_TIME_HISTOGRAM_VAL] = {{ESP_GATT_RSP_BY_APP},
-                                     {sizeof(time_histogram_uuid),
-                                      const_cast<uint8_t *>(
-                                          time_histogram_uuid),
-                                      ESP_GATT_PERM_READ, 0, 0, nullptr}},
+        {sizeof(time_histogram_uuid), const_cast<uint8_t*>(time_histogram_uuid),
+            ESP_GATT_PERM_READ, 0, 0, nullptr}},
 
     // ----- Distance histogram.
     //
     // Characteristic
-    [ATTR_IDX_DISTANCE_HISTOGRAM] =
-        {{ESP_GATT_AUTO_RSP},
-         {ESP_UUID_LEN_16, const_cast<uint8_t *>(kCharDeclUuid),
-          ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
-          sizeof(kChrPropertyReadOnly),
-          const_cast<uint8_t *>(&kChrPropertyReadOnly)}},
+    [ATTR_IDX_DISTANCE_HISTOGRAM] = {{ESP_GATT_AUTO_RSP},
+        {ESP_UUID_LEN_16, const_cast<uint8_t*>(kCharDeclUuid),
+            ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
+            sizeof(kChrPropertyReadOnly),
+            const_cast<uint8_t*>(&kChrPropertyReadOnly)}},
     // Value
     [ATTR_IDX_DISTANCE_HISTOGRAM_VAL] = {{ESP_GATT_RSP_BY_APP},
-                                         {sizeof(distance_histogram_uuid),
-                                          const_cast<uint8_t *>(
-                                              distance_histogram_uuid),
-                                          ESP_GATT_PERM_READ, 0, 0, nullptr}},
+        {sizeof(distance_histogram_uuid),
+            const_cast<uint8_t*>(distance_histogram_uuid), ESP_GATT_PERM_READ,
+            0, 0, nullptr}},
 
     // ----- Command.
     //
     // Characteristic
     [ATTR_IDX_COMMAND] = {{ESP_GATT_AUTO_RSP},
-                          {ESP_UUID_LEN_16,
-                           const_cast<uint8_t *>(kCharDeclUuid),
-                           ESP_GATT_PERM_READ, sizeof(kChrPropertyWriteOnly),
-                           sizeof(kChrPropertyWriteOnly),
-                           const_cast<uint8_t *>(&kChrPropertyWriteOnly)}},
+        {ESP_UUID_LEN_16, const_cast<uint8_t*>(kCharDeclUuid),
+            ESP_GATT_PERM_READ, sizeof(kChrPropertyWriteOnly),
+            sizeof(kChrPropertyWriteOnly),
+            const_cast<uint8_t*>(&kChrPropertyWriteOnly)}},
 
     [ATTR_IDX_COMMAND_VAL] = {{ESP_GATT_AUTO_RSP},
-                              {sizeof(command_uuid),
-                               const_cast<uint8_t *>(command_uuid),
-                               ESP_GATT_PERM_WRITE, sizeof(command_val),
-                               sizeof(command_val), command_val}},
+        {sizeof(command_uuid), const_cast<uint8_t*>(command_uuid),
+            ESP_GATT_PERM_WRITE, sizeof(command_val), sizeof(command_val),
+            command_val}},
 
     // ----- Capture.
     //
     // Characteristic
     [ATTR_IDX_CAPTURE] = {{ESP_GATT_AUTO_RSP},
-                          {ESP_UUID_LEN_16,
-                           const_cast<uint8_t *>(kCharDeclUuid),
-                           ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
-                           sizeof(kChrPropertyReadOnly),
-                           const_cast<uint8_t *>(&kChrPropertyReadOnly)}},
+        {ESP_UUID_LEN_16, const_cast<uint8_t*>(kCharDeclUuid),
+            ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
+            sizeof(kChrPropertyReadOnly),
+            const_cast<uint8_t*>(&kChrPropertyReadOnly)}},
 
     // Value
     [ATTR_IDX_CAPTURE_VAL] = {{ESP_GATT_RSP_BY_APP},
-                              {sizeof(capture_uuid),
-                               const_cast<uint8_t *>(capture_uuid),
-                               ESP_GATT_PERM_READ, 0, 0, nullptr}},
+        {sizeof(capture_uuid), const_cast<uint8_t*>(capture_uuid),
+            ESP_GATT_PERM_READ, 0, 0, nullptr}},
     // ----- XYZ charateristic.
 
     // Characteristic Declaration
@@ -565,7 +541,7 @@ uint16_t handle_table[ATTR_IDX_COUNT];
 // }
 
 static esp_gatt_status_t on_probe_info_read(
-    const gatts_read_evt_param &read_param, ble_util::Serializer *ser) {
+    const gatts_read_evt_param& read_param, ble_util::Serializer* ser) {
   ESP_LOGI(TAG, "on_probe_info_read() called");
 
   // TODO: This is a large variable. Do we need to clear entirely?
@@ -598,8 +574,8 @@ static constexpr uint16_t kCaptureValuePrefixMaxLen = 9;
 
 // CAPTURE_SIGNAL_VALUE_PREFIX_MAX_SIZE
 
-static esp_gatt_status_t on_capture_read(const gatts_read_evt_param &read_param,
-                                         ble_util::Serializer *ser) {
+static esp_gatt_status_t on_capture_read(
+    const gatts_read_evt_param& read_param, ble_util::Serializer* ser) {
   ESP_LOGD(TAG, "on_capture_read() called");
 
   //  if (offset != 0) {
@@ -616,7 +592,7 @@ static esp_gatt_status_t on_capture_read(const gatts_read_evt_param &read_param,
   // data to fill it.
   if (max_bytes < 100) {
     ESP_LOGE(TAG, "Capture read: max_len %hu is too small (mtu=%hu)", max_bytes,
-             vars.conn_mtu);
+        vars.conn_mtu);
     return ESP_GATT_OUT_OF_RANGE;
   }
 
@@ -629,11 +605,11 @@ static esp_gatt_status_t on_capture_read(const gatts_read_evt_param &read_param,
   const int available_item_count = (max_bytes - kCaptureValuePrefixMaxLen) / 4;
   // How many we are going to transfer now.
   const int actual_item_count = (desired_item_count <= available_item_count)
-                                    ? desired_item_count
-                                    : available_item_count;
+      ? desired_item_count
+      : available_item_count;
 
   ESP_LOGD(TAG, "Capture read: start=%d, desired=%d, actual=%d",
-           start_item_index, desired_item_count, actual_item_count);
+      start_item_index, desired_item_count, actual_item_count);
 
   // uint8_t *const p0 = static_cast<uint8_t *>(buf);
   // uint8_t *p = p0;
@@ -690,7 +666,7 @@ static esp_gatt_status_t on_capture_read(const gatts_read_evt_param &read_param,
     // Encode data points as pairs of int16_t.
     for (int i = start_item_index; i < start_item_index + actual_item_count;
          i++) {
-      const analyzer::AdcCaptureItem *item =
+      const analyzer::AdcCaptureItem* item =
           vars.adc_capture_snapshot.items.get(i);
       // *p++ = item->v1 >> 8;
       // *p++ = item->v1;
@@ -741,8 +717,8 @@ static esp_gatt_status_t on_capture_read(const gatts_read_evt_param &read_param,
   //          ser->size());
 }
 
-static void serialize_state(const analyzer::State &state,
-                            ble_util::Serializer *ser) {
+static void serialize_state(
+    const analyzer::State& state, ble_util::Serializer* ser) {
   // Flags.
   // * bit5 : true IFF energized.
   // * bit4 : true IFF reversed direction.
@@ -753,8 +729,7 @@ static void serialize_state(const analyzer::State &state,
   // All other bits are reserved and readers should treat them
   // as undefined.
   const uint8_t flags = (state.is_energized ? 0x20 : 0) |
-                        (state.is_reverse_direction ? 0x10 : 0) |
-                        (state.quadrant & 0x03);
+      (state.is_reverse_direction ? 0x10 : 0) | (state.quadrant & 0x03);
 
   assert(ser->size() == 0);
   ser->append_uint48(state.tick_count);
@@ -767,7 +742,7 @@ static void serialize_state(const analyzer::State &state,
 }
 
 static esp_gatt_status_t on_stepper_state_read(
-    const gatts_read_evt_param &read_param, ble_util::Serializer *ser) {
+    const gatts_read_evt_param& read_param, ble_util::Serializer* ser) {
   ESP_LOGD(TAG, "on_stepper_state_read() called");
 
   // ESP_LOG_BUFFER_HEX(TAG, state_ccc_val, sizeof(state_ccc_val));
@@ -814,7 +789,7 @@ static esp_gatt_status_t on_stepper_state_read(
 }
 
 static esp_gatt_status_t on_current_histogram_read(
-    const gatts_read_evt_param &read_param, ble_util::Serializer *ser) {
+    const gatts_read_evt_param& read_param, ble_util::Serializer* ser) {
   ESP_LOGD(TAG, "on_current_histogram_read() called");
 
   analyzer::sample_histogram(&vars.histogram_buffer);
@@ -826,7 +801,7 @@ static esp_gatt_status_t on_current_histogram_read(
 
   // Format bucket values, (2 bytes each)
   for (int i = 0; i < acq_consts::kNumHistogramBuckets; i++) {
-    const analyzer::HistogramBucket &bucket = vars.histogram_buffer.buckets[i];
+    const analyzer::HistogramBucket& bucket = vars.histogram_buffer.buckets[i];
     uint16_t value;
     if (bucket.total_steps == 0) {
       value = 0;
@@ -844,13 +819,13 @@ static esp_gatt_status_t on_current_histogram_read(
 }
 
 static esp_gatt_status_t on_time_histogram_read(
-    const gatts_read_evt_param &read_param, ble_util::Serializer *ser) {
+    const gatts_read_evt_param& read_param, ble_util::Serializer* ser) {
   ESP_LOGD(TAG, "on_time_histogram_read() called");
 
   analyzer::sample_histogram(&vars.histogram_buffer);
 
   assert(ser->size() == 0);
-  ser->append_uint8(0x20);                              // format id.
+  ser->append_uint8(0x20);  // format id.
   ser->append_uint8(acq_consts::kNumHistogramBuckets);  // Num of buckets
 
   // Find total time value.
@@ -880,7 +855,7 @@ static esp_gatt_status_t on_time_histogram_read(
 }
 
 static esp_gatt_status_t on_distance_histogram_read(
-    const gatts_read_evt_param &read_param, ble_util::Serializer *ser) {
+    const gatts_read_evt_param& read_param, ble_util::Serializer* ser) {
   ESP_LOGD(TAG, "on_distance_histogram_read() called");
 
   analyzer::sample_histogram(&vars.histogram_buffer);
@@ -932,7 +907,7 @@ static esp_gatt_status_t on_distance_histogram_read(
 }
 
 static esp_gatt_status_t on_state_notification_control_write(
-    const gatts_write_evt_param &write_param) {
+    const gatts_write_evt_param& write_param) {
   if (write_param.len != 2 || write_param.is_prep) {
     return ESP_GATT_ERROR;
   }
@@ -940,7 +915,7 @@ static esp_gatt_status_t on_state_notification_control_write(
   const uint16_t descr_value = write_param.value[1] << 8 | write_param.value[0];
   const bool notifications_enabled = descr_value & 0x0001;
   ESP_LOGI(TAG, "Notifications 0x%04x: %d -> %d", descr_value,
-           vars.state_notifications_enabled, notifications_enabled);
+      vars.state_notifications_enabled, notifications_enabled);
   vars.state_notifications_enabled = notifications_enabled;
 
   return ESP_GATT_OK;
@@ -952,9 +927,10 @@ static esp_gatt_status_t on_state_notification_control_write(
 }
 
 static esp_gatt_status_t on_command_write(
-    const gatts_write_evt_param &write_param) {
+    const gatts_write_evt_param& write_param) {
   ESP_LOGD(TAG, "on_command_write() called, values:");
-  ESP_LOG_BUFFER_HEX_LEVEL(TAG,  write_param.value, write_param.len, ESP_LOG_DEBUG);
+  ESP_LOG_BUFFER_HEX_LEVEL(
+      TAG, write_param.value, write_param.len, ESP_LOG_DEBUG);
 
   //                        prepare_write_env->prepare_len);
 
@@ -969,7 +945,7 @@ static esp_gatt_status_t on_command_write(
   //   return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
   // }
 
-  const uint8_t *data = write_param.value;
+  const uint8_t* data = write_param.value;
   const int len = write_param.len;
 
   // We need at least one byte for the opcode.
@@ -987,7 +963,7 @@ static esp_gatt_status_t on_command_write(
     case 0x01:
       // printk("on_command_write: resetting state and histogram\n");
       if (len != 1) {
-        ESP_LOGE(TAG, "Reset command too long: %hu\n", len);
+        ESP_LOGE(TAG, "Reset command too long: %hu", len);
         return ESP_GATT_INVALID_ATTR_LEN;
       }
       analyzer::reset_data();
@@ -998,7 +974,7 @@ static esp_gatt_status_t on_command_write(
     case 0x02:
       // printk("on_command_write: snapshot adc capture signal\n");
       if (len != 1) {
-        ESP_LOGE(TAG, "Signal capture command too long: %hu\n", len);
+        ESP_LOGE(TAG, "Signal capture command too long: %hu", len);
         return ESP_GATT_INVALID_ATTR_LEN;
       }
       analyzer::get_last_capture_snapshot(&vars.adc_capture_snapshot);
@@ -1011,7 +987,7 @@ static esp_gatt_status_t on_command_write(
     case 0x03:
       // printk("on_command_write: snapshot adc capture signal\n");
       if (len != 2) {
-        ESP_LOGE(TAG, "Set divider command wrong length : %hu\n", len);
+        ESP_LOGE(TAG, "Set divider command wrong length : %hu", len);
         return ESP_GATT_INVALID_ATTR_LEN;
       }
       analyzer::set_signal_capture_divider(data[1]);
@@ -1024,12 +1000,12 @@ static esp_gatt_status_t on_command_write(
       // persisted on the eeprom.
     case 0x04: {
       if (len != 1) {
-        ESP_LOGE(TAG, "Toggle direction command wrong length : %hu\n", len);
+        ESP_LOGE(TAG, "Toggle direction command wrong length : %hu", len);
         return ESP_GATT_INVALID_ATTR_LEN;
       }
       bool new_direction = false;
       if (!controls::toggle_direction(&new_direction)) {
-        ESP_LOGE(TAG, "Direction change failed\n");
+        ESP_LOGE(TAG, "Direction change failed");
         return ESP_GATT_WRITE_NOT_PERMIT;
       }
       ESP_LOGI(TAG, "Drection toggled to %d", new_direction);
@@ -1041,24 +1017,24 @@ static esp_gatt_status_t on_command_write(
       // is persisted on the eeprom.
     case 0x05:
       if (len != 1) {
-        ESP_LOGE(TAG, "zero calibration command wrong length : %hu\n", len);
+        ESP_LOGE(TAG, "zero calibration command wrong length : %hu", len);
         return ESP_GATT_INVALID_ATTR_LEN;
       }
       if (!controls::zero_calibration()) {
-        ESP_LOGE(TAG, "Zero calibration failed\n");
+        ESP_LOGE(TAG, "Zero calibration failed");
         return ESP_GATT_WRITE_NOT_PERMIT;
       }
       ESP_LOGI(TAG, "Sensors zero calibrated.");
       return ESP_GATT_OK;
 
     default:
-      ESP_LOGE(TAG, "on_command_write: unknown opcode: %02x\n", opcode);
+      ESP_LOGE(TAG, "on_command_write: unknown opcode: %02x", opcode);
       return ESP_GATT_REQ_NOT_SUPPORTED;
   }
 }
 
-static void gap_event_handler(esp_gap_ble_cb_event_t event,
-                              esp_ble_gap_cb_param_t *param) {
+static void gap_event_handler(
+    esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* param) {
   switch (event) {
     // Called once during setup to indicate that adv data is configured.
     case ESP_GAP_BLE_ADV_DATA_SET_COMPLETE_EVT:
@@ -1096,13 +1072,12 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event,
       if (param->adv_stop_cmpl.status != ESP_BT_STATUS_SUCCESS) {
         ESP_LOGE(TAG, "Advertising stop failed");
       } else {
-        ESP_LOGI(TAG, "Stop adv successfully\n");
+        ESP_LOGI(TAG, "Stop adv successfully");
       }
       break;
 
     case ESP_GAP_BLE_UPDATE_CONN_PARAMS_EVT:
-      ESP_LOGI(
-          TAG,
+      ESP_LOGI(TAG,
           "update connection params status = %d, min_int = %d, max_int = "
           "%d,conn_int = %d,latency = %d, timeout = %d",
           param->update_conn_params.status, param->update_conn_params.min_int,
@@ -1112,7 +1087,7 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event,
 
     default:
       ESP_LOGI(TAG, "Gap event handler: unknown event %d, %s", event,
-               ble_util::gap_ble_event_name(event));
+          ble_util::gap_ble_event_name(event));
       break;
   }
 }
@@ -1185,8 +1160,7 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event,
 // }
 
 static void gatts_event_handler(esp_gatts_cb_event_t event,
-                                esp_gatt_if_t gatts_if,
-                                esp_ble_gatts_cb_param_t *param) {
+    esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t* param) {
   switch (event) {
     case ESP_GATTS_REG_EVT: {
       ESP_LOGI(TAG, "ESP_GATTS_REG_EVT event");
@@ -1205,12 +1179,12 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
 
       // @@@ From this handler.
       // Construct device name from device address.
-      const uint8_t *device_addr = esp_bt_dev_get_address();
+      const uint8_t* device_addr = esp_bt_dev_get_address();
       assert(device_addr);
       char device_name[20];
       snprintf(device_name, sizeof(device_name), "STP-%02X%02X%02X%02X%02X%02X",
-               device_addr[0], device_addr[1], device_addr[2], device_addr[3],
-               device_addr[4], device_addr[5]);
+          device_addr[0], device_addr[1], device_addr[2], device_addr[3],
+          device_addr[4], device_addr[5]);
       // NOTE: Device name is copied internally so its safe to pass a temporary
       // name pointer
       ESP_LOGI(TAG, "Device name: %s", device_name);
@@ -1239,8 +1213,8 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       }
       // adv_config_done |= SCAN_RSP_CONFIG_FLAG;
 
-      err = esp_ble_gatts_create_attr_tab(attr_table, gatts_if, ATTR_IDX_COUNT,
-                                          SVC_INST_ID);
+      err = esp_ble_gatts_create_attr_tab(
+          attr_table, gatts_if, ATTR_IDX_COUNT, SVC_INST_ID);
       if (err) {
         ESP_LOGE(TAG, "create attr table failed, error code = %x", err);
       }
@@ -1249,7 +1223,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
     // Handle read event.
     case ESP_GATTS_READ_EVT: {
       ESP_LOGD(TAG, "ESP_GATTS_READ_EVT");
-      const gatts_read_evt_param &read_param = param->read;
+      const gatts_read_evt_param& read_param = param->read;
 
       // For characteristics with auto resp we don't need to do
       // anything here.
@@ -1270,8 +1244,8 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       // TODO: This is a large variable. Do we need to clear entirely?
       memset(&vars.rsp, 0, sizeof(vars.rsp));
 
-      ble_util::Serializer ser(vars.rsp.attr_value.value,
-                               sizeof(vars.rsp.attr_value.value));
+      ble_util::Serializer ser(
+          vars.rsp.attr_value.value, sizeof(vars.rsp.attr_value.value));
       esp_gatt_status_t status = ESP_GATT_NOT_FOUND;
 
       if (read_param.offset != 0) {
@@ -1279,16 +1253,16 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       } else if (read_param.handle == handle_table[ATTR_IDX_PROBE_INFO_VAL]) {
         status = on_probe_info_read(read_param, &ser);
       } else if (read_param.handle ==
-                 handle_table[ATTR_IDX_STEPPER_STATE_VAL]) {
+          handle_table[ATTR_IDX_STEPPER_STATE_VAL]) {
         status = on_stepper_state_read(read_param, &ser);
       } else if (read_param.handle ==
-                 handle_table[ATTR_IDX_CURRENT_HISTOGRAM_VAL]) {
+          handle_table[ATTR_IDX_CURRENT_HISTOGRAM_VAL]) {
         status = on_current_histogram_read(read_param, &ser);
       } else if (read_param.handle ==
-                 handle_table[ATTR_IDX_TIME_HISTOGRAM_VAL]) {
+          handle_table[ATTR_IDX_TIME_HISTOGRAM_VAL]) {
         status = on_time_histogram_read(read_param, &ser);
       } else if (read_param.handle ==
-                 handle_table[ATTR_IDX_DISTANCE_HISTOGRAM_VAL]) {
+          handle_table[ATTR_IDX_DISTANCE_HISTOGRAM_VAL]) {
         status = on_distance_histogram_read(read_param, &ser);
       } else if (read_param.handle == handle_table[ATTR_IDX_CAPTURE_VAL]) {
         status = on_capture_read(read_param, &ser);
@@ -1296,24 +1270,24 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
 
       const uint16_t len = (status == ESP_GATT_OK) ? ser.size() : 0;
       ESP_LOGD(TAG, "ESP_GATTS_READ_EVT: response status: %hu %s, len: %hu",
-               status, ble_util::gatts_status_name(status), len);
+          status, ble_util::gatts_status_name(status), len);
       vars.rsp.attr_value.len = len;
       vars.rsp.attr_value.handle = read_param.handle;
-      esp_ble_gatts_send_response(gatts_if, read_param.conn_id,
-                                  read_param.trans_id, status, &vars.rsp);
+      esp_ble_gatts_send_response(
+          gatts_if, read_param.conn_id, read_param.trans_id, status, &vars.rsp);
 
     } break;
 
     // Write event
     case ESP_GATTS_WRITE_EVT: {
-      const gatts_write_evt_param &write_param = param->write;
+      const gatts_write_evt_param& write_param = param->write;
       ESP_LOGD(TAG,
-               "ESP_GATTS_WRITE_EVT event: handle=%d, is_prep=%d, need_rsp=%d, "
-               "len=%d, value:",
-               write_param.handle, write_param.is_prep, write_param.need_rsp,
-               write_param.len);
-      ESP_LOG_BUFFER_HEX_LEVEL(TAG, write_param.value, write_param.len,
-                               ESP_LOG_DEBUG);
+          "ESP_GATTS_WRITE_EVT event: handle=%d, is_prep=%d, need_rsp=%d, "
+          "len=%d, value:",
+          write_param.handle, write_param.is_prep, write_param.need_rsp,
+          write_param.len);
+      ESP_LOG_BUFFER_HEX_LEVEL(
+          TAG, write_param.value, write_param.len, ESP_LOG_DEBUG);
 
       // if (write_param.is_prep) {
       //   ESP_LOGW(TAG, "Unexpected is_prep write");
@@ -1329,7 +1303,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       } else if (write_param.offset != 0) {
         status = ESP_GATT_INVALID_OFFSET;
       } else if (handle_table[ATTR_IDX_STEPPER_STATE_CCC] ==
-                 write_param.handle) {
+          write_param.handle) {
         status = on_state_notification_control_write(write_param);
         // esp_gatt_status_t status = ESP_GATT_OK;
 
@@ -1350,9 +1324,9 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
         // break;
       } else if (handle_table[ATTR_IDX_COMMAND_VAL] == write_param.handle) {
         ESP_LOGD(TAG,
-                 "Command write:  is_prep=%d, need_rsp=%d, "
-                 "len=%d, value:",
-                 write_param.is_prep, write_param.need_rsp, write_param.len);
+            "Command write:  is_prep=%d, need_rsp=%d, "
+            "len=%d, value:",
+            write_param.is_prep, write_param.need_rsp, write_param.len);
         // esp_log_buffer_hex(TAG, write_param.value, write_param.len);
         // esp_log_buffer_hex(TAG, command_val, sizeof(command_val));
         status = on_command_write(write_param);
@@ -1361,9 +1335,9 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       // Send request is requested.
       if (write_param.need_rsp) {
         ESP_LOGW(TAG, "Sending write response with status %d %s", status,
-                 ble_util::gatts_status_name(status));
-        esp_ble_gatts_send_response(gatts_if, write_param.conn_id,
-                                    write_param.trans_id, status, NULL);
+            ble_util::gatts_status_name(status));
+        esp_ble_gatts_send_response(
+            gatts_if, write_param.conn_id, write_param.trans_id, status, NULL);
       } else {
         ESP_LOGD(TAG, "Write response not requested");
       }
@@ -1383,14 +1357,14 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
 
     case ESP_GATTS_START_EVT:
       ESP_LOGI(TAG, "SERVICE_START_EVT, status %d, service_handle %d",
-               param->start.status, param->start.service_handle);
+          param->start.status, param->start.service_handle);
       break;
 
     case ESP_GATTS_CONNECT_EVT: {
       ESP_LOGI(TAG, "ESP_GATTS_CONNECT_EVT, conn_id = %d, remove address:",
-               param->connect.conn_id);
-      esp_log_buffer_hex(TAG, param->connect.remote_bda,
-                         sizeof(param->connect.remote_bda));
+          param->connect.conn_id);
+      esp_log_buffer_hex(
+          TAG, param->connect.remote_bda, sizeof(param->connect.remote_bda));
       // Verify our assumption that kInvalidConnId can't be a valid id.
       assert(param->connect.conn_id != kInvalidConnId);
       vars.conn_id = param->connect.conn_id;
@@ -1402,7 +1376,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       conn_params.latency = 0;
       conn_params.max_int = 0x20;  // max_int = 0x20*1.25ms = 40ms
       conn_params.min_int = 0x10;  // min_int = 0x10*1.25ms = 20ms
-      conn_params.timeout = 400;   // timeout = 400*10ms = 4000ms
+      conn_params.timeout = 400;  // timeout = 400*10ms = 4000ms
       // start sent the update connection parameters to the peer device.
       esp_ble_gap_update_conn_params(&conn_params);
     } break;
@@ -1410,7 +1384,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
     // On connection disconnection.
     case ESP_GATTS_DISCONNECT_EVT:
       ESP_LOGI(TAG, "ESP_GATTS_DISCONNECT_EVT, reason = 0x%x",
-               param->disconnect.reason);
+          param->disconnect.reason);
       vars.conn_id = kInvalidConnId;
       vars.conn_mtu = 0;
       vars.state_notifications_enabled = false;
@@ -1420,15 +1394,14 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
     case ESP_GATTS_CREAT_ATTR_TAB_EVT: {
       if (param->add_attr_tab.status != ESP_GATT_OK) {
         ESP_LOGE(TAG, "create attribute table failed, error code=0x%x",
-                 param->add_attr_tab.status);
+            param->add_attr_tab.status);
       } else if (param->add_attr_tab.num_handle != ATTR_IDX_COUNT) {
-        ESP_LOGE(TAG,
-                 "create attribute table abnormally, num_handle (%d) \
+        ESP_LOGE(TAG, "create attribute table abnormally, num_handle (%d) \
                         doesn't equal to HRS_IDX_NB(%d)",
-                 param->add_attr_tab.num_handle, ATTR_IDX_COUNT);
+            param->add_attr_tab.num_handle, ATTR_IDX_COUNT);
       } else {
         ESP_LOGI(TAG, "create attribute table successfully, num handles = %d",
-                 param->add_attr_tab.num_handle);
+            param->add_attr_tab.num_handle);
         memcpy(handle_table, param->add_attr_tab.handles, sizeof(handle_table));
         esp_ble_gatts_start_service(handle_table[ATTR_IDX_SVC]);
         // esp_ble_gatts_start_service(handle_table[ATTR_IDX_SVC]);
@@ -1442,8 +1415,8 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       if (param->rsp.status == ESP_GATT_OK)
         ESP_LOGD(TAG, "ESP_GATTS_RESPONSE_EVT rsp OK");
       else {
-        ESP_LOGW(TAG, "ESP_GATTS_RESPONSE_EVT rsp error: %d",
-                 param->rsp.status);
+        ESP_LOGW(
+            TAG, "ESP_GATTS_RESPONSE_EVT rsp error: %d", param->rsp.status);
       }
       break;
 
@@ -1454,7 +1427,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
     // Unexpected, so logging it.
     default:
       ESP_LOGI(TAG, "Gatt event handler: ignored event %d, %s", event,
-               ble_util::gatts_event_name(event));
+          ble_util::gatts_event_name(event));
       break;
   }
 }
@@ -1472,29 +1445,29 @@ void setup(uint8_t hardware_config, uint16_t adc_ticks_per_amp) {
   // NOTE: Non default bg_cfg values can be set here.
   esp_err_t ret = esp_bt_controller_init(&bt_cfg);
   if (ret) {
-    ESP_LOGE(TAG, "%s enable controller failed: %s", __func__,
-             esp_err_to_name(ret));
+    ESP_LOGE(
+        TAG, "%s enable controller failed: %s", __func__, esp_err_to_name(ret));
     assert(0);
   }
 
   ret = esp_bt_controller_enable(ESP_BT_MODE_BLE);
   if (ret) {
-    ESP_LOGE(TAG, "%s enable controller failed: %s", __func__,
-             esp_err_to_name(ret));
+    ESP_LOGE(
+        TAG, "%s enable controller failed: %s", __func__, esp_err_to_name(ret));
     assert(0);
   }
 
   ret = esp_bluedroid_init();
   if (ret) {
-    ESP_LOGE(TAG, "%s init bluetooth failed: %s", __func__,
-             esp_err_to_name(ret));
+    ESP_LOGE(
+        TAG, "%s init bluetooth failed: %s", __func__, esp_err_to_name(ret));
     assert(0);
   }
 
   ret = esp_bluedroid_enable();
   if (ret) {
-    ESP_LOGE(TAG, "%s enable bluetooth failed: %s", __func__,
-             esp_err_to_name(ret));
+    ESP_LOGE(
+        TAG, "%s enable bluetooth failed: %s", __func__, esp_err_to_name(ret));
     assert(0);
   }
 
@@ -1531,7 +1504,7 @@ void setup(uint8_t hardware_config, uint16_t adc_ticks_per_amp) {
 static uint8_t state_notification_buffer[50] = {};
 // static uint32_t notify_count = 0;
 
-void notify_state_if_enabled(const analyzer::State &state) {
+void notify_state_if_enabled(const analyzer::State& state) {
   // esp_log_buffer_hex(TAG, state_ccc_val,  sizeof(state_ccc_val));
   // esp_log_buffer_hex(TAG, command_val,  sizeof(command_val));
 
@@ -1550,8 +1523,8 @@ void notify_state_if_enabled(const analyzer::State &state) {
   // notify_count++;
   // ESP_LOGI(TAG, "Sending a notification...");
 
-  ble_util::Serializer ser(state_notification_buffer,
-                           sizeof(state_notification_buffer));
+  ble_util::Serializer ser(
+      state_notification_buffer, sizeof(state_notification_buffer));
   serialize_state(state, &ser);
 
   // notify_data[0] = (uint8_t)(notify_count >> 8);
@@ -1560,9 +1533,9 @@ void notify_state_if_enabled(const analyzer::State &state) {
   // const gatts_profile_inst &profile = profile_table[PROFILE_APP_IDX];
 
   // Having need_config == false, means notification, not indicate.
-  const esp_err_t err = esp_ble_gatts_send_indicate(
-      vars.gatts_if, vars.conn_id, handle_table[ATTR_IDX_STEPPER_STATE_VAL],
-      ser.size(), state_notification_buffer, false);
+  const esp_err_t err = esp_ble_gatts_send_indicate(vars.gatts_if, vars.conn_id,
+      handle_table[ATTR_IDX_STEPPER_STATE_VAL], ser.size(),
+      state_notification_buffer, false);
 
   if (err) {
     ESP_LOGE(TAG, "esp_ble_gatts_send_indicate() returned err %d", err);
