@@ -152,7 +152,7 @@ class Probe:
             return False
 
         # Get stepper command characteristic.
-        stepper_command_chrc = await self.__find_chrc_or_disconnect(stepper_service, "Command", "37e75add-a610-448d-9fd3-3e3130e2c7f6")
+        stepper_command_chrc = await self.__find_chrc_or_disconnect(stepper_service, "Command", "ff06")
         if not stepper_command_chrc:
             return False
 

@@ -17,6 +17,7 @@
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
 #include "nvs_flash.h"
+#include "settings/controls.h"
 
 // TODO: add command end point (write only)
 // TODO: add capture end point (read only, rsp by app)
@@ -140,6 +141,14 @@ static esp_ble_adv_params_t adv_params = {
 };
 #pragma GCC diagnostic pop
 
+// Number of capture points already read from the current
+// snapshot. Reset each time a new snapshot is taken.
+// Sould be in [0, adc_capture_snapshot.items.size()].
+static uint16_t adc_capture_items_read_so_far = 0;
+
+// User reads capture pagees from this snapshot.
+static analyzer::AdcCaptureBuffer adc_capture_snapshot;
+
 struct Vars {
   uint8_t hardware_config = 0;
   bool adv_data_configured = false;
@@ -151,6 +160,11 @@ struct Vars {
   bool state_notifications_enabled = false;
   analyzer::State stepper_state_buffer = {};
   analyzer::Histogram histogram_buffer = {};
+  // Number of capture points already read from the current
+  // snapshot. Resets each time a new snapshot is taken.
+  // Sould be in [0, adc_capture_snapshot.items.size()].
+  uint16_t adc_capture_items_read_so_far = 0;
+  analyzer::AdcCaptureBuffer adc_capture_snapshot;
   esp_gatt_rsp_t rsp = {};
 };
 
@@ -216,7 +230,7 @@ static const uint8_t kChrPropertyWriteOnly = ESP_GATT_CHAR_PROP_BIT_WRITE;
 static uint8_t state_ccc_val[2] = {};
 
 // TODO: why do we need this?
-static uint8_t command_val[10] = {};
+static uint8_t command_val[1] = {};
 
 // static const uint8_t char_value[] = {0x33, 0x44, 0x55, 0x66};
 
@@ -466,35 +480,16 @@ static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
     //
     // Characteristic
     [ATTR_IDX_COMMAND] = {{ESP_GATT_AUTO_RSP},
-                          {
-                              ESP_UUID_LEN_16,
-                              const_cast<uint8_t *>(kCharDeclUuid),
-                              // LEN_BYTES(kCharDeclUuid),
-                              // ESP_GATT_PERM_READ,
-                              ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
-                              sizeof(kChrPropertyReadOnly),
-                              const_cast<uint8_t *>(&kChrPropertyReadOnly)
-
-                              //  LEN_LEN_BYTES(kChrPropertyReadOnly)
-
-                          }},
-
-    // Value
-    // [ATTR_IDX_COMMAND_VAL] = {{ESP_GATT_AUTO_RSP},
-    //                                      {LEN_BYTES(command_uuid),
-    //                                       //
-    //                                       {sizeof(distance_histogram_uuid),
-    //                                       //   const_cast<uint8_t *>(
-    //                                       //       distance_histogram_uuid),
-    //                                       // ESP_GATT_PERM_READ,
-    //                                       ESP_GATT_PERM_WRITE,
-    //                                       // 0, 0, nullptr,
-    //                                       LEN_LEN_BYTES(command_val)}},
+                          {ESP_UUID_LEN_16,
+                           const_cast<uint8_t *>(kCharDeclUuid),
+                           ESP_GATT_PERM_READ, sizeof(kChrPropertyWriteOnly),
+                           sizeof(kChrPropertyWriteOnly),
+                           const_cast<uint8_t *>(&kChrPropertyWriteOnly)}},
 
     [ATTR_IDX_COMMAND_VAL] = {{ESP_GATT_AUTO_RSP},
                               {sizeof(command_uuid),
                                const_cast<uint8_t *>(command_uuid),
-                               ESP_GATT_PERM_READ, sizeof(command_val),
+                               ESP_GATT_PERM_WRITE, sizeof(command_val),
                                sizeof(command_val), command_val}},
 
     // ----- XYZ charateristic.
@@ -783,6 +778,112 @@ static esp_gatt_status_t on_state_notification_control_write(
   // }
 }
 
+static esp_gatt_status_t on_command_write(
+    const gatts_write_evt_param &write_param) {
+  ESP_LOGI(TAG, "on_command_write() called, values:");
+  esp_log_buffer_hex(TAG, write_param.value, write_param.len);
+
+  //                        prepare_write_env->prepare_len);
+
+  // Expecting this exact flag for write-without-response.
+  // if (flags != BT_GATT_WRITE_FLAG_CMD) {
+  //   printk("on_command_write: unexpected flags: %02x\n", flags);
+  //   return 0;
+  // }
+
+  // if (offset != 0) {
+  //   printk("on_command_write: unexpected offset: %02x\n", offset);
+  //   return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
+  // }
+
+  const uint8_t *data = write_param.value;
+  const int len = write_param.len;
+
+  // We need at least one byte for the opcode.
+  if (len < 1) {
+    ESP_LOGE(TAG, "on_command_write: empty command");
+    return ESP_GATT_INVALID_ATTR_LEN;
+    // BT_GATT_ERR(BT_ATT_ERR_INVALID_ATTRIBUTE_LEN);
+  }
+
+  // const uint8_t *data = (uint8_t *)buf;
+  const uint32_t opcode = data[0];
+
+  switch (opcode) {
+    // command = Reset data.
+    case 0x01:
+      // printk("on_command_write: resetting state and histogram\n");
+      if (len != 1) {
+        ESP_LOGE(TAG, "Reset command too long: %hu\n", len);
+        return ESP_GATT_INVALID_ATTR_LEN;
+      }
+      analyzer::reset_data();
+      ESP_LOGI(TAG, "Stepper data reset.");
+      return ESP_GATT_OK;
+
+    // Command = Snapshot ADC signal capture.
+    case 0x02:
+      // printk("on_command_write: snapshot adc capture signal\n");
+      if (len != 1) {
+        ESP_LOGE(TAG, "Signal capture command too long: %hu\n", len);
+        return ESP_GATT_INVALID_ATTR_LEN;
+      }
+      analyzer::get_last_capture_snapshot(&vars.adc_capture_snapshot);
+      vars.adc_capture_items_read_so_far = 0;
+      ESP_LOGI(TAG, "ADC signal captured.");
+      return ESP_GATT_OK;
+
+    // Command = Set ADC capture divider. Note that until the new capture
+    // will be ready, the last capture is still with the old divider.
+    case 0x03:
+      // printk("on_command_write: snapshot adc capture signal\n");
+      if (len != 2) {
+        ESP_LOGE(TAG, "Set divider command wrong length : %hu\n", len);
+        return ESP_GATT_INVALID_ATTR_LEN;
+      }
+      analyzer::set_signal_capture_divider(data[1]);
+      ESP_LOGI(TAG, "signal capture divider set to %hhu", data[1]);
+
+      return ESP_GATT_OK;
+
+      // Command = toggle direction. This doesn't reverses the motors
+      // buy just the direction of the step counting. New value is
+      // persisted on the eeprom.
+    case 0x04: {
+      if (len != 1) {
+        ESP_LOGE(TAG, "Toggle direction command wrong length : %hu\n", len);
+        return ESP_GATT_INVALID_ATTR_LEN;
+      }
+      bool new_direction = false;
+      if (!controls::toggle_direction(&new_direction)) {
+        ESP_LOGE(TAG, "Direction change failed\n");
+        return ESP_GATT_WRITE_NOT_PERMIT;
+      }
+      ESP_LOGI(TAG, "Drection toggled to %d", new_direction);
+      return ESP_GATT_OK;
+    } 
+
+      // Command = zero calibrate the sensors. Should we called with
+      // zero sensor curent, preferably disconnected. New value
+      // is persisted on the eeprom.
+    case 0x05:
+      if (len != 1) {
+        ESP_LOGE(TAG, "zero calibration command wrong length : %hu\n", len);
+        return ESP_GATT_INVALID_ATTR_LEN;
+      }
+      if (!controls::zero_calibration()) {
+        ESP_LOGE(TAG, "Zero calibration failed\n");
+        return ESP_GATT_WRITE_NOT_PERMIT;
+      }
+      ESP_LOGI(TAG, "Sensors zero calibrated.");
+      return ESP_GATT_OK;
+
+    default:
+      ESP_LOGE(TAG, "on_command_write: unknown opcode: %02x\n", opcode);
+      return ESP_GATT_REQ_NOT_SUPPORTED;
+  }
+}
+
 static void gap_event_handler(esp_gap_ble_cb_event_t event,
                               esp_ble_gap_cb_param_t *param) {
   switch (event) {
@@ -1038,16 +1139,21 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
                write_param.len);
       esp_log_buffer_hex(TAG, write_param.value, write_param.len);
 
-      if (write_param.is_prep) {
-        ESP_LOGW(TAG, "Unexpected is_prep write");
-        esp_ble_gatts_send_response(gatts_if, write_param.conn_id,
-                                    write_param.trans_id, ESP_GATT_OK, NULL);
-      }
+      // if (write_param.is_prep) {
+      //   ESP_LOGW(TAG, "Unexpected is_prep write");
+      //   esp_ble_gatts_send_response(gatts_if, write_param.conn_id,
+      //                               write_param.trans_id, ESP_GATT_OK, NULL);
+      // }
 
       esp_gatt_status_t status = ESP_GATT_OK;
 
-      // Write to notification control.
-      if (handle_table[ATTR_IDX_STEPPER_STATE_CCC] == write_param.handle) {
+      if (write_param.is_prep) {
+        ESP_LOGW(TAG, "Unexpected is_prep write");
+        status = ESP_GATT_OK;
+      } else if (write_param.offset != 0) {
+        status = ESP_GATT_INVALID_OFFSET;
+      } else if (handle_table[ATTR_IDX_STEPPER_STATE_CCC] ==
+                 write_param.handle) {
         status = on_state_notification_control_write(write_param);
         // esp_gatt_status_t status = ESP_GATT_OK;
 
@@ -1066,6 +1172,14 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
         //                               write_param.trans_id, status, NULL);
         // }
         // break;
+      } else if (handle_table[ATTR_IDX_COMMAND_VAL] == write_param.handle) {
+        ESP_LOGW(TAG,
+                 "Command write:  is_prep=%d, need_rsp=%d, "
+                 "len=%d, value:",
+                 write_param.is_prep, write_param.need_rsp, write_param.len);
+        // esp_log_buffer_hex(TAG, write_param.value, write_param.len);
+        // esp_log_buffer_hex(TAG, command_val, sizeof(command_val));
+        status = on_command_write(write_param);
       }
 
       // Send request is requested.
@@ -1243,6 +1357,7 @@ static uint8_t state_notification_buffer[50] = {};
 
 void notify_state_if_enabled(const analyzer::State &state) {
   // esp_log_buffer_hex(TAG, state_ccc_val,  sizeof(state_ccc_val));
+  // esp_log_buffer_hex(TAG, command_val,  sizeof(command_val));
 
   // ESP_LOG_BUFFER_HEX(TAG, state_ccc_val, sizeof(state_ccc_val));
   //  ESP_LOG_BUFFER_HEX(TAG, heart_measurement_ccc,
