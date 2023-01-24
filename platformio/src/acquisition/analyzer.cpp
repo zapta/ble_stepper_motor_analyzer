@@ -331,6 +331,7 @@ void dump_state(const State& state) {
       state.v1, state.v2, state.is_energized, state.non_energized_count,
       state.quadrant, state.last_step_direction, state.full_steps,
       state.max_full_steps);
+      //ESP_LOG_BUFFER_HEX_LEVEL(TAG, (uint8_t*)&state.tick_count, sizeof(state.tick_count), ESP_LOG_INFO );
 }
 
 // Assumes that ADC capture data is ready.

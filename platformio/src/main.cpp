@@ -128,10 +128,10 @@ static void loop() {
   ble_service::notify_state_if_enabled(state);
 
   // Dump ADC state
-  // if (analyzer_counter % 100 == 0) {
-  //   analyzer::dump_state(state);
-  //   adc_task::dump_stats();
-  // }
+  if (analyzer_counter % 100 == 0) {
+    analyzer::dump_state(state);
+    // adc_task::dump_stats();
+  }
 
   // Dump capture buffer
   // if (analyzer_counter % 150 == 0) {

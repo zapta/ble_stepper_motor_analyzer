@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include <algorithm>
+
 #include "acquisition/acq_consts.h"
 #include "acquisition/analyzer.h"
 #include "ble_util.h"
@@ -19,10 +21,6 @@
 #include "nvs_flash.h"
 #include "settings/controls.h"
 
-// TODO: add command end point (write only)
-// TODO: add capture end point (read only, rsp by app)
-// TODO: change the attr declarations to use macros.
-// TODO: add mutex around the vars ? (sync with notify?).
 
 // Based on the sexample at
 // https://github.com/espressif/esp-idf/blob/master/examples/bluetooth/bluedroid/ble/gatt_server_service_table/main/gatts_table_creat_demo.c
@@ -39,6 +37,14 @@ static constexpr auto TAG = "ble_srv";
 
 #define ESP_APP_ID 0x55
 #define SVC_INST_ID 0
+
+// Set MTU to max of 247 which means max payload data
+// can be 247-3 = 244 bytes long.
+// https://discord.com/channels/720317445772017664/733036837576376341/971235966973018193
+// in payload size of 247-3 = 244. However, this is negotiated with
+// the client so can be in practice lower that this max.
+static constexpr uint16_t kMaxRequestedMtu = 247;
+static constexpr uint16_t kMtuOverhead = 3;
 
 // The max length of characteristic value. When the GATT client performs a write
 // or prepare write operation, the data length must be less than
@@ -88,6 +94,7 @@ static const uint8_t current_histogram_uuid[] = {ENCODE_UUID_16(0xff03)};
 static const uint8_t time_histogram_uuid[] = {ENCODE_UUID_16(0xff04)};
 static const uint8_t distance_histogram_uuid[] = {ENCODE_UUID_16(0xff05)};
 static const uint8_t command_uuid[] = {ENCODE_UUID_16(0xff06)};
+static const uint8_t capture_uuid[] = {ENCODE_UUID_16(0xff07)};
 
 // static const uint16_t kModelChrUuid = ;
 
@@ -144,10 +151,10 @@ static esp_ble_adv_params_t adv_params = {
 // Number of capture points already read from the current
 // snapshot. Reset each time a new snapshot is taken.
 // Sould be in [0, adc_capture_snapshot.items.size()].
-static uint16_t adc_capture_items_read_so_far = 0;
+// static uint16_t adc_capture_items_read_so_far = 0;
 
 // User reads capture pagees from this snapshot.
-static analyzer::AdcCaptureBuffer adc_capture_snapshot;
+// static analyzer::AdcCaptureBuffer adc_capture_snapshot;
 
 struct Vars {
   uint8_t hardware_config = 0;
@@ -278,6 +285,9 @@ enum {
 
   ATTR_IDX_COMMAND,
   ATTR_IDX_COMMAND_VAL,
+
+  ATTR_IDX_CAPTURE,
+  ATTR_IDX_CAPTURE_VAL,
 
   //-------------
 
@@ -492,6 +502,21 @@ static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
                                ESP_GATT_PERM_WRITE, sizeof(command_val),
                                sizeof(command_val), command_val}},
 
+    // ----- Capture.
+    //
+    // Characteristic
+    [ATTR_IDX_CAPTURE] = {{ESP_GATT_AUTO_RSP},
+                          {ESP_UUID_LEN_16,
+                           const_cast<uint8_t *>(kCharDeclUuid),
+                           ESP_GATT_PERM_READ, sizeof(kChrPropertyReadOnly),
+                           sizeof(kChrPropertyReadOnly),
+                           const_cast<uint8_t *>(&kChrPropertyReadOnly)}},
+
+    // Value
+    [ATTR_IDX_CAPTURE_VAL] = {{ESP_GATT_RSP_BY_APP},
+                              {sizeof(capture_uuid),
+                               const_cast<uint8_t *>(capture_uuid),
+                               ESP_GATT_PERM_READ, 0, 0, nullptr}},
     // ----- XYZ charateristic.
 
     // Characteristic Declaration
@@ -568,6 +593,154 @@ static esp_gatt_status_t on_probe_info_read(
   return ESP_GATT_OK;
 }
 
+// The max number of bytes in the response prefix.
+static constexpr uint16_t kCaptureValuePrefixMaxLen = 9;
+
+// CAPTURE_SIGNAL_VALUE_PREFIX_MAX_SIZE
+
+static esp_gatt_status_t on_capture_read(const gatts_read_evt_param &read_param,
+                                         ble_util::Serializer *ser) {
+  ESP_LOGD(TAG, "on_capture_read() called");
+
+  //  if (offset != 0) {
+  //     printk("Capture read: offset %hu != 0\n, offset", offset);
+  //     return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
+  //   }
+
+  assert(ser->size() == 0);
+  const uint16_t max_bytes =
+      std::min(vars.conn_mtu - kMtuOverhead, ser->capacity());
+  ESP_LOGD(TAG, "on_capture_read(): max_len = %hu", max_bytes);
+
+  // We reject even if currently we don't have sufficient pending
+  // data to fill it.
+  if (max_bytes < 100) {
+    ESP_LOGE(TAG, "Capture read: max_len %hu is too small (mtu=%hu)", max_bytes,
+             vars.conn_mtu);
+    return ESP_GATT_OUT_OF_RANGE;
+  }
+
+  // Index of first item to transfer.
+  const int start_item_index = vars.adc_capture_items_read_so_far;
+  // How many left to transfer.
+  const int desired_item_count =
+      vars.adc_capture_snapshot.items.size() - start_item_index;
+  // How many can we transfer now. Using 4 bytes per entry.
+  const int available_item_count = (max_bytes - kCaptureValuePrefixMaxLen) / 4;
+  // How many we are going to transfer now.
+  const int actual_item_count = (desired_item_count <= available_item_count)
+                                    ? desired_item_count
+                                    : available_item_count;
+
+  ESP_LOGD(TAG, "Capture read: start=%d, desired=%d, actual=%d",
+           start_item_index, desired_item_count, actual_item_count);
+
+  // uint8_t *const p0 = static_cast<uint8_t *>(buf);
+  // uint8_t *p = p0;
+
+  // --- Packet header: CAPTURE_SIGNAL_VALUE_PREFIX_SIZE bytes.
+
+  // packet format id (uint8)
+  // *p++ = 0x40;  // Format id.
+  ser->append_uint8(0x40);  // format id.
+
+  // Flags (uint8)
+  uint8_t flags = 0x00;
+  if (actual_item_count) {
+    flags = flags | 0x80;  // Snapshot available.
+    if (actual_item_count < desired_item_count) {
+      flags = flags | 0x01;  // Needs at least one more read.
+    }
+    // if (adc_capture_snapshot.trigger_found) {
+    //   flags = flags | 0x02;  // Trigger found in this snapshot.
+    // }
+  }
+
+  // *p++ = flags;
+  ser->append_uint8(flags);
+
+  if (actual_item_count) {
+    // Capture sequence number: (uint16). For sanity check.
+    // *p++ = adc_capture_snapshot.seq_number >> 8;
+    // *p++ = adc_capture_snapshot.seq_number;
+    ser->append_uint16(vars.adc_capture_snapshot.seq_number);
+
+    // Divider value (uint8_t).
+    // *p++ = adc_capture_snapshot.divider;
+    ser->append_uint8(vars.adc_capture_snapshot.divider);
+
+    // Reserved for future flags
+    // *p++ = adc_capture_snapshot.divider;
+
+    // Number of points in this read: (uint16)
+    // *p++ = (uint16_t)actual_item_count >> 8;
+    // *p++ = (uint16_t)actual_item_count;
+
+    ser->append_uint16((uint16_t)actual_item_count);
+
+    // First point offset: (uint16)
+    // *p++ = (uint16_t)start_item_index >> 8;
+    // *p++ = (uint16_t)start_item_index;
+
+    ser->append_uint16((uint16_t)start_item_index);
+
+    // Here we expect: (p - p0) == CAPTURE_SIGNAL_VALUE_PREFIX_SIZE.
+
+    // ----- N points data : 4 x N bytes.
+    // Encode data points as pairs of int16_t.
+    for (int i = start_item_index; i < start_item_index + actual_item_count;
+         i++) {
+      const analyzer::AdcCaptureItem *item =
+          vars.adc_capture_snapshot.items.get(i);
+      // *p++ = item->v1 >> 8;
+      // *p++ = item->v1;
+      ser->append_int16(item->v1);
+      // *p++ = item->v2 >> 8;
+      // *p++ = item->v2;
+      ser->append_int16(item->v2);
+    }
+
+    // Update for next chunk read.
+    vars.adc_capture_items_read_so_far += actual_item_count;
+  }
+
+  return ESP_GATT_OK;
+
+  // Here we expact n  <= len.
+  // const uint16_t n = p - p0;
+
+  // printk("  result len %hu\n", n);
+
+  // printk(
+  //     "Capture signal read ok: start: %d, count: %d, bytes: %hu, buffer:
+  //     %hu\n", start, actual_count, n, len);
+
+  // return n;
+
+  // TODO: This is a large variable. Do we need to clear entirely?
+  // memset(&vars.rsp, 0, sizeof(vars.rsp));
+
+  // Serialize the response.
+  // ble_util::Serializer enc(vars.rsp.attr_value.value,
+  //                          sizeof(vars.rsp.attr_value.value));
+
+  // assert(ser->size() == 0);
+  // ser->append_uint8(0x1);  // Packet format version
+  // ser->append_uint8(vars.hardware_config);
+  // ser->append_uint16(vars.adc_ticks_per_amp);
+  // ser->append_uint24(acq_consts::kTimeTicksPerSec);
+  // ser->append_uint16(acq_consts::kBucketStepsPerSecond);
+  // assert(ser->size() == 9);
+
+  // vars.rsp.attr_value.len = enc.size();
+  // vars.rsp.attr_value.handle = read_param.handle;
+  // esp_ble_gatts_send_response(gatts_if, read_param.conn_id,
+  // read_param.trans_id,
+  //                             ESP_GATT_OK, &vars.rsp);
+  // ESP_LOGI(TAG, "on_probe_info_read() sent response with %d bytes",
+  //          ser->size());
+}
+
 static void serialize_state(const analyzer::State &state,
                             ble_util::Serializer *ser) {
   // Flags.
@@ -595,7 +768,7 @@ static void serialize_state(const analyzer::State &state,
 
 static esp_gatt_status_t on_stepper_state_read(
     const gatts_read_evt_param &read_param, ble_util::Serializer *ser) {
-  ESP_LOGI(TAG, "on_stepper_state_read() called");
+  ESP_LOGD(TAG, "on_stepper_state_read() called");
 
   // ESP_LOG_BUFFER_HEX(TAG, state_ccc_val, sizeof(state_ccc_val));
 
@@ -642,7 +815,7 @@ static esp_gatt_status_t on_stepper_state_read(
 
 static esp_gatt_status_t on_current_histogram_read(
     const gatts_read_evt_param &read_param, ble_util::Serializer *ser) {
-  ESP_LOGI(TAG, "on_current_histogram_read() called");
+  ESP_LOGD(TAG, "on_current_histogram_read() called");
 
   analyzer::sample_histogram(&vars.histogram_buffer);
 
@@ -672,7 +845,7 @@ static esp_gatt_status_t on_current_histogram_read(
 
 static esp_gatt_status_t on_time_histogram_read(
     const gatts_read_evt_param &read_param, ble_util::Serializer *ser) {
-  ESP_LOGI(TAG, "on_time_histogram_read() called");
+  ESP_LOGD(TAG, "on_time_histogram_read() called");
 
   analyzer::sample_histogram(&vars.histogram_buffer);
 
@@ -708,7 +881,7 @@ static esp_gatt_status_t on_time_histogram_read(
 
 static esp_gatt_status_t on_distance_histogram_read(
     const gatts_read_evt_param &read_param, ble_util::Serializer *ser) {
-  ESP_LOGI(TAG, "on_distance_histogram_read() called");
+  ESP_LOGD(TAG, "on_distance_histogram_read() called");
 
   analyzer::sample_histogram(&vars.histogram_buffer);
 
@@ -766,7 +939,7 @@ static esp_gatt_status_t on_state_notification_control_write(
 
   const uint16_t descr_value = write_param.value[1] << 8 | write_param.value[0];
   const bool notifications_enabled = descr_value & 0x0001;
-  ESP_LOGW(TAG, "Notifications 0x%04x: %d -> %d", descr_value,
+  ESP_LOGI(TAG, "Notifications 0x%04x: %d -> %d", descr_value,
            vars.state_notifications_enabled, notifications_enabled);
   vars.state_notifications_enabled = notifications_enabled;
 
@@ -780,8 +953,8 @@ static esp_gatt_status_t on_state_notification_control_write(
 
 static esp_gatt_status_t on_command_write(
     const gatts_write_evt_param &write_param) {
-  ESP_LOGI(TAG, "on_command_write() called, values:");
-  esp_log_buffer_hex(TAG, write_param.value, write_param.len);
+  ESP_LOGD(TAG, "on_command_write() called, values:");
+  ESP_LOG_BUFFER_HEX_LEVEL(TAG,  write_param.value, write_param.len, ESP_LOG_DEBUG);
 
   //                        prepare_write_env->prepare_len);
 
@@ -830,7 +1003,7 @@ static esp_gatt_status_t on_command_write(
       }
       analyzer::get_last_capture_snapshot(&vars.adc_capture_snapshot);
       vars.adc_capture_items_read_so_far = 0;
-      ESP_LOGI(TAG, "ADC signal captured.");
+      ESP_LOGD(TAG, "ADC signal captured.");
       return ESP_GATT_OK;
 
     // Command = Set ADC capture divider. Note that until the new capture
@@ -861,7 +1034,7 @@ static esp_gatt_status_t on_command_write(
       }
       ESP_LOGI(TAG, "Drection toggled to %d", new_direction);
       return ESP_GATT_OK;
-    } 
+    }
 
       // Command = zero calibrate the sensors. Should we called with
       // zero sensor curent, preferably disconnected. New value
@@ -1075,13 +1248,13 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
 
     // Handle read event.
     case ESP_GATTS_READ_EVT: {
-      ESP_LOGI(TAG, "ESP_GATTS_READ_EVT");
+      ESP_LOGD(TAG, "ESP_GATTS_READ_EVT");
       const gatts_read_evt_param &read_param = param->read;
 
       // For characteristics with auto resp we don't need to do
       // anything here.
       if (!read_param.need_rsp) {
-        ESP_LOGI(TAG, "ESP_GATTS_READ_EVT, rsp not needed.");
+        ESP_LOGD(TAG, "ESP_GATTS_READ_EVT, rsp not needed.");
         return;
       }
 
@@ -1117,10 +1290,12 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       } else if (read_param.handle ==
                  handle_table[ATTR_IDX_DISTANCE_HISTOGRAM_VAL]) {
         status = on_distance_histogram_read(read_param, &ser);
+      } else if (read_param.handle == handle_table[ATTR_IDX_CAPTURE_VAL]) {
+        status = on_capture_read(read_param, &ser);
       }
 
       const uint16_t len = (status == ESP_GATT_OK) ? ser.size() : 0;
-      ESP_LOGE(TAG, "ESP_GATTS_READ_EVT: response status: %hu %s, len: %hu",
+      ESP_LOGD(TAG, "ESP_GATTS_READ_EVT: response status: %hu %s, len: %hu",
                status, ble_util::gatts_status_name(status), len);
       vars.rsp.attr_value.len = len;
       vars.rsp.attr_value.handle = read_param.handle;
@@ -1132,12 +1307,13 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
     // Write event
     case ESP_GATTS_WRITE_EVT: {
       const gatts_write_evt_param &write_param = param->write;
-      ESP_LOGW(TAG,
+      ESP_LOGD(TAG,
                "ESP_GATTS_WRITE_EVT event: handle=%d, is_prep=%d, need_rsp=%d, "
                "len=%d, value:",
                write_param.handle, write_param.is_prep, write_param.need_rsp,
                write_param.len);
-      esp_log_buffer_hex(TAG, write_param.value, write_param.len);
+      ESP_LOG_BUFFER_HEX_LEVEL(TAG, write_param.value, write_param.len,
+                               ESP_LOG_DEBUG);
 
       // if (write_param.is_prep) {
       //   ESP_LOGW(TAG, "Unexpected is_prep write");
@@ -1173,7 +1349,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
         // }
         // break;
       } else if (handle_table[ATTR_IDX_COMMAND_VAL] == write_param.handle) {
-        ESP_LOGW(TAG,
+        ESP_LOGD(TAG,
                  "Command write:  is_prep=%d, need_rsp=%d, "
                  "len=%d, value:",
                  write_param.is_prep, write_param.need_rsp, write_param.len);
@@ -1189,7 +1365,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
         esp_ble_gatts_send_response(gatts_if, write_param.conn_id,
                                     write_param.trans_id, status, NULL);
       } else {
-        ESP_LOGW(TAG, "Write response not requested");
+        ESP_LOGD(TAG, "Write response not requested");
       }
     } break;
 
@@ -1264,7 +1440,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
     // app provided responses?
     case ESP_GATTS_RESPONSE_EVT:
       if (param->rsp.status == ESP_GATT_OK)
-        ESP_LOGI(TAG, "ESP_GATTS_RESPONSE_EVT rsp OK");
+        ESP_LOGD(TAG, "ESP_GATTS_RESPONSE_EVT rsp OK");
       else {
         ESP_LOGW(TAG, "ESP_GATTS_RESPONSE_EVT rsp error: %d",
                  param->rsp.status);
@@ -1345,7 +1521,7 @@ void setup(uint8_t hardware_config, uint16_t adc_ticks_per_amp) {
   // https://discord.com/channels/720317445772017664/733036837576376341/971235966973018193
   // in payload size of 247-3 = 244. However, this is negotiated with
   // the client so can be in practice lower that this max.
-  ret = esp_ble_gatt_set_local_mtu(247);
+  ret = esp_ble_gatt_set_local_mtu(kMaxRequestedMtu);
   if (ret) {
     ESP_LOGE(TAG, "set local  MTU failed, error code = %x", ret);
     assert(0);
