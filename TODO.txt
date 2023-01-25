@@ -1,13 +1,8 @@
-[firmware] In ble_host, convert strings to unit8_t arrays to avoid the -1.
 
 [firmware] Test hardware config inputs.
 
 
-
 [hardware] Determine adc capacitor values, if any. Measure frequency response.
-
-
-[firmware] remove ble attr declaration macros (?).
 
 [firmware] Investigage the large ble rsp memclr.
 
