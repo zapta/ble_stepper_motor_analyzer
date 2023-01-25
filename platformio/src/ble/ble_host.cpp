@@ -13,6 +13,7 @@
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
+#include "freertos/semphr.h"
 #include "freertos/task.h"
 
 #include "acquisition/acq_consts.h"
@@ -32,6 +33,12 @@ static constexpr auto TAG = "ble_srv";
 
 #define ESP_APP_ID 0x55
 #define SVC_INST_ID 0
+
+static SemaphoreHandle_t data_mutex;
+#define ENTER_MUTEX \
+  { xSemaphoreTake(data_mutex, portMAX_DELAY); }
+#define EXIT_MUTEX \
+  { xSemaphoreGive(data_mutex); }
 
 // Set MTU to max of 247 which means max payload data
 // can be 247-3 = 244 bytes long.
@@ -108,7 +115,7 @@ static esp_ble_adv_params_t adv_params = {
 };
 #pragma GCC diagnostic pop
 
-// These vars accessed ony from the BLE callback thread and 
+// These vars accessed ony from the BLE callback thread and
 // thus don't need mutex protection.
 struct Vars {
   uint8_t hardware_config = 0;
@@ -572,9 +579,13 @@ static esp_gatt_status_t on_state_notification_control_write(
 
   const uint16_t descr_value = write_param.value[1] << 8 | write_param.value[0];
   const bool notifications_enabled = descr_value & 0x0001;
-  ESP_LOGI(TAG, "Notifications 0x%04x: %d -> %d", descr_value,
-      protected_vars.state_notifications_enabled, notifications_enabled);
-  protected_vars.state_notifications_enabled = notifications_enabled;
+
+  ENTER_MUTEX {
+    ESP_LOGI(TAG, "Notifications 0x%04x: %d -> %d", descr_value,
+        protected_vars.state_notifications_enabled, notifications_enabled);
+    protected_vars.state_notifications_enabled = notifications_enabled;
+  }
+  EXIT_MUTEX
 
   return ESP_GATT_OK;
 }
@@ -731,7 +742,10 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
     case ESP_GATTS_REG_EVT: {
       ESP_LOGI(TAG, "ESP_GATTS_REG_EVT event");
       assert(param->reg.status == ESP_GATT_OK);
-      protected_vars.gatts_if = gatts_if;
+
+      ENTER_MUTEX { protected_vars.gatts_if = gatts_if; }
+      EXIT_MUTEX
+
       // Construct device name from device address.
       const uint8_t* device_addr = esp_bt_dev_get_address();
       assert(device_addr);
@@ -874,7 +888,10 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
           TAG, param->connect.remote_bda, sizeof(param->connect.remote_bda));
       // Verify our assumption that kInvalidConnId can't be a valid id.
       assert(param->connect.conn_id != kInvalidConnId);
-      protected_vars.conn_id = param->connect.conn_id;
+
+      ENTER_MUTEX { protected_vars.conn_id = param->connect.conn_id; }
+      EXIT_MUTEX
+
       vars.conn_mtu = 23;  // Initial BLE MTU.
       esp_ble_conn_update_params_t conn_params = {};
       memcpy(conn_params.bda, param->connect.remote_bda, sizeof(esp_bd_addr_t));
@@ -892,9 +909,14 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
     case ESP_GATTS_DISCONNECT_EVT:
       ESP_LOGI(TAG, "ESP_GATTS_DISCONNECT_EVT, reason = 0x%x",
           param->disconnect.reason);
-      protected_vars.conn_id = kInvalidConnId;
       vars.conn_mtu = 0;
-      protected_vars.state_notifications_enabled = false;
+
+      ENTER_MUTEX {
+        protected_vars.conn_id = kInvalidConnId;
+        protected_vars.state_notifications_enabled = false;
+      }
+      EXIT_MUTEX
+
       esp_ble_gap_start_advertising(&adv_params);
       break;
 
@@ -938,10 +960,20 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
   }
 }
 
-bool is_connected() { return protected_vars.conn_id != kInvalidConnId; }
+bool is_connected() {
+
+  // Snapshot protected vars in a mutec.
+  bool result;
+  ENTER_MUTEX { result = protected_vars.conn_id != kInvalidConnId; }
+  EXIT_MUTEX
+
+  return result;
+}
 
 void setup(uint8_t hardware_config, uint16_t adc_ticks_per_amp) {
-  // ble_util::setup();
+  data_mutex = xSemaphoreCreateMutex();
+  assert(data_mutex);
+
   ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
 
   vars.hardware_config = hardware_config;
@@ -1010,22 +1042,27 @@ static uint8_t state_notification_buffer[50] = {};
 
 void notify_state_if_enabled(const analyzer::State& state) {
 
+  // Snapshot protected vars in a mutec.
+  ProtextedVars prot_vars;
+  ENTER_MUTEX { prot_vars = protected_vars; }
+  EXIT_MUTEX
+
   // const bool notification_enabled = state_ccc_val[0] & 0x01;
-  if (!protected_vars.state_notifications_enabled) {
+  if (!prot_vars.state_notifications_enabled) {
     return;
   }
 
-  assert(protected_vars.gatts_if != ESP_GATT_IF_NONE);
-  assert(protected_vars.conn_id != kInvalidConnId);
+  assert(prot_vars.gatts_if != ESP_GATT_IF_NONE);
+  assert(prot_vars.conn_id != kInvalidConnId);
 
   ble_util::Serializer ser(
       state_notification_buffer, sizeof(state_notification_buffer));
   serialize_state(state, &ser);
 
   // NOTE: need_config == false to indicate a notification (vs. indication).
-  const esp_err_t err = esp_ble_gatts_send_indicate(protected_vars.gatts_if,
-      protected_vars.conn_id, handle_table[ATTR_IDX_STEPPER_STATE_VAL],
-      ser.size(), state_notification_buffer, false);
+  const esp_err_t err = esp_ble_gatts_send_indicate(prot_vars.gatts_if,
+      prot_vars.conn_id, handle_table[ATTR_IDX_STEPPER_STATE_VAL], ser.size(),
+      state_notification_buffer, false);
 
   if (err) {
     ESP_LOGE(TAG, "esp_ble_gatts_send_indicate() returned err %d", err);
