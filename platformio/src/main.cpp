@@ -66,8 +66,8 @@ static uint16_t determine_adc_ticks_per_amp(uint8_t hardware_config) {
 
 static void setup() {
   // Set initial LEDs values.
-  io::LED1.clear();
-  io::LED2.clear();
+  io::LED1.clr();
+  io::LED2.clr();
 
   // Init nvs. Used also by ble_host.
   util::nvs_init();

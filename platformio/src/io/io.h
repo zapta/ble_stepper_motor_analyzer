@@ -14,9 +14,12 @@ namespace io {
 extern OutputPin LED1;
 extern OutputPin LED2;
 
-extern OutputPin TEST1;
+// Output signals for testing only. Not connected
+// on the board.
+extern OutputPin TEST1;  // io4
+extern OutputPin TEST2;  // io16
 
-// Active low.
+// Button input is active low.
 extern Button BUTTON1;
 
 // Read hardware configuration. Can be called

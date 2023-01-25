@@ -116,7 +116,7 @@ void adc_task(void* ignored) {
   uint32_t samples_to_snapshot = 0;
 
   for (;;) {
-    io::TEST1.clear();
+    io::TEST1.clr();
     uint32_t num_ret_bytes = 0;
     esp_err_t err_code = adc_digi_read_bytes(
         buffer_bytes, kBytesPerBuffer, &num_ret_bytes, ADC_MAX_DELAY);

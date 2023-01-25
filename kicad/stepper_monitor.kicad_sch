@@ -2995,7 +2995,7 @@
     (effects (font (size 1.27 1.27)) (justify right bottom))
     (uuid 1f591af7-f1eb-4c1d-a0b7-752fd78844fb)
   )
-  (text "IO2 = Test1" (at 250.825 78.74 0)
+  (text "IO4  = Test1\nIO16 = Test2" (at 260.35 80.645 0)
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid 357aa8a2-7101-41fc-b6d1-4cb15f1f02b0)
   )

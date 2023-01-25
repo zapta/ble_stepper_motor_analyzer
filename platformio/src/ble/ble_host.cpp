@@ -793,8 +793,10 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
         return;
       }
 
-      // TODO: This is a large variable. Do we need to clear entirely?
+      // NOTE: rsp is large, such that this memset takes about 10us.
+      //io::TEST2.set();
       memset(&vars.rsp, 0, sizeof(vars.rsp));
+      //io::TEST2.clr();
 
       ble_util::Serializer ser(
           vars.rsp.attr_value.value, sizeof(vars.rsp.attr_value.value));

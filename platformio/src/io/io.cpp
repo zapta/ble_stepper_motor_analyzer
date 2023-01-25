@@ -12,7 +12,9 @@ static constexpr auto TAG = "io";
 OutputPin LED1(GPIO_NUM_26, 1);
 OutputPin LED2(GPIO_NUM_25, 1);
 
-OutputPin TEST1(GPIO_NUM_2, 0);
+// For testing.
+OutputPin TEST1(GPIO_NUM_4, 0);
+OutputPin TEST2(GPIO_NUM_16, 0);
 
 // Digital inputs.
 static InputPin SWITCH1(GPIO_NUM_27, GPIO_PULLUP_ONLY);

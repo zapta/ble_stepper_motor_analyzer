@@ -14,7 +14,7 @@ class OutputPin {
   }
 
   inline void set() { write(1); }
-  inline void clear() { write(0); }
+  inline void clr() { write(0); }
   inline void toggle() { write(last_value_ ? 0 : 1); }
   // Value should be 0 or 1.
   inline void write(bool val) {
