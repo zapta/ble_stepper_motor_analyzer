@@ -11,29 +11,29 @@
 // Encoded as 16 hex bytes, LSB first.
 // clang-format off
 #define ENCODE_UUID_128(w32, w1, w2, w3, w48) \
-        (((w48) >>  0) & 0xFF), \
-        (((w48) >>  8) & 0xFF), \
-        (((w48) >> 16) & 0xFF), \
-        (((w48) >> 24) & 0xFF), \
-        (((w48) >> 32) & 0xFF), \
-        (((w48) >> 40) & 0xFF), \
-        (((w3)  >>  0) & 0xFF), \
-        (((w3)  >>  8) & 0xFF), \
-        (((w2)  >>  0) & 0xFF), \
-        (((w2)  >>  8) & 0xFF), \
-        (((w1)  >>  0) & 0xFF), \
-        (((w1)  >>  8) & 0xFF), \
-        (((w32) >>  0) & 0xFF), \
-        (((w32) >>  8) & 0xFF), \
-        (((w32) >> 16) & 0xFF), \
-        (((w32) >> 24) & 0xFF)
+    (((w48) >>  0) & 0xFF), \
+    (((w48) >>  8) & 0xFF), \
+    (((w48) >> 16) & 0xFF), \
+    (((w48) >> 24) & 0xFF), \
+    (((w48) >> 32) & 0xFF), \
+    (((w48) >> 40) & 0xFF), \
+    (((w3)  >>  0) & 0xFF), \
+    (((w3)  >>  8) & 0xFF), \
+    (((w2)  >>  0) & 0xFF), \
+    (((w2)  >>  8) & 0xFF), \
+    (((w1)  >>  0) & 0xFF), \
+    (((w1)  >>  8) & 0xFF), \
+    (((w32) >>  0) & 0xFF), \
+    (((w32) >>  8) & 0xFF), \
+    (((w32) >> 16) & 0xFF), \
+    (((w32) >> 24) & 0xFF)
 // clang-format on
 
 // Encoded as 16 hex bytes, LSB first.
 // clang-format off
 #define ENCODE_UUID_16(w16)  \
-        (((w16) >>  0) & 0xFF), \
-        (((w16) >>  8) & 0xFF)
+    (((w16) >>  0) & 0xFF), \
+    (((w16) >>  8) & 0xFF)
 // clang-format on
 
 namespace ble_util {
@@ -41,8 +41,8 @@ namespace ble_util {
 // Serialized data to a byte buffer. Big endian order.
 class Serializer {
  public:
-  Serializer(uint8_t* p_start, uint16_t size)
-      : _p_start(p_start), _p_end(p_start + size), _p_next(p_start){};
+  Serializer(uint8_t* p_start, uint16_t size) :
+      _p_start(p_start), _p_end(p_start + size), _p_next(p_start) {};
 
   int capacity() { return _p_end - _p_start; }
   int size() { return _p_next - _p_start; }
@@ -99,7 +99,7 @@ class Serializer {
   inline void check_avail(uint16_t num_bytes) {
     if ((_p_next + num_bytes) > _p_end) {
       ESP_LOGE(ENCODER_TAG, "Insufficient space: requested %hu, available %d",
-               num_bytes, (_p_end - _p_next));
+          num_bytes, (_p_end - _p_next));
       assert(false);
     };
   }

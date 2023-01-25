@@ -10,14 +10,6 @@ static constexpr uint32_t T1_RTOS_TICKS = pdMS_TO_TICKS(1000);
 // Min time for a long press.
 static constexpr uint32_t T2_RTOS_TICKS = pdMS_TO_TICKS(3000);
 
-// #include "misc/io.h"
-
-// namespace button {
-
-// void setup() { BUTTON1.init(&io::SWITCH1); }
-
-// }  // namespace button
-
 Button::ButtonEvent Button::update() {
   const uint32_t rtos_ticks_now = util::rtos_ticks();
   const bool debouncer_val = debounced_in_.update(rtos_ticks_now);

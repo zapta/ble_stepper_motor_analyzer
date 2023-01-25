@@ -35,8 +35,4 @@ class Button {
   uint32_t time_start_rtos_ticks_;
 };
 
-// extern Button BUTTON1;
-
-// extern void setup();
-
 // }  // namespace button

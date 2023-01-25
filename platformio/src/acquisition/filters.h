@@ -12,7 +12,7 @@ namespace filters {
 template <uint32_t k>
 class Adc12BitsLowPassFilter {
  public:
-  Adc12BitsLowPassFilter() : scaled_12bit_value_(0 << 10) {}
+  Adc12BitsLowPassFilter() : scaled_12bit_value_(0 << 10) { }
 
   // Accepts the new 12 bit sample and update and return the new
   // filter values.

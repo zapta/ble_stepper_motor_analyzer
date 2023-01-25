@@ -385,8 +385,8 @@ static const char* gatts_status_table[256] = {
 };
 
 // Common function to lookup a name in a table.
-static inline const char* lookup_name(int value, const char* table[],
-                                      int table_size) {
+static inline const char* lookup_name(
+    int value, const char* table[], int table_size) {
   if (value < 0 && value >= table_size) {
     return "(invalid)";
   }
@@ -399,13 +399,13 @@ const char* gatts_event_name(esp_gatts_cb_event_t event) {
 }
 
 const char* gap_ble_event_name(esp_gap_ble_cb_event_t event) {
-  return lookup_name(event, gap_ble_events_table,
-                     ARRAY_SIZE(gap_ble_events_table));
+  return lookup_name(
+      event, gap_ble_events_table, ARRAY_SIZE(gap_ble_events_table));
 }
 
 const char* gatts_status_name(esp_gatt_status_t status) {
-  return lookup_name(status, gatts_status_table,
-                     ARRAY_SIZE(gatts_status_table));
+  return lookup_name(
+      status, gatts_status_table, ARRAY_SIZE(gatts_status_table));
 }
 
 }  // namespace ble_util

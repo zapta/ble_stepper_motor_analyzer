@@ -20,7 +20,7 @@ bool DebouncedInput::update(uint32_t rtos_ticks_now) {
 
   // Case 3: Transition became stable.
   else if ((rtos_ticks_now - change_start_rtos_ticks_) >=
-           SETTLING_TIME_RTOS_TICKS) {
+      SETTLING_TIME_RTOS_TICKS) {
     stable_state_ = !stable_state_;
     changing_ = false;
   }
@@ -36,5 +36,5 @@ bool DebouncedInput::update(uint32_t rtos_ticks_now) {
 void DebouncedInput::dump_state() {
   // uint32_t a;
   printf("%u, %d, %d, %d, %u\n", in_pin_.pin_num(), last_in_value_,
-         stable_state_, changing_, change_start_rtos_ticks_);
+      stable_state_, changing_, change_start_rtos_ticks_);
 }

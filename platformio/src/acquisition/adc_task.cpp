@@ -85,15 +85,14 @@ void dump_stats() {
   { snapshot = stats; }
   xSemaphoreGive(stats_mutex);
   ESP_LOGI(TAG, "bad: %u, good: %llu, good_swap: %llu", snapshot.bad_pairs,
-           stats.good_67_pairs, stats.good_76_pairs);
+      stats.good_67_pairs, stats.good_76_pairs);
 }
 
 // Accepts a pair of samples, sort them to v1 and v2 and return true,
 // or returns false, if can't.
 // Called within stats mutex.
 inline bool mutex_condition_sample_pair(const adc_digi_output_data_t& data1,
-                                        const adc_digi_output_data_t& data2,
-                                        uint16_t* v1, uint16_t* v2) {
+    const adc_digi_output_data_t& data2, uint16_t* v1, uint16_t* v2) {
   if (data1.type1.channel == 6 && data2.type1.channel == 7) {
     *v1 = data1.type1.data;
     *v2 = data2.type1.data;
@@ -113,17 +112,14 @@ inline bool mutex_condition_sample_pair(const adc_digi_output_data_t& data1,
 }
 
 void adc_task(void* ignored) {
-  // bool in_order = false;
-  // uint32_t order_changes = 0;
   uint32_t buffers_count = 0;
   uint32_t samples_to_snapshot = 0;
-  // Elapsed timer;
 
   for (;;) {
     io::TEST1.clear();
     uint32_t num_ret_bytes = 0;
-    esp_err_t err_code = adc_digi_read_bytes(buffer_bytes, kBytesPerBuffer,
-                                             &num_ret_bytes, ADC_MAX_DELAY);
+    esp_err_t err_code = adc_digi_read_bytes(
+        buffer_bytes, kBytesPerBuffer, &num_ret_bytes, ADC_MAX_DELAY);
     io::TEST1.set();
 
     // Sanity check the results.
@@ -144,8 +140,8 @@ void adc_task(void* ignored) {
       for (int i = 0; i < kValuesPerBuffer; i += 2) {
         uint16_t v1;
         uint16_t v2;
-        if (!mutex_condition_sample_pair(buffer_values[i], buffer_values[i + 1],
-                                         &v1, &v2)) {
+        if (!mutex_condition_sample_pair(
+                buffer_values[i], buffer_values[i + 1], &v1, &v2)) {
           // Bad pair. Skip.
           continue;
         }

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <stdint.h>
 #include "util.h"
+#include <stdint.h>
 
 class Elapsed {
  public:

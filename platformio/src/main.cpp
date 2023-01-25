@@ -21,8 +21,7 @@
 static constexpr auto TAG = "main";
 
 static const analyzer::Settings kDefaultSettings = {
-  .offset1 = 1800, .offset2 = 1800, .is_reverse_direction = false
-};
+    .offset1 = 1800, .offset2 = 1800, .is_reverse_direction = false};
 
 static analyzer::State state;
 
@@ -50,7 +49,7 @@ static void start_led2_blinks(uint16_t n) {
 // resistors.
 static uint16_t determine_adc_ticks_per_amp(uint8_t hardware_config) {
   switch (hardware_config) {
-    case 0: // For broken nrf52 boards.
+    case 0:
       // CFG1, CFG2 resistors not installed.
       return acq_consts::CC6920BSO5A_MV_PER_AMP;
       break;
@@ -70,8 +69,7 @@ static void setup() {
   io::LED1.clear();
   io::LED2.clear();
 
-  // Init config.
-  // nvs_config::setup();
+  // Init nvs. Used also by ble_host.
   util::nvs_init();
 
   // Fetch settings.
@@ -90,14 +88,13 @@ static void setup() {
   // Determine confiuration to pass to ble service.
   const uint8_t hardware_config = io::read_hardware_config();
   ESP_LOGI(TAG, "Hardware config: %hhu", hardware_config);
-  const uint16_t adc_ticks_per_amp = determine_adc_ticks_per_amp(hardware_config);
+  const uint16_t adc_ticks_per_amp =
+      determine_adc_ticks_per_amp(hardware_config);
   ESP_LOGI(TAG, "ADC ticks per amp: %hu", adc_ticks_per_amp);
 
   // Initialize ble service.
   ble_host::setup(hardware_config, adc_ticks_per_amp);
 }
-
-// static uint32_t loop_counter = 0;
 
 static bool is_connected = false;
 
@@ -111,8 +108,7 @@ static void loop() {
     if (button_event == Button::EVENT_SHORT_CLICK) {
       bool new_is_reversed_direcction;
       const bool ok = controls::toggle_direction(&new_is_reversed_direcction);
-      const uint16_t num_blinks = !ok ? 10 : new_is_reversed_direcction ? 2
-                                                                        : 1;
+      const uint16_t num_blinks = !ok ? 10 : new_is_reversed_direcction ? 2 : 1;
       start_led2_blinks(num_blinks);
     }
 
@@ -156,15 +152,6 @@ static void loop() {
     analyzer::dump_state(state);
     // adc_task::dump_stats();
   }
-
-  // Dump capture buffer
-  // if (analyzer_counter % 150 == 0) {
-  //   analyzer::get_last_capture_snapshot(&capture_buffer);
-  //   for (int i = 0; i < capture_buffer.items.size(); i++) {
-  //     const analyzer::AdcCaptureItem* item = capture_buffer.items.get(i);
-  //     printf("%hd,%hd\n", item->v1, item->v2);
-  //   }
-  // }
 }
 
 // The runtime environment expects a "C" main.

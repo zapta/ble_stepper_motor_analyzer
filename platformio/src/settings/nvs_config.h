@@ -5,8 +5,6 @@
 
 namespace nvs_config {
 
-// void setup();
-
 bool read_acquisition_settings(analyzer::Settings* settings);
 
 bool write_acquisition_settings(const analyzer::Settings& settings);

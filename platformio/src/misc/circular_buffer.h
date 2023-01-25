@@ -11,8 +11,6 @@ class CircularBuffer {
  public:
   CircularBuffer() { clear(); }
 
-  // inline uint16_t capacity() const { return n; };
-
   inline bool is_full() const { return size_ >= n; }
 
   inline bool is_empty() const { return size_ == 0; }

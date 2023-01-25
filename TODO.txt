@@ -1,3 +1,5 @@
+[firmware] Remove unit test.
+
 [firmware] In ble_host, convert strings to unit8_t arrays to avoid the -1.
 
 [hardware] Determine adc capacitor values, if any. Measure frequency response.
@@ -13,6 +15,8 @@
 [firmware] Clean up code (delete commented out code, etc)
 
 [firmware] Add mutex to ble service (for notify).
+
+[firmware] Process TODOs in source code.
 
 
 

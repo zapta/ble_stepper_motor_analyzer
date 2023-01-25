@@ -4,12 +4,10 @@
 #include <stdint.h>
 
 #include "driver/gpio.h"
-// #include "misc/button.h"
 
 class InputPin {
  public:
-  InputPin(gpio_num_t pin_num, gpio_pull_mode_t pull_mode)
-      : pin_num_(pin_num) {
+  InputPin(gpio_num_t pin_num, gpio_pull_mode_t pull_mode) : pin_num_(pin_num) {
     gpio_set_direction(pin_num_, GPIO_MODE_INPUT);
     gpio_set_pull_mode(pin_num_, pull_mode);
   }

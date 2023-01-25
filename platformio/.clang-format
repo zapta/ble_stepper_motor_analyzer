@@ -10,3 +10,8 @@ ColumnLimit: 80
 BreakBeforeBinaryOperators: None
 Cpp11BracedListStyle: true
 SpacesBeforeTrailingComments: 2
+AlwaysBreakTemplateDeclarations: 'Yes'
+AccessModifierOffset: '-1'
+AlignEscapedNewlines: Left
+BreakConstructorInitializers: AfterColon
+ConstructorInitializerAllOnOneLineOrOnePerLine: 'true'

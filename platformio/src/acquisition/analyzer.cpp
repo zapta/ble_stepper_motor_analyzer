@@ -33,8 +33,6 @@ static SemaphoreHandle_t data_mutex;
 void enter_mutex() { ENTER_MUTEX }
 void exit_mutex() { EXIT_MUTEX }
 
-// xSemaphoreCreateMutex( void );
-
 // Circular buffer of states. Used for state notifications.
 // With 20ms per sample, 10 entires provides 200ms buffering.
 static CircularBuffer<State, 10> state_circular_buffer;
@@ -49,7 +47,6 @@ static SemaphoreHandle_t circular_state_semaphore;
 //
 // TODO: specify here what the limits are as a percentage
 // of full current scale.
-//
 constexpr uint16_t kNonEnergizedThresholdCounts = 50;
 constexpr uint16_t kEnergizedThresholdCounts = 150;
 
@@ -82,8 +79,6 @@ enum AdcCaptureState {
   ADC_CAPTURE_POST_TRIGER,
   // Not capturing. ISR is guaranteed not to update or access the
   // capture buffer.
-
-  /// ADC_CAPTURE_IDLE,
 };
 
 // This data is accessed from interrupt and thus should
@@ -95,14 +90,11 @@ struct IsrData {
   // The histogram buffer. Visible to users.
   Histogram histogram;
 
-  // Current settings.
-  // Settings settings;
-
   // Offset settings. See analyzer::Settings.
   int16_t offset1;
   int16_t offset2;
 
-  // Signal capturing members.
+  // Signal capturing.
   //
   // Capturing state.
   AdcCaptureState adc_capture_state;
@@ -131,20 +123,14 @@ struct IsrData {
 };
 
 static IsrData isr_data = {};
-//  {.adc_capture_state = ADC_CAPTURE_HALF_FILL,
-//                            .adc_capture_divider = 1};
 
 void get_last_capture_snapshot(AdcCaptureBuffer* buffer) {
-  // adc_dma::disable_irq();
   ENTER_MUTEX {
     // We copy the last completed snapsho.
     *buffer = isr_data.adc_capture_buffer_snapshot;
   }
   EXIT_MUTEX
-  // adc_dma::enable_irq();
 }
-
-
 
 // Should be called from ISR from when interrupts are not enabled.
 void isr_reset_adc_capture_buffer() {
@@ -158,29 +144,22 @@ void isr_reset_adc_capture_buffer() {
 
 // Should be called from ISR from when interrupts are not enabled.
 void isr_restart_adc_capture_cycle() {
-  
-
   // Snapshot the last sample, if any.
   isr_data.adc_capture_buffer_snapshot = isr_data.adc_capture_buffer;
 
   // Initialize the new capture buffer.
   isr_data.adc_capture_buffer.seq_number++;
   isr_reset_adc_capture_buffer();
-
-  
 }
 
 void sample_histogram(Histogram* histogram) {
-  // adc_dma::disable_irq();
   ENTER_MUTEX { *histogram = isr_data.histogram; }
   EXIT_MUTEX
-  // adc_dma::enable_irq();
 }
 
 static StepsCaptureBuffer steps_capture_sample_buffer;
 const StepsCaptureBuffer* sample_steps_capture() {
   steps_capture_sample_buffer.clear();
-  // adc_dma::disable_irq();
   ENTER_MUTEX {
     // NOTE: steps_capture_buffer is managed as a circular buffer
     // such it can be empty only when the device starts.
@@ -190,22 +169,18 @@ const StepsCaptureBuffer* sample_steps_capture() {
     }
   }
   EXIT_MUTEX
-  // adc_dma::enable_irq();
   return &steps_capture_sample_buffer;
 }
 
 void sample_state(State* state) {
-  // adc_dma::disable_irq();
   ENTER_MUTEX { *state = isr_data.state; }
   EXIT_MUTEX
-  // adc_dma::enable_irq();
 }
 
 // Blocks until next state is available. (50Hz)
 bool pop_next_state(State* state) {
   for (;;) {
     const State* popped_state;
-    // adc_dma::disable_irq();
     ENTER_MUTEX {
       // Null if buffer is empty.
       popped_state = state_circular_buffer.pop();
@@ -214,20 +189,17 @@ bool pop_next_state(State* state) {
       }
     }
     EXIT_MUTEX
-    // adc_dma::enable_irq();
     if (popped_state) {
       // TODO: take semaphore if taken.
       return true;
     }
 
     // Wait for the semaphore
-    // k_sem_take(&circular_state_semaphore, K_FOREVER);
     xSemaphoreTake(circular_state_semaphore, portMAX_DELAY);
   }
 }
 
 void reset_data() {
-  // adc_dma::disable_irq();
   ENTER_MUTEX {
     // NOTE: we don't reset the tick counter,  step counter samples and
     // the captured signals.
@@ -241,7 +213,6 @@ void reset_data() {
     memset(isr_data.histogram.buckets, 0, sizeof(isr_data.histogram.buckets));
   }
   EXIT_MUTEX
-  // adc_dma::enable_irq();
 }
 
 void calibrate_zeros() {
@@ -259,33 +230,23 @@ void calibrate_zeros() {
       const State* state = state_circular_buffer.get_internal(i);
       total_v1 += state->v1;
       total_v2 += state->v2;
-      // printk("%d %d\n", (int)state->v1, (int)state->v2);
     }
-    // isr_data.offset1 += isr_data.state.v1;
-    // isr_data.offset2 += isr_data.state.v2;
-
-    // printk("[%d %d]\n", (int)isr_data.state.v1, (int)isr_data.state.v2);
 
     isr_data.offset1 += (total_v1 / n);
     isr_data.offset2 += (total_v2 / n);
   }
   EXIT_MUTEX
-  // adc_dma::enable_irq();
 }
 
 void set_is_reversed_direction(bool is_reverse_direction) {
-  // adc_dma::disable_irq();
   ENTER_MUTEX { isr_data.state.is_reverse_direction = is_reverse_direction; }
   EXIT_MUTEX
-  // adc_dma::enable_irq();
 }
 
 bool get_is_reversed_direction() {
   bool result;
-  // adc_dma::disable_irq();
   ENTER_MUTEX { result = isr_data.state.is_reverse_direction; }
   EXIT_MUTEX
-  // adc_dma::enable_irq();
   return result;
 }
 
@@ -297,7 +258,6 @@ void set_signal_capture_divider(uint8_t divider) {
     divider = 50;
   }
 
-  // adc_dma::disable_irq();
   ENTER_MUTEX {
     isr_data.adc_capture_divider = divider;
     isr_data.adc_capture_divider_counter = 0;
@@ -307,31 +267,27 @@ void set_signal_capture_divider(uint8_t divider) {
     isr_reset_adc_capture_buffer();
   }
   EXIT_MUTEX
-  // adc_dma::enable_irq();
 
   ESP_LOGI(TAG, "Signal capture divider set to %hu", divider);
 }
 
 void get_settings(Settings* settings) {
-  // adc_dma::disable_irq();
   ENTER_MUTEX {
     settings->offset1 = isr_data.offset1;
     settings->offset2 = isr_data.offset2;
     settings->is_reverse_direction = isr_data.state.is_reverse_direction;
   }
   EXIT_MUTEX
-  // adc_dma::enable_irq();
 }
 
 void dump_state(const State& state) {
-  ESP_LOGI(TAG, 
+  ESP_LOGI(TAG,
       "[%6llu][er:%u, %u] [%5d, %5d] [en:%d %u] s:%hhu/%d  steps:%d "
       "max_steps:%d",
       state.tick_count, state.quadrature_errors, state.ticks_with_errors,
       state.v1, state.v2, state.is_energized, state.non_energized_count,
       state.quadrant, state.last_step_direction, state.full_steps,
       state.max_full_steps);
-      //ESP_LOG_BUFFER_HEX_LEVEL(TAG, (uint8_t*)&state.tick_count, sizeof(state.tick_count), ESP_LOG_INFO );
 }
 
 // Assumes that ADC capture data is ready.
@@ -340,7 +296,6 @@ void dump_adc_capture_buffer(const AdcCaptureBuffer& buffer) {
   printf(" seq: %hu, div=%hus\n", buffer.seq_number, buffer.divider);
   for (int i = 0; i < buffer.items.size(); i++) {
     const analyzer::AdcCaptureItem* item = buffer.items.get(i);
-    // printf("%03d: %4hd %4hd\n", i, item->v1, item->v2);
     printf("%hd,%hd\n", item->v1, item->v2);
   }
   printf("\n");
@@ -349,10 +304,8 @@ void dump_adc_capture_buffer(const AdcCaptureBuffer& buffer) {
 // Maybe add step's information to the histogram.
 // Called from isr on step transition.
 static inline void isr_add_step_to_histogram(uint8_t quadrant,
-                                             Direction entry_direction,
-                                             Direction exit_direction,
-                                             uint32_t ticks_in_step,
-                                             uint32_t max_current_in_step) {
+    Direction entry_direction, Direction exit_direction, uint32_t ticks_in_step,
+    uint32_t max_current_in_step) {
   // Ignoring this step if not entering and exiting this step in same forward or
   // backward direction.
   if (entry_direction != exit_direction ||
@@ -360,7 +313,7 @@ static inline void isr_add_step_to_histogram(uint8_t quadrant,
     return;
   }
   uint32_t steps_per_sec = acq_consts::kTimeTicksPerSec /
-                           ticks_in_step;  // speed in steps per second
+      ticks_in_step;  // speed in steps per second
   if (steps_per_sec < 10) {
     return;  // ignore very slow steps as they dominate the time.
   }
@@ -420,10 +373,6 @@ void isr_handle_one_sample(const uint16_t raw_v1, const uint16_t raw_v2) {
   const int16_t v1 = (int16_t)signal1_filter.update(raw_v1) - isr_data.offset1;
   const int16_t v2 = (int16_t)signal2_filter.update(raw_v2) - isr_data.offset2;
 
-  // @@@ Temp for testing
-  // const int16_t v1 = (int16_t)raw_v1 - isr_data.offset1;
-  // const int16_t v2 = (int16_t)raw_v2 - isr_data.offset2;
-
   isr_data.state.v1 = v1;
   isr_data.state.v2 = v2;
 
@@ -453,7 +402,6 @@ void isr_handle_one_sample(const uint16_t raw_v1, const uint16_t raw_v2) {
           // NOTE: if the buffer is full here we could terminate
           // the capture but we go through the normal motions for simplicity.
           isr_data.adc_capture_state = ADC_CAPTURE_POST_TRIGER;
-          // isr_data.adc_capture_buffer.trigger_found = false;
           break;
         }
         isr_data.adc_capture_pre_trigger_items_left--;
@@ -464,9 +412,8 @@ void isr_handle_one_sample(const uint16_t raw_v1, const uint16_t raw_v2) {
         if (old_v1 < -10 && v1 >= 0) {
           // Keep only the last n/2 points. This way the trigger will
           // always be in the middle of the buffer.
-          isr_data.adc_capture_buffer.items.keep_at_most(kAdcCaptureBufferSize /
-                                                         2);
-          // isr_data.adc_capture_buffer.trigger_found = true;
+          isr_data.adc_capture_buffer.items.keep_at_most(
+              kAdcCaptureBufferSize / 2);
           isr_data.adc_capture_state = ADC_CAPTURE_POST_TRIGER;
         }
       } break;
@@ -489,8 +436,8 @@ void isr_handle_one_sample(const uint16_t raw_v1, const uint16_t raw_v2) {
   const uint16_t total_current = abs(v1) + abs(v2);
   // Using histeresis.
   const uint16_t energized_threshold = old_is_energized
-                                           ? kNonEnergizedThresholdCounts
-                                           : kEnergizedThresholdCounts;
+      ? kNonEnergizedThresholdCounts
+      : kEnergizedThresholdCounts;
   const bool new_is_energized = total_current > energized_threshold;
   isr_data.state.is_energized = new_is_energized;
 
@@ -579,8 +526,8 @@ void isr_handle_one_sample(const uint16_t raw_v1, const uint16_t raw_v2) {
     // Case 3: Moved to next quadrant.
     isr_update_full_steps_counter(+1);
     isr_add_step_to_histogram(old_quadrant, isr_data.state.last_step_direction,
-                              FORWARD, isr_data.state.ticks_in_step,
-                              isr_data.state.max_current_in_step);
+        FORWARD, isr_data.state.ticks_in_step,
+        isr_data.state.max_current_in_step);
     isr_data.state.last_step_direction = FORWARD;
     isr_data.state.ticks_in_step = 1;
     isr_data.state.max_current_in_step = max_current;
@@ -588,8 +535,8 @@ void isr_handle_one_sample(const uint16_t raw_v1, const uint16_t raw_v2) {
     // Case 4: Moved to previous quadrant.
     isr_update_full_steps_counter(-1);
     isr_add_step_to_histogram(old_quadrant, isr_data.state.last_step_direction,
-                              BACKWARD, isr_data.state.ticks_in_step,
-                              isr_data.state.max_current_in_step);
+        BACKWARD, isr_data.state.ticks_in_step,
+        isr_data.state.max_current_in_step);
     isr_data.state.last_step_direction = BACKWARD;
     isr_data.state.ticks_in_step = 1;
     isr_data.state.max_current_in_step = max_current;
@@ -603,8 +550,6 @@ void isr_handle_one_sample(const uint16_t raw_v1, const uint16_t raw_v2) {
   }
 }
 
-
-
 // An ISR that is called after a predefined number of calls to
 // isr_handle_one_sample. Used to snapshot the state at fixed time intervals.
 void isr_snapshot_state() {
@@ -612,15 +557,14 @@ void isr_snapshot_state() {
   State* entry = state_circular_buffer.insert();
   *entry = isr_data.state;
   // Notify the notification thread that a new state is available.
-  // k_sem_give(&circular_state_semaphore);
   xSemaphoreGive(circular_state_semaphore);
 }
 
 // Force a reasonable offset setting value.
 static int clip_offset(int requested_offset) {
-  return (requested_offset > kMaxOffset)   ? kMaxOffset
-         : (requested_offset < kMinOffset) ? kMinOffset
-                                           : requested_offset;
+  return (requested_offset > kMaxOffset) ? kMaxOffset
+      : (requested_offset < kMinOffset)  ? kMinOffset
+                                         : requested_offset;
 }
 
 // Call once on program initialization, before ADC interrupts are
@@ -634,8 +578,6 @@ void setup(const Settings& settings) {
   assert(circular_state_semaphore);
 
   ENTER_MUTEX {
-    // adc_dma::disable_irq();
-
     isr_data.adc_capture_state = ADC_CAPTURE_HALF_FILL;
     isr_data.adc_capture_divider = 1;
 
@@ -646,8 +588,6 @@ void setup(const Settings& settings) {
     // We reset the capture without incrementing the capture
     // sequence number since we didn't completed it.
     isr_reset_adc_capture_buffer();
-
-    // adc_dma::enable_irq();
   }
   EXIT_MUTEX
 }
@@ -668,9 +608,6 @@ double state_steps(const State& state) {
   // Range is in [0, PI];
   const double radians = atan2((double)state.v2, (double)state.v1);
   const double abs_radians = fabs(radians);
-
-  // printk("atan2: %hd, %hd -> %f, %f\n\n", state.v2, state.v1, radians,
-  // abs_radians);
 
   // Rel radians in [-PI/4, PI/4].
   double rel_radians = 0;
@@ -693,8 +630,8 @@ double state_steps(const State& state) {
   const double fraction = rel_radians * (2 / M_PI);
 
   const double result = state.is_reverse_direction
-                            ? state.full_steps - fraction
-                            : state.full_steps + fraction;
+      ? state.full_steps - fraction
+      : state.full_steps + fraction;
 
   return result;
 }

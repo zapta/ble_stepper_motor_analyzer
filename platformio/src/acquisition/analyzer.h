@@ -34,9 +34,7 @@ struct Settings {
 // TODO: Consider compressing the BLE packet to increase the point
 // count.
 
-// @@@ Should be 400 for compatibility with nrf52.
-// constexpr uint16_t kAdcCaptureBufferSize = 400;
-constexpr uint16_t kAdcCaptureBufferSize = 500;
+constexpr uint16_t kAdcCaptureBufferSize = 400;
 
 // Number of captured samples to wait for a trigger. If this number
 // of samples is reached, we force a trigger.
@@ -45,7 +43,7 @@ constexpr uint16_t kAdcCaptureMaxWaitToTrigger = kAdcCaptureBufferSize;
 // A single captured item. These are the signed values
 // in adc counts of the two curent sensing channels.
 struct AdcCaptureItem {
-  AdcCaptureItem() : v1(0), v2(0) {}
+  AdcCaptureItem() : v1(0), v2(0) { }
   // Coil currents in adc tick units.
   int16_t v1;
   int16_t v2;
@@ -56,7 +54,7 @@ struct AdcCaptureItem {
 typedef CircularBuffer<AdcCaptureItem, kAdcCaptureBufferSize> AdcCaptureItems;
 
 struct AdcCaptureBuffer {
-  AdcCaptureBuffer() : seq_number(0), divider(1){};
+  AdcCaptureBuffer() : seq_number(0), divider(1) {};
   // Incremented on each capture snapshot. Users should handle
   // overflow gracefully.
   uint16_t seq_number;
@@ -110,22 +108,22 @@ struct HistogramBucket {
 // Snapshots of this values are used to generates the BLE state
 // notification.
 struct State {
-  State()
-      : tick_count(0),
-        ticks_with_errors(0),
-        v1(0),
-        v2(0),
-        is_energized(false),
-        non_energized_count(0),
-        quadrant(0),
-        is_reverse_direction(false),
-        full_steps(0),
-        max_full_steps(0),
-        max_retraction_steps(0),
-        quadrature_errors(0),
-        last_step_direction(UNKNOWN_DIRECTION),
-        max_current_in_step(0),
-        ticks_in_step(0) {}
+  State() :
+      tick_count(0),
+      ticks_with_errors(0),
+      v1(0),
+      v2(0),
+      is_energized(false),
+      non_energized_count(0),
+      quadrant(0),
+      is_reverse_direction(false),
+      full_steps(0),
+      max_full_steps(0),
+      max_retraction_steps(0),
+      quadrature_errors(0),
+      last_step_direction(UNKNOWN_DIRECTION),
+      max_current_in_step(0),
+      ticks_in_step(0) { }
 
   // Number of ADC pair samples since last data reset. This is
   // also a proxy for the time passed. The number of time ticks
@@ -235,8 +233,5 @@ void set_signal_capture_divider(uint8_t divider);
 // calibrate_zeros() to save the current settings in the
 // EEPROM.
 void get_settings(Settings* settings);
-
-// Temp
-void dump_dma_state();
 
 }  // namespace analyzer
