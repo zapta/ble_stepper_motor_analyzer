@@ -108,15 +108,14 @@ static esp_ble_adv_params_t adv_params = {
 };
 #pragma GCC diagnostic pop
 
+// These vars accessed ony from the BLE callback thread and 
+// thus don't need mutex protection.
 struct Vars {
   uint8_t hardware_config = 0;
   bool adv_data_configured = false;
   bool scan_rsp_configured = false;
   uint16_t adc_ticks_per_amp = 0;
-  uint16_t gatts_if = ESP_GATT_IF_NONE;
-  uint16_t conn_id = kInvalidConnId;
   uint16_t conn_mtu = 0;
-  bool state_notifications_enabled = false;
   analyzer::State stepper_state_buffer = {};
   analyzer::Histogram histogram_buffer = {};
   // Number of capture points already read from the current
@@ -128,6 +127,15 @@ struct Vars {
 };
 
 static Vars vars;
+
+// TODO: Add a protection mutex.
+struct ProtextedVars {
+  bool state_notifications_enabled = false;
+  uint16_t gatts_if = ESP_GATT_IF_NONE;
+  uint16_t conn_id = kInvalidConnId;
+};
+
+static ProtextedVars protected_vars;
 
 // static const uint16_t kPrimaryServiceDeclUuid = ESP_GATT_UUID_PRI_SERVICE;
 static const uint8_t kPrimaryServiceDeclUuid[] = {
@@ -203,11 +211,10 @@ enum {
 
 // NOTE: The macros cast the data to non const as required by
 // the API. Use const data with care.
-
 #define LEN_BYTES(x) sizeof(x), (uint8_t*)(&(x))
-
 #define LEN_LEN_BYTES(x) sizeof(x), sizeof(x), (uint8_t*)(&(x))
 
+// The main BLE attribute table.
 static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
 
     [ATTR_IDX_SVC] = {{ESP_GATT_AUTO_RSP},
@@ -332,7 +339,9 @@ static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
 
 };
 
-// Parallel to the entries of attr_table.
+// Parallel to the entries of attr_table.  Accessed only
+// by the BLE thread callbacks and thus doesn't require
+// a mutex protection.
 uint16_t handle_table[ATTR_IDX_COUNT];
 
 static esp_gatt_status_t on_probe_info_read(
@@ -564,8 +573,8 @@ static esp_gatt_status_t on_state_notification_control_write(
   const uint16_t descr_value = write_param.value[1] << 8 | write_param.value[0];
   const bool notifications_enabled = descr_value & 0x0001;
   ESP_LOGI(TAG, "Notifications 0x%04x: %d -> %d", descr_value,
-      vars.state_notifications_enabled, notifications_enabled);
-  vars.state_notifications_enabled = notifications_enabled;
+      protected_vars.state_notifications_enabled, notifications_enabled);
+  protected_vars.state_notifications_enabled = notifications_enabled;
 
   return ESP_GATT_OK;
 }
@@ -722,7 +731,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
     case ESP_GATTS_REG_EVT: {
       ESP_LOGI(TAG, "ESP_GATTS_REG_EVT event");
       assert(param->reg.status == ESP_GATT_OK);
-      vars.gatts_if = gatts_if;
+      protected_vars.gatts_if = gatts_if;
       // Construct device name from device address.
       const uint8_t* device_addr = esp_bt_dev_get_address();
       assert(device_addr);
@@ -865,7 +874,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
           TAG, param->connect.remote_bda, sizeof(param->connect.remote_bda));
       // Verify our assumption that kInvalidConnId can't be a valid id.
       assert(param->connect.conn_id != kInvalidConnId);
-      vars.conn_id = param->connect.conn_id;
+      protected_vars.conn_id = param->connect.conn_id;
       vars.conn_mtu = 23;  // Initial BLE MTU.
       esp_ble_conn_update_params_t conn_params = {};
       memcpy(conn_params.bda, param->connect.remote_bda, sizeof(esp_bd_addr_t));
@@ -883,9 +892,9 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
     case ESP_GATTS_DISCONNECT_EVT:
       ESP_LOGI(TAG, "ESP_GATTS_DISCONNECT_EVT, reason = 0x%x",
           param->disconnect.reason);
-      vars.conn_id = kInvalidConnId;
+      protected_vars.conn_id = kInvalidConnId;
       vars.conn_mtu = 0;
-      vars.state_notifications_enabled = false;
+      protected_vars.state_notifications_enabled = false;
       esp_ble_gap_start_advertising(&adv_params);
       break;
 
@@ -929,7 +938,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
   }
 }
 
-bool is_connected() { return vars.conn_id != kInvalidConnId; }
+bool is_connected() { return protected_vars.conn_id != kInvalidConnId; }
 
 void setup(uint8_t hardware_config, uint16_t adc_ticks_per_amp) {
   // ble_util::setup();
@@ -1002,21 +1011,21 @@ static uint8_t state_notification_buffer[50] = {};
 void notify_state_if_enabled(const analyzer::State& state) {
 
   // const bool notification_enabled = state_ccc_val[0] & 0x01;
-  if (!vars.state_notifications_enabled) {
+  if (!protected_vars.state_notifications_enabled) {
     return;
   }
 
-  assert(vars.gatts_if != ESP_GATT_IF_NONE);
-  assert(vars.conn_id != kInvalidConnId);
+  assert(protected_vars.gatts_if != ESP_GATT_IF_NONE);
+  assert(protected_vars.conn_id != kInvalidConnId);
 
   ble_util::Serializer ser(
       state_notification_buffer, sizeof(state_notification_buffer));
   serialize_state(state, &ser);
 
   // NOTE: need_config == false to indicate a notification (vs. indication).
-  const esp_err_t err = esp_ble_gatts_send_indicate(vars.gatts_if, vars.conn_id,
-      handle_table[ATTR_IDX_STEPPER_STATE_VAL], ser.size(),
-      state_notification_buffer, false);
+  const esp_err_t err = esp_ble_gatts_send_indicate(protected_vars.gatts_if,
+      protected_vars.conn_id, handle_table[ATTR_IDX_STEPPER_STATE_VAL],
+      ser.size(), state_notification_buffer, false);
 
   if (err) {
     ESP_LOGE(TAG, "esp_ble_gatts_send_indicate() returned err %d", err);
