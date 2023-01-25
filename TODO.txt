@@ -1,6 +1,10 @@
+[Firmware] Try to program a fresh ESP32 and see that it works (install in breadboard).
+
 [hardware] Determine adc capacitor values, if any. Measure frequency response.
 
 [firmware] Calibrate current sensors.
+
+[hardware] Order boards from JLCPCB.
 
 
 
