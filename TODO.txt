@@ -1,18 +1,17 @@
-[firmware] Remove unit test.
-
 [firmware] In ble_host, convert strings to unit8_t arrays to avoid the -1.
+
+[firmware] Test hardware config inputs.
+
+
 
 [hardware] Determine adc capacitor values, if any. Measure frequency response.
 
-[firmware] Test hardware config inputs.
 
 [firmware] remove ble attr declaration macros (?).
 
 [firmware] Investigage the large ble rsp memclr.
 
 [firmware] Calibrate current sensors.
-
-[firmware] Clean up code (delete commented out code, etc)
 
 [firmware] Add mutex to ble service (for notify).
 
