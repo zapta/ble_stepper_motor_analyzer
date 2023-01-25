@@ -27,13 +27,6 @@ struct Settings {
 // capture page. The capture logic try to sync a ch1 up crossing
 // the horizontal axis at the middle of the buffer for better
 // visual stability.
-//
-// NOTE: When sending the data packet through BLE, each sample
-// consumes 4 bytes so make sure to to exceed to the BLE MTU.
-//
-// TODO: Consider compressing the BLE packet to increase the point
-// count.
-
 constexpr uint16_t kAdcCaptureBufferSize = 400;
 
 // Number of captured samples to wait for a trigger. If this number

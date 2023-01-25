@@ -34,11 +34,11 @@ static constexpr auto TAG = "ble_srv";
 #define ESP_APP_ID 0x55
 #define SVC_INST_ID 0
 
-static SemaphoreHandle_t data_mutex;
+static SemaphoreHandle_t protected_vars_mutex;
 #define ENTER_MUTEX \
-  { xSemaphoreTake(data_mutex, portMAX_DELAY); }
+  { xSemaphoreTake(protected_vars_mutex, portMAX_DELAY); }
 #define EXIT_MUTEX \
-  { xSemaphoreGive(data_mutex); }
+  { xSemaphoreGive(protected_vars_mutex); }
 
 // Set MTU to max of 247 which means max payload data
 // can be 247-3 = 244 bytes long.
@@ -135,13 +135,14 @@ struct Vars {
 
 static Vars vars;
 
-// TODO: Add a protection mutex.
+
 struct ProtextedVars {
   bool state_notifications_enabled = false;
   uint16_t gatts_if = ESP_GATT_IF_NONE;
   uint16_t conn_id = kInvalidConnId;
 };
 
+// Protected by protected_vars_mutex.
 static ProtextedVars protected_vars;
 
 // static const uint16_t kPrimaryServiceDeclUuid = ESP_GATT_UUID_PRI_SERVICE;
@@ -973,8 +974,8 @@ bool is_connected() {
 }
 
 void setup(uint8_t hardware_config, uint16_t adc_ticks_per_amp) {
-  data_mutex = xSemaphoreCreateMutex();
-  assert(data_mutex);
+  protected_vars_mutex = xSemaphoreCreateMutex();
+  assert(protected_vars_mutex);
 
   ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
 

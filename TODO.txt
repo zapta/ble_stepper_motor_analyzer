@@ -1,5 +1,3 @@
-[firmware] Process TODOs in source code.
-
 [hardware] Determine adc capacitor values, if any. Measure frequency response.
 
 [firmware] Calibrate current sensors.
