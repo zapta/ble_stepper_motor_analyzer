@@ -85,14 +85,18 @@ static void setup() {
   analyzer::setup(settings);
   adc_task::setup();
 
-  // Determine confiuration to pass to ble service.
+  // Determine the confiuration to pass to ble host.
   const uint8_t hardware_config = io::read_hardware_config();
   ESP_LOGI(TAG, "Hardware config: %hhu", hardware_config);
   const uint16_t adc_ticks_per_amp =
       determine_adc_ticks_per_amp(hardware_config);
-  ESP_LOGI(TAG, "ADC ticks per amp: %hu", adc_ticks_per_amp);
+  if (!adc_ticks_per_amp) {
+    ESP_LOGE(TAG, "Invalid hardware config: %hhu", hardware_config);
+    assert(0);
+  }
+  ESP_LOGI(TAG, "ADC ticks per Amp: %hu", adc_ticks_per_amp);
 
-  // Initialize ble service.
+  // Initialize ble host.
   ble_host::setup(hardware_config, adc_ticks_per_amp);
 }
 

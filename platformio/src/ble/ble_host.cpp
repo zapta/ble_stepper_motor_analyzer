@@ -902,7 +902,6 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
             param->add_attr_tab.num_handle);
         memcpy(handle_table, param->add_attr_tab.handles, sizeof(handle_table));
         esp_ble_gatts_start_service(handle_table[ATTR_IDX_SVC]);
-        // esp_ble_gatts_start_service(handle_table[ATTR_IDX_SVC]);
       }
       break;
     }

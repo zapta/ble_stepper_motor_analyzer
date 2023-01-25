@@ -1,14 +1,12 @@
-
-[firmware] Test hardware config inputs.
+[firmware] Add mutex to ble service (for notify).
 
 
 [hardware] Determine adc capacitor values, if any. Measure frequency response.
 
-[firmware] Investigage the large ble rsp memclr.
-
 [firmware] Calibrate current sensors.
 
-[firmware] Add mutex to ble service (for notify).
+[firmware] Investigage the large ble rsp memclr.
+
 
 [firmware] Process TODOs in source code.
 
