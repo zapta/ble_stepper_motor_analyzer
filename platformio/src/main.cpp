@@ -51,11 +51,11 @@ static uint16_t determine_adc_ticks_per_amp(uint8_t hardware_config) {
   switch (hardware_config) {
     case 0:
       // CFG1, CFG2 resistors not installed.
-      return acq_consts::CC6920BSO5A_MV_PER_AMP;
+      return acq_consts::CC6920BSO5A_ADC_TICKS_PER_AMP;
       break;
     case 1:
       // Only CFG1 resistors is installed.
-      return acq_consts::TMCS1108A4B_MV_PER_AMP;
+      return acq_consts::TMCS1108A4B_ADC_TICKS_PER_AMP;
       break;
     // Configurations 0, 1 are reserved.
     default:
