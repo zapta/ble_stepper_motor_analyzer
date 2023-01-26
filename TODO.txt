@@ -1,15 +1,15 @@
+
 [firmware] Calibrate current sensors.
-
-[hardware] Determine adc capacitor values, if any. Measure frequency response.
-
-[Firmware] Sanity check the traphic in a BLE sniffer.
-
-[Firmware] Measure CPU idle percentage.
-
 
 [hardware] Order boards from JLCPCB.
 
+---------
+
+[Firmware] Measure CPU idle percentage.
+
 [Client] Python single file distribution?
+
+[Firmware] Sanity check the traphic in a BLE sniffer.
 
 
 
