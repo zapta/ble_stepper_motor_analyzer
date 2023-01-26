@@ -1,6 +1,4 @@
 
-[firmware] Calibrate current sensors.
-
 [hardware] Order boards from JLCPCB.
 
 ---------

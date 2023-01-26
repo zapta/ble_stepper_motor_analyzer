@@ -9,6 +9,9 @@ namespace acq_consts {
 // also output resistance of the sensor and input resistance
 // of the ADC.
 constexpr uint16_t CC6920BSO5A_ADC_TICKS_PER_AMP = 340;
+
+// TODO: Repeat calibration of this sensor. Not sure that is
+// value is correct.
 constexpr uint16_t TMCS1108A4B_ADC_TICKS_PER_AMP = 496;
 
 // How many time the pair of channels is sampled per second.
