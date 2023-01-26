@@ -35,8 +35,10 @@ from time_histogram import TimeHistogram
 # on Mac OSX.
 
 # The default device used by the developers. For conviniance.
-#DEFAULT_DEVICE_ADDRESS = "EE:E7:C3:26:42:83"
-DEFAULT_DEVICE_ADDRESS = "30:C6:F7:14:FE:F2"
+#DEFAULT_DEVICE_ADDRESS = "EE:E7:C3:26:42:83" # nrf
+#DEFAULT_DEVICE_ADDRESS = "30:C6:F7:14:FE:F2"  # ESP32 #1
+DEFAULT_DEVICE_ADDRESS = "EC:62:60:B2:EA:56"  # ESP32 #2
+
 DEFAULT_DEVICE_NAME = "My Stepper"
 
 # Allows to stop the program by typing ctrl-c.

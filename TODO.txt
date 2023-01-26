@@ -1,12 +1,15 @@
-[Firmware] Try to program a fresh ESP32 and see that it works (install in breadboard).
-
-[Firmware] Sanity check the traphic in a BLE sniffer.
+[firmware] Calibrate current sensors.
 
 [hardware] Determine adc capacitor values, if any. Measure frequency response.
 
-[firmware] Calibrate current sensors.
+[Firmware] Sanity check the traphic in a BLE sniffer.
+
+[Firmware] Measure CPU idle percentage.
+
 
 [hardware] Order boards from JLCPCB.
+
+[Client] Python single file distribution?
 
 
 

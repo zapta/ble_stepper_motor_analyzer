@@ -135,7 +135,6 @@ struct Vars {
 
 static Vars vars;
 
-
 struct ProtextedVars {
   bool state_notifications_enabled = false;
   uint16_t gatts_if = ESP_GATT_IF_NONE;
@@ -795,9 +794,9 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       }
 
       // NOTE: rsp is large, such that this memset takes about 10us.
-      //io::TEST2.set();
+      // io::TEST2.set();
       memset(&vars.rsp, 0, sizeof(vars.rsp));
-      //io::TEST2.clr();
+      // io::TEST2.clr();
 
       ble_util::Serializer ser(
           vars.rsp.attr_value.value, sizeof(vars.rsp.attr_value.value));
@@ -1068,7 +1067,8 @@ void notify_state_if_enabled(const analyzer::State& state) {
       state_notification_buffer, false);
 
   if (err) {
-    ESP_LOGE(TAG, "esp_ble_gatts_send_indicate() returned err %d", err);
+    ESP_LOGE(TAG, "esp_ble_gatts_send_indicate() returned err 0x%x %s", err,
+        esp_err_to_name(err));
   }
 }
 

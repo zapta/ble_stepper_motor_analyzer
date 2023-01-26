@@ -36,7 +36,8 @@ void nvs_init() {
   // This is the initial creation in new devices.
   if (err == ESP_ERR_NVS_NO_FREE_PAGES ||
       err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-    ESP_LOGW(TAG, "nvs_flash_init() err %04x. Erasing nvs...", err);
+    ESP_LOGW(TAG, "nvs_flash_init() err 0x%x %s. Erasing nvs...", err,
+        esp_err_to_name(err));
     // This should not fail.
     ESP_ERROR_CHECK(nvs_flash_erase());
     ESP_LOGI(TAG, "nvs erased. Initializing again...");
@@ -46,7 +47,8 @@ void nvs_init() {
     return;
   }
 
-  ESP_LOGE(TAG, "nvs_flash_init() fatal error %04x.", err);
+  ESP_LOGE(
+      TAG, "nvs_flash_init() fatal error 0x%x %s.", err, esp_err_to_name(err));
   assert(false);
 }
 
