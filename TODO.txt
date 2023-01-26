@@ -1,4 +1,9 @@
 
+
+Replace to external antenna
+
+
+
 [hardware] Order boards from JLCPCB.
 
 ---------
