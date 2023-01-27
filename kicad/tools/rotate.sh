@@ -4,11 +4,12 @@
 script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 echo ${script_dir}
 
-# Original footprint file
-src=$1
-
 # Number of 90 deg rotations (CCW on JLCPCB)
-n=$2
+n=$1
+
+# Original footprint file
+src=$2
+
 
 echo ${src}
 
