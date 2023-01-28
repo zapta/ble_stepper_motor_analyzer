@@ -3633,7 +3633,7 @@
     (property "Reference" "D2" (id 0) (at 43.815 174.625 90)
       (effects (font (size 1.27 1.27)) (justify right))
     )
-    (property "Value" "YELLOW" (id 1) (at 43.815 177.165 90)
+    (property "Value" "GREEN" (id 1) (at 43.815 177.165 90)
       (effects (font (size 1.27 1.27)) (justify right))
     )
     (property "Footprint" "stepper_monitor:LED_0402_1005Metric_Pad0.77x0.64mm_HandSolder" (id 2) (at 40.64 175.895 0)
@@ -3660,7 +3660,7 @@
     (property "Datasheet" "~" (id 3) (at 40.64 167.64 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "LCSC" "C25905" (id 4) (at 36.195 170.815 0))
+    (property "LCSC" "C965797" (id 4) (at 36.195 170.815 0))
     (pin "1" (uuid abdf9469-52e2-4457-9429-41dfe6fff175))
     (pin "2" (uuid f1de25e0-9a16-4420-be42-d5c0ebc3d7c6))
   )
@@ -5272,7 +5272,7 @@
       (reference "D1") (unit 1) (value "RED") (footprint "stepper_monitor:LED_0402_1005Metric_Pad0.77x0.64mm_HandSolder")
     )
     (path "/00000000-0000-0000-0000-000063192ea5"
-      (reference "D2") (unit 1) (value "YELLOW") (footprint "stepper_monitor:LED_0402_1005Metric_Pad0.77x0.64mm_HandSolder")
+      (reference "D2") (unit 1) (value "GREEN") (footprint "stepper_monitor:LED_0402_1005Metric_Pad0.77x0.64mm_HandSolder")
     )
     (path "/00000000-0000-0000-0000-000063190058"
       (reference "D3") (unit 1) (value "RED") (footprint "stepper_monitor:LED_0402_1005Metric_Pad0.77x0.64mm_HandSolder")
