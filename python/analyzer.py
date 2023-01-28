@@ -8,14 +8,14 @@ import asyncio
 import logging
 import platform
 import signal
+import re
 import sys
 from tokenize import String
 from turtle import width
-
 import pyqtgraph as pg
 from numpy import histogram
 from pyqtgraph.Qt import QtWidgets
-
+from bleak import BleakScanner
 from capture_signal import CaptureSignal
 from capture_signal_fetcher import CaptureSignalFetcher
 from chart import Chart
@@ -34,12 +34,6 @@ from time_histogram import TimeHistogram
 # The device address has different format on Windows and
 # on Mac OSX.
 
-# The default device used by the developers. For conviniance.
-#DEFAULT_DEVICE_ADDRESS = "EE:E7:C3:26:42:83" # nrf
-#DEFAULT_DEVICE_ADDRESS = "30:C6:F7:14:FE:F2"  # ESP32 #1
-DEFAULT_DEVICE_ADDRESS = "EC:62:60:B2:EA:56"  # ESP32 #2
-
-DEFAULT_DEVICE_NAME = "My Stepper"
 
 # Allows to stop the program by typing ctrl-c.
 signal.signal(signal.SIGINT, lambda number, frame: sys.exit())
@@ -50,11 +44,13 @@ print(f"Platform:: {platform.uname()}")
 print(f"Python {sys.version}")
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-d", "--device_address", dest="device_address",
-                    default=DEFAULT_DEVICE_ADDRESS, help="The device address")
+parser.add_argument('--scan', dest="scan", default=False,
+                    action=argparse.BooleanOptionalAction, help="If specified, scan for devices and exit.")
+parser.add_argument("-d", "--device", dest="device",
+                    default=None, help="The device name or address")
 # The device name is an arbitrary string such as "Extruder 1".
-parser.add_argument("-n", "--device_name", dest="device_name",
-                    default=DEFAULT_DEVICE_NAME, help="Optional device id such as Stepper X")
+parser.add_argument("-n", "--device_nick_name", dest="device_nick_name",
+                    default=None, help="Optional nickname for the device, e.g. 'My Device'")
 parser.add_argument("-m", "--max_amps", dest="max_amps",
                     type=float, default=2.0, help="Max current display.")
 parser.add_argument("-u", "--units", dest="units",
@@ -86,10 +82,64 @@ states_to_drop = 0
 capture_divider = 5
 last_set_capture_divider = 0
 
+async def scan():
+    print("Scanning 5 secs for advertising BLE devices ...\n", flush=True)
+    devices = await BleakScanner.discover(timeout=5)
+    i = 0
+    for device in devices:
+        i += 1
+        # print(device, flush=True)
+        name = device.name or ""
+        print(f"{i} device address: {device.address}  ({name})", flush=True)
+
+if args.scan:
+  asyncio.run(scan())
+  exit("\nScanning done.")
+
+
+def determine_device_address():
+    # Get flag value.
+    value = args.device
+    if not value:
+        sys.exit(
+            f"missing --device or -d args. Can't determine device to connect. Aborting.")
+    value = value.strip().upper()
+    print(f"User specified device: [{value}]")
+
+    # Handle the case of a direct address. Six dual hex digit values,
+    # separated by colons.
+    addr_match = re.search(
+        "^[0-9A-F]{2}:[0-9A-F]{2}:[0-9A-F]{2}"
+        ":[0-9A-F]{2}:[0-9A-F]{2}"":[0-9A-F]{2}$", value)
+    if addr_match:
+        return value
+
+    # Handle the case of a device name.
+    #
+    # TODO: Can we make this to work on Mac OSX where the device
+    #   address has a different format and value?
+    name_match = re.search(
+        "^STP-([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})"
+        "([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})$", value)
+    if name_match:
+        return (f"{name_match.group(1)}:{name_match.group(2)}"
+                f":{name_match.group(3)}:{name_match.group(4)}"
+                f":{name_match.group(5)}:{name_match.group(6)}")
+    # TODO: Add here a scan operation that shows and picks a device.
+    #   Use this option also if a device was not specified.
+    sys.exit(
+        f"Can't figure device name or address, please check --device or -d args. Aborting.")
+
+
+# Determine device address.
+device_address = determine_device_address()
+print(f"Device address: [{device_address}]")
 
 # Co-routing. Returns Probe or None.
+
+
 async def connect_to_probe():
-    device_address = args.device_address
+    # device_address = args.device_address
     print(f"Units: {args.units}", flush=True)
     print(f"Steps per unit: {args.steps_per_unit}", flush=True)
     print(f"Trying to connect to device [{device_address}]...", flush=True)
@@ -123,11 +173,11 @@ win_height = 700
 # We set the actual size later. This is a workaround to force an
 # early compaction of the buttons row.
 win = pg.GraphicsLayoutWidget(show=True, size=[win_width, win_height-1])
-title = f"BLE Stepper Motor Analyzer [{args.device_address}]"
-if args.device_name:
-    title += f" [{args.device_name}]"
+title = f"BLE Stepper Motor Analyzer [{device_address}]"
+if args.device_nick_name:
+    title += f" [{args.device_nick_name}]"
 win.setWindowTitle(title)
-#win.resize(1100, 700)
+# win.resize(1100, 700)
 
 # Layout class doc: https://doc.qt.io/qt-5/qgraphicsgridlayout.html
 
