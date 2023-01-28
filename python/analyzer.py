@@ -39,9 +39,9 @@ from time_histogram import TimeHistogram
 signal.signal(signal.SIGINT, lambda number, frame: sys.exit())
 
 # Print environment info for debugging.
-print(f"OS: {platform.platform()}")
-print(f"Platform:: {platform.uname()}")
-print(f"Python {sys.version}")
+print(f"OS: {platform.platform()}", flush=True)
+print(f"Platform:: {platform.uname()}", flush=True)
+print(f"Python {sys.version}", flush=True)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--scan', dest="scan", default=False,
@@ -94,7 +94,7 @@ async def scan():
 
 if args.scan:
   asyncio.run(scan())
-  exit("\nScanning done.")
+  sys.exit("\nScanning done.")
 
 
 def determine_device_address():
@@ -104,7 +104,7 @@ def determine_device_address():
         sys.exit(
             f"missing --device or -d args. Can't determine device to connect. Aborting.")
     value = value.strip().upper()
-    print(f"User specified device: [{value}]")
+    print(f"User specified device: [{value}]", flush=True)
 
     # Handle the case of a direct address. Six dual hex digit values,
     # separated by colons.
@@ -133,7 +133,7 @@ def determine_device_address():
 
 # Determine device address.
 device_address = determine_device_address()
-print(f"Device address: [{device_address}]")
+print(f"Device address: [{device_address}]", flush=True)
 
 # Co-routing. Returns Probe or None.
 
