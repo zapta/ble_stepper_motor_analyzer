@@ -1,12 +1,7 @@
-Allow analyzer to accept also device name, not just device address.
 
-Is it feasible to make the project compile also in arduino IDE?
 
-[Firmware] Sanity check the traphic in a BLE sniffer.
+[Firmware] Sanity check the traffic in a BLE sniffer.
 
-Come with a recomandation for in-the-field flasher solution.
-
-Single file python releases.
 
 Write documentation.
 

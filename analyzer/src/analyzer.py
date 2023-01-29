@@ -82,6 +82,9 @@ states_to_drop = 0
 capture_divider = 5
 last_set_capture_divider = 0
 
+main_event_loop = asyncio.new_event_loop()
+
+
 async def scan():
     print("Scanning 5 secs for advertising BLE devices ...\n", flush=True)
     devices = await BleakScanner.discover(timeout=5)
@@ -93,16 +96,18 @@ async def scan():
         print(f"{i} device address: {device.address}  ({name})", flush=True)
 
 if args.scan:
-  asyncio.run(scan())
-  sys.exit("\nScanning done.")
+    asyncio.run(scan())
+    sys.exit("\nScanning done.")
 
 
-def determine_device_address():
+# Returns device address or None if not specified.
+# Fatal error is specified but incorrectly.
+def parse_device_flag():
     # Get flag value.
     value = args.device
     if not value:
-        sys.exit(
-            f"missing --device or -d args. Can't determine device to connect. Aborting.")
+        print(f"No user specified --device flag.")
+        return None
     value = value.strip().upper()
     print(f"User specified device: [{value}]", flush=True)
 
@@ -125,14 +130,59 @@ def determine_device_address():
         return (f"{name_match.group(1)}:{name_match.group(2)}"
                 f":{name_match.group(3)}:{name_match.group(4)}"
                 f":{name_match.group(5)}:{name_match.group(6)}")
-    # TODO: Add here a scan operation that shows and picks a device.
-    #   Use this option also if a device was not specified.
+
+    # Fatal error. User specified device incorrectly.
     sys.exit(
         f"Can't figure device name or address, please check --device or -d args. Aborting.")
 
 
+async def select_device_address():
+    print("Scanning 5 secs for advertising BLE devices ...", flush=True)
+    all_devices = await BleakScanner.discover(timeout=5)
+    candidates_devices = []
+    for device in all_devices:
+        name = device.name or ""
+        if name.startswith("STP-"):
+            candidates_devices.append(device)
+
+    if len(candidates_devices) == 0:
+        sys.exit("No idle STP device found.")
+        return None
+
+    if len(candidates_devices) == 1:
+        print(
+            f"Found a single STP device: device address: {candidates_devices[0].address}  ({name})", flush=True)
+        return candidates_devices[0].address
+
+    while True:
+        print("\n-----", flush=True)
+        i = 0
+        for device in candidates_devices:
+            i += 1
+            print(f"\n{i}. {device.address} {device.name}",  flush=True)
+
+        ok = False
+        try:
+            num = int(
+                input(f"\nSelect device 1 to {len(candidates_devices)}, 0 abort: "))
+            if num == 0:
+                sys.exit("\nUser asked to abort.\n")
+            if num > 0 and num <= len(candidates_devices):
+                ok = True
+        except ValueError:
+            pass
+
+        if ok:
+            return candidates_devices[num - 1].address
+
+
 # Determine device address.
-device_address = determine_device_address()
+device_address = parse_device_flag()
+
+if not device_address:
+    device_address = main_event_loop.run_until_complete(
+        select_device_address())
+
 print(f"Device address: [{device_address}]", flush=True)
 
 # Co-routing. Returns Probe or None.
@@ -160,7 +210,6 @@ async def connect_to_probe():
     return probe
 
 
-main_event_loop = asyncio.new_event_loop()
 logging.basicConfig(level=logging.INFO)
 probe = main_event_loop.run_until_complete(connect_to_probe())
 capture_signal_fetcher = CaptureSignalFetcher(probe)

@@ -55,9 +55,9 @@ class ProbeState:
                           is_energized, non_energized_count)
 
     def __str__(self):
-        direction = "FWD"
+        direction = "Fwd"
         if self.is_reversed_direction:
-            direction = "BAK"
+            direction = "Bck"
         # 'energiized' related information is not reliable with noisy 
         # current sensors so not including it here.
         return f"TS:{self.timestamp_secs:9.3f}, Steps:{self.steps:8.2f}," \
