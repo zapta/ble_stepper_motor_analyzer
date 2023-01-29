@@ -58,7 +58,7 @@ class ProbeState:
         direction = "Fwd"
         if self.is_reversed_direction:
             direction = "Bck"
-        # 'energiized' related information is not reliable with noisy 
+        # 'energized' related information is not reliable with noisy 
         # current sensors so not including it here.
         return f"TS:{self.timestamp_secs:9.3f}, Steps:{self.steps:8.2f}," \
             f" A:{self.amps_a:5.2f}, B:{self.amps_b:5.2f}, abs:{self.amps_abs:4.2f}" \
