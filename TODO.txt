@@ -1,10 +1,12 @@
+Why device 278E is not visible to Windows?
 
-
-[Firmware] Sanity check the traffic in a BLE sniffer.
-
+Sanity check the traffic in a Nordic BLE sniffer.
 
 Write documentation.
 
+Add releases for mac and linux
+
+Use github workflows to automate relase creation
 
 ---------
 

@@ -8,7 +8,7 @@
 
 namespace util {
 
-static constexpr auto TAG = "analyzer";
+static constexpr auto TAG = "util";
 
 static char text_buffer[600];
 
