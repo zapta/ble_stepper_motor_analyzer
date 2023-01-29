@@ -1,0 +1,374 @@
+nRF Sniffer for Bluetooth LE packet format
+******************************************
+
+Packet Coding
+=============
+SLIP_START     0xAB
+SLIP_END       0xBC
+SLIP_ESC       0xCD
+SLIP_ESC_START 0xAC
+SLIP_ESC_END   0xBD
+SLIP_ESC_ESC   0xCE
+
+SLIP ENCODING PROCEDURE
+Add a SLIP_START to encoded packet
+For each byte in unencoded packet, do the following:
+ - If the byte is not equal to SLIP_START, SLIP_END, or SLIP_ESC, add it to encoded packet.
+ - Otherwise, replace it with a SLIP_ESC followed by the corresponding escaped character.
+Finally: add a SLIP_END to encoded packet
+
+BAUD RATE SWITCHING PROCEDURE (EXPERIMENTAL)
+    Note: this feature is experimental and is currently only supported by the sniffer firmware.
+Host sends SWITCH_BAUD_RATE_REQ with proposed baud rate. Supported rates: 460800, 1000000, 2000000
+Sniffer responds (SWITCH_BAUD_RATE_RESP) with either the same baudrate or 0x00000000 which indicates that the requested baudrate is not supported
+If the sniffer responds with the same baud rate, baud rate is considered changed, and both parties will configure hardware.
+    Note: in the current implementation, the sniffer will switch rates immediately after sending the SWITCH_BAUD_RATE_RESP
+If the sniffer responds with all-zeroes, the host may retry with another baud rate.
+
+
+Packet Format
+=============
+    +--------+--------+--------+--------+--------+--------+
+    | BoardID                               Size: 1 byte  |
+    +--------+--------+--------+--------+--------+--------+
+    | Header                                Size: 6 bytes |
+    +--------+--------+--------+--------+--------+--------+
+    | Data                                  Size: N bytes |
+    +--------+--------+--------+--------+--------+--------+
+
+Packet Header
+=============
+
+    Header version 0 (legacy):              Size: 6 bytes
+    +--------+--------+--------+--------+--------+--------+
+    | Packet ID                             Size: 1 byte  |
+    +--------+--------+--------+--------+--------+--------+
+    | Packet counter (little endian)        Size: 2 bytes |
+    +--------+--------+--------+--------+--------+--------+
+    | Unused                                Size: 2 bytes |
+    +--------+--------+--------+--------+--------+--------+
+    | Payload length                        Size: 1 byte  |
+    +--------+--------+--------+--------+--------+--------+
+
+    Header version 1:                       Size: 6 bytes
+    +--------+--------+--------+--------+--------+--------+
+    | Header length                         Size: 1 byte  |
+    +--------+--------+--------+--------+--------+--------+
+    | Payload length                        Size: 1 byte  |
+    +--------+--------+--------+--------+--------+--------+
+    | Protocol version                      Size: 1 byte  |
+    +--------+--------+--------+--------+--------+--------+
+    | Packet counter (little endian)        Size: 2 bytes |
+    +--------+--------+--------+--------+--------+--------+
+    | Packet ID                             Size: 1 byte  |
+    +--------+--------+--------+--------+--------+--------+
+
+    Header version >=2:                     Size: 6 bytes
+    +--------+--------+--------+--------+--------+--------+
+    | Payload length (little endian)        Size: 2 bytes |
+    +--------+--------+--------+--------+--------+--------+
+    | Protocol version                      Size: 1 byte  |
+    +--------+--------+--------+--------+--------+--------+
+    | Packet counter (little endian)        Size: 2 bytes |
+    +--------+--------+--------+--------+--------+--------+
+    | Packet ID                             Size: 1 byte  |
+    +--------+--------+--------+--------+--------+--------+
+
+Packet ID
+=========
+
+   0x00 = REQ_FOLLOW
+          Host tells the Sniffer to scan for Advertising from a specific
+          address and follow all communication it has with other devices.
+
+   0x01 = EVENT_FOLLOW
+          Sniffer tells the Host that it has entered the FOLLOW state.
+
+   0x02 = EVENT_PACKET_ADVERTISING
+          Sniffer tells the Host that it has received an advertising physical
+          channel PDU.
+
+   0x05 = EVENT_CONNECT
+          Sniffer tells the Host that someone has connected to the unit we
+          are following.
+
+   0x06 = EVENT_PACKET_DATA
+   Protocol version < 3:
+          Sniffer tells the host that it has received a packet on any physical
+          channel.
+          Access address == 0x8e89bed6 Advertising physical channel PDU
+          Access address != 0x8e89bed6 Data physical channel PDU
+   Protocol version 3:
+          Sniffer tells the Host that it has received a data physical
+          channel PDU.
+
+   0x07 = REQ_SCAN_CONT
+          Host tells the Sniffer to scan continuously for any advertising
+          physical channel PDUs and send all packets received.
+
+   0x09 = EVENT_DISCONNECT
+          Sniffer tells the Host that the connected address we were following
+          has received a disconnect packet.
+
+   0x0C = SET_TEMPORARY_KEY
+          Specify a temporary key (TK) to use on encryption.
+          Only used for Legacy OOB and Legacy passkey pairing.
+
+   0x0D = PING_REQ
+          Host request ping packet from sniffer.
+
+   0x0E = PING_RESP
+          Sniffer sends ping packet to Host.
+
+   0x13 = SWITCH_BAUD_RATE_REQ
+          Host request the sniffer to switch to a given baud rate.
+
+   0x14 = SWITCH_BAUD_RATE_RESP
+          Sniffer response to switching the baud rate.
+          Either an acknowledgement for the requested baud rate or an "invalid baud rate" error.
+
+   0x17 = SET_ADV_CHANNEL_HOP_SEQ
+          Host tells the Sniffer which order to cycle through the channels
+          when following an advertiser.
+
+   0x18 = SET_DIFFIE_HELLMAN_PRIVATE_KEY
+          Host sends the sniffer a diffie-hellman private key.
+          Will be used to decrypt connections using LE Secure Connections pairing.
+
+   0x19 = SET_LEGACY_LONG_TERM_KEY
+          Host sends the sniffer a Legacy Long Term Key (LTK).
+          Will be used to decrypt bonded connections using Legacy pairing.
+
+   0x1A = SET_SC_LONG_TERM_KEY
+          Host sends the sniffer an LE Secure Connections Long Term Key (LTK).
+          Will be used to decrypt bonded connections using LE Secure Connections pairing.
+
+   0x1B = REQ_VERSION
+          Host request the sniffer version.
+
+   0x1C = RESP_VERSION
+          Sniffer sends Host the sniffer version.
+
+   0x1D = REQ_TIMESTAMP
+          Host request the current sniffer timestamp.
+
+   0x1E = RESP_TIMESTAMP
+          Sniffers sends host the current timestamp.
+
+   0x1f = SET_IDENTITY_RESOLVING_KEY
+          Host sends the sniffer an Identity Resolving Key (IRK).
+
+   0xFE = GO_IDLE
+          Host tell the Sniffer to stop sending UART traffic and listen for
+          new commands.
+
+Payloads
+========
+
+    Protocol version < 3:
+    EVENT_PACKET             (ID 0x06)
+
+    Protocol version 3:
+    EVENT_PACKET_ADVERTISING (ID 0x02)
+    EVENT_PACKET_DATA        (ID 0x06)
+    +--------+--------+--------+--------+--------+--------+
+    | Length of Payload Metadata            Size: 1 byte  |
+    +--------+--------+--------+--------+--------+--------+
+    | Flags                                 Size: 1 byte  |
+    +--------+--------+--------+--------+--------+--------+
+    | Channel Index                         Size: 1 byte  |
+    +--------+--------+--------+--------+--------+--------+
+    | RSSISample (dBm, negative)            Size: 1 byte  |
+    +--------+--------+--------+--------+--------+--------+
+    | Event Counter (little endian)         Size: 2 bytes |
+    +--------+--------+--------+--------+--------+--------+
+    | Firmware Timestamp (little endian)    Size: 4 bytes |
+    |  Protocol version <3: Delta time (us end to start)  |
+    |  Protocol version  3: Timestamp (us start of packet)|
+    +--------+--------+--------+--------+--------+--------+
+    | Bluetooth Low Energy Link Layer Packet              |
+    |   Uncoded PHY: excluding preamble                   |
+    |   Coded PHY:   excluding preamble, TERM1 and TERM2  |
+    |                                                     |
+    | Note: Padding byte is added by radio (S1) and is    |
+    |       not received on air. It should be removed     |
+    |       after reception on UART before sending to     |
+    |       Wireshark / PCAP file                         |
+    |                                                     |
+    +--------+--------+--------+--------+--------+--------+
+
+
+    Flags EVENT_PACKET_ADVERTISING (0x02)
+        0000000x = CRC       (0 = Incorrect, 1 = OK)
+        000000x0 = RFU
+        00000x00 = RFU
+        00000xx0 = AUX_TYPE  (channel < 37: 0 = AUX_ADV_IND, 1 = AUX_CHAIN_IND,
+                                            2 = AUX_SYNC_IND, 3 = AUX_SCAN_RSP)
+        0000x000 = Resolved  (0 = Not Resolved, 1 = Resolved)
+        0xxx0000 = PHY       (0 = 1M, 1 = 2M, 2 = Coded, rest unused)
+        x0000000 = RFU
+
+    Flags EVENT_PACKET_DATA (0x06)
+        0000000x = CRC       (0 = Incorrect, 1 = OK)
+        000000x0 = Direction (0 = Slave -> Master, 1 = Master -> Slave)
+        00000x00 = Encrypted (0 = No, 1 = Yes)
+        0000x000 = MIC       (0 = Incorrect, 1 = OK)
+        0xxx0000 = PHY       (0 = 1M, 1 = 2M, 2 = Coded, rest unused)
+        x0000000 = RFU
+
+    Channel Index:
+        The channel index being used.
+
+    RSSIsample:
+        RSSI sample raw value. The value of this register is read as a
+        positive value while the actual received signal strength is a
+        negative value. Actual received signal strength is therefore
+        as follows: rssi = -RSSISAMPLE dBm
+
+    Delta time:
+        This is the time in microseconds from the end of the previous received
+        packet to the beginning of this packet.
+
+    Firmware timestamp:
+        Timestamp of the start of the received packet captured by the firmware
+        timer with microsecond resolution.
+
+    Bluetooth Low Energy Link Layer Packet (LE Uncoded PHY)
+    +--------+--------+--------+--------+--------+--------+
+    | Access Address (little endian)        Size: 4 byte  |
+    +--------+--------+--------+--------+--------+--------+
+    | Header                                Size: 1 byte  |
+    +--------+--------+--------+--------+--------+--------+
+    | Length                                Size: 1 byte  |
+    +--------+--------+--------+--------+--------+--------+
+    | Padding (S1)                          Size: 1 byte  |
+    +--------+--------+--------+--------+--------+--------+
+    | Payload                               Size: N bytes |
+    +--------+--------+--------+--------+--------+--------+
+    | CRC (little endian)                   Size: 3 bytes |
+    +--------+--------+--------+--------+--------+--------+
+
+    Bluetooth Low Energy Link Layer Packet (LE Coded PHY)
+    +--------+--------+--------+--------+--------+--------+
+    | Access Address (little endian)        Size: 4 byte  |
+    +--------+--------+--------+--------+--------+--------+
+    | Coding Indicator                      Size: 1 byte  |
+    +--------+--------+--------+--------+--------+--------+
+    | Header                                Size: 1 byte  |
+    +--------+--------+--------+--------+--------+--------+
+    | Length                                Size: 1 byte  |
+    +--------+--------+--------+--------+--------+--------+
+    | Padding (S1)                          Size: 1 byte  |
+    +--------+--------+--------+--------+--------+--------+
+    | Payload                               Size: N bytes |
+    +--------+--------+--------+--------+--------+--------+
+    | CRC (little endian)                   Size: 3 bytes |
+    +--------+--------+--------+--------+--------+--------+
+
+
+    REQ_FOLLOW
+    +--------+--------+--------+--------+--------+--------+
+    | LE Address                            Size: 6 bytes |
+    +--------+--------+--------+--------+--------+--------+
+    | LE Address Type                       Size: 1 byte  |
+    +--------+--------+--------+--------+--------+--------+
+    | Follow Options                        Size: N bytes |
+    +--------+--------+--------+--------+--------+--------+
+
+    Follow Options:
+        0000000x = Follow advertisements only.
+        000000x0 = Follow legacy advertisements only.
+        00000x00 = Follow on LE Coded PHY.
+
+
+    REQ_SCAN_CONT
+    +--------+--------+--------+--------+--------+--------+
+    | Scan options                          Size: N bytes |
+    +--------+--------+--------+--------+--------+--------+
+
+    Scan Options:
+        0000000x = Find Scan Response Data.
+        000000x0 = Find Auxiliary Advertising Data.
+        00000x00 = Scan on LE Coded PHY.
+
+
+    SET_TEMPORARY_KEY
+    +--------+--------+--------+--------+--------+--------+
+    | Temporary Key (big endian)           Size: 16 bytes |
+    +--------+--------+--------+--------+--------+--------+
+
+
+    PING_RESP
+    Sniffer version < 4 (Use VERSION_REQ otherwise)
+    +--------+--------+--------+--------+--------+--------+
+	| Revision (little endian)              Size: 2 bytes |
+	+--------+--------+--------+--------+--------+--------+
+
+    Revision: 1116: version: 3.1.0
+              1115:          3.0.0
+              1114:          2.0.0
+              1113:          2.0.0-beta-3
+              1112:          2.0.0-beta-1
+             <1112:          SVN Revision
+
+
+    SWITCH_BAUD_RATE_REQ
+    +--------+--------+--------+--------+--------+--------+
+    | Baud Rate (little endian)             Size: 4 bytes |
+    +--------+--------+--------+--------+--------+--------+
+
+
+    SWITCH_BAUD_RATE_RESP
+    +--------+--------+--------+--------+--------+--------+
+    | Baud Rate (little endian)             Size: 4 bytes |
+    +--------+--------+--------+--------+--------+--------+
+
+    Baud Rate 0: Invalid baud rate (error)
+
+
+    SET_ADV_CHANNEL_HOP_SEQ
+    +--------+--------+--------+--------+--------+--------+
+    | Number of Channels                     Size: 1 byte |
+    +--------+--------+--------+--------+--------+--------+
+    | Hop sequence 0                         Size: 1 byte |
+    +--------+--------+--------+--------+--------+--------+
+    | Hop sequence 1                         Size: 1 byte |
+    +--------+--------+--------+--------+--------+--------+
+    | Hop sequence 2                         Size: 1 byte |
+    +--------+--------+--------+--------+--------+--------+
+
+
+    SET_DIFFIE_HELLMAN_PRIVATE_KEY
+    +--------+--------+--------+--------+--------+--------+
+    | Temporary Key (big endian)           Size: 16 bytes |
+    +--------+--------+--------+--------+--------+--------+
+
+
+    SET_LEGACY_LONG_TERM_KEY
+    +--------+--------+--------+--------+--------+--------+
+    | Legacy Long Term Key (big endian)    Size: 16 bytes |
+    +--------+--------+--------+--------+--------+--------+
+
+
+    SET_SC_LONG_TERM_KEY
+    +--------+--------+--------+--------+--------+--------+
+    | LE SC Long Term Key (big endian)     Size: 16 bytes |
+    +--------+--------+--------+--------+--------+--------+
+
+
+    RESP_VERSION
+    +--------+--------+--------+--------+--------+--------+
+    | Sniffer firmware version (string)     Size: N bytes |
+    +--------+--------+--------+--------+--------+--------+
+
+
+    RESP_TIMESTAMP
+    +--------+--------+--------+--------+--------+--------+
+    | Current Timestamp (little endian)     Size: 4 bytes |
+    +--------+--------+--------+--------+--------+--------+
+
+
+    SET_IDENTITY_RESOLVING_KEY
+    +--------+--------+--------+--------+--------+--------+
+    | Identity Resolving Key (big endian)  Size: 16 bytes |
+    +--------+--------+--------+--------+--------+--------+
