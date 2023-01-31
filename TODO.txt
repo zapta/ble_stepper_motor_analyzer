@@ -1,6 +1,6 @@
-Why device 278E is not visible to Windows?
-
 Sanity check the traffic in a Nordic BLE sniffer.
+
+Fix or a workaround for the SCAN_RSP issue.
 
 Write documentation.
 
