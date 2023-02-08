@@ -1,8 +1,6 @@
 
 Test power supply circuit.
 
-Cleanup analyzer.py flags help (run scanner --help)
-
 Write documentation.
 
 Add bin releases for mac and linux
