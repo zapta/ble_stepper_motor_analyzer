@@ -1,16 +1,23 @@
-Sanity check the traffic in a Nordic BLE sniffer.
 
-Fix or a workaround for the SCAN_RSP issue.
+Test power supply circuit.
+
+Cleanup analyzer.py flags help (run scanner --help)
 
 Write documentation.
 
-Add releases for mac and linux
+Add bin releases for mac and linux
 
-Use github workflows to automate relase creation
+Update windows bin release.
+
+Kicad - replace solder jumper with 0ohm resistor.
+
+Create clean releases (hardware, firmware, app)
+
+Create public repository
 
 ---------
 
-[Firmware] Measure CPU idle percentage.
+[Use github workflows to automate relase creation
 
 
 
