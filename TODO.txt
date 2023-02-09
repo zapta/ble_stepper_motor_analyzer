@@ -1,6 +1,8 @@
 
 Test power supply circuit.
 
+In app, change distance and speed to value and rate.
+
 Write documentation.
 
 Add bin releases for mac and linux
