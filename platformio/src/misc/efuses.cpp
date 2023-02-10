@@ -49,7 +49,9 @@ void dump_esp32_efuses() {
 
     // Dump
     const int num_hex_digits = (bit_count + 3) / 4;
-    ESP_LOGI(TAG, "%-16s (%d bits) %0*llx", item.name, bit_count,
+    // Note the dynamic field width '*' which is controlled by 
+    // num_hex_digits.
+    ESP_LOGI(TAG, "%-21s (%d bits) %0*llx", item.name, bit_count,
         num_hex_digits, value);
   }
 }
