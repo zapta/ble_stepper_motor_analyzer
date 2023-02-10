@@ -14,6 +14,7 @@
 #include "io/io.h"
 #include "misc/elapsed.h"
 #include "misc/util.h"
+#include "misc/efuses.h"
 #include "settings/controls.h"
 #include "settings/nvs_config.h"
 #include "tools/enum_code_gen.h"
@@ -68,6 +69,9 @@ static void setup() {
   // Set initial LEDs values.
   io::LED1.clr();
   io::LED2.clr();
+
+  // For diagnostics.
+  efuses::dump_esp32_efuses();
 
   // Init nvs. Used also by ble_host.
   util::nvs_init();

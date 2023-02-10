@@ -9,8 +9,6 @@ Add bin releases for mac and linux
 
 Update windows bin release.
 
-Kicad - replace solder jumper with 0ohm resistor.
-
 Create clean releases (hardware, firmware, app)
 
 Create public repository
