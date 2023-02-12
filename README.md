@@ -1,6 +1,7 @@
 # BLE STEPPER MOTOR ANALYZER
 
 TODO: Add a picture of the device
+
 TODO: Add a screen shot of the desktop app
 
 
@@ -97,20 +98,20 @@ A: Of course. Simply install a a device for each stepper motor you want to monit
 
 &nbsp;
 
-Q: I am using multiple devices, how can I select which one I connect to?
+Q: I am using multiple devices, how can I select which one I connect to? <br>
 A: Each devices has a factory set unique address that looks like <i>0C:8B:95:F2:B4:36</i>. When you run the analyzer
 app, you can specify the address of the device you want to monitor by adding a command line flag such as <i>-d 0C:8B:95:F2:B4:36</i>
 
-Q: How far can my computer be away from my 3D printer?
+Q: How far can my computer be away from my 3D printer? <br>
 A: Bluetooth BLE radio communication is intended for short distances of a few yards. If the radio link will not be reliable, the analyzer program will detect data gaps and will report it in its console log.
 
-Q: This system can be a great idea for a Crowd Compute campaign. Can I do that?
+Q: This system can be a great idea for a Crowd Compute campaign. Can I do that? <br>
 A: Of course. The design is in public domain and commercial usages are encouraged. Attribution and sharing any changes you make are not required. 
 
-Q: Do the designer fo this product also sell assembled boards?
+Q: Do the designer fo this product also sell assembled boards? <br>
 A: We may make a limited numbers of boards available from time to time, but believe that others can do a better job mass producing it.
 
-Q: Can the external antenna be eliminated to simplify installation and reduce cost?
+Q: Can the external antenna be eliminated to simplify installation and reduce cost? <br>
 A: Yes. We believe that the ESP module ESP32-WROOM-32D-N4 which uses an internal antenna should be a drop-in replacement though we did not tested it.
 
 
