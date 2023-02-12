@@ -2,32 +2,40 @@
 
 TODO: Add a picture of the device
 
-TODO: Add a screen shot of the desktop app
 
+<p align="center">
+  <img src="./www/app_screenshot.jpg"  />
+</p>
 
 ## Description
 
 The BLE Stepper Motor Analyzer ('the analyzer') is a low-cost, open source system that analyzes stepper motor signals and display the the data in real time on a computer screen. The system includes two components.
 
 1. The Stepper Motor Probe ('the device'). This is a small electronic board that monitors the currents through the stepper motor wires, extracts information such as steps, and speed, and transmits the data via Bluetooth BLE.
+
 2. The Analyzer App ('the app'). This is a Python program that runs on a Windows, MaC OSX, or Linux PC, and displays the stepper information in real time in a graphical view.
 
 <p align="center">
  System Block diagram<br><br>
-  <img src="./www/block_diagram.svg" style="width: 400px;" />
+  <img src="./www/system_block_diagram.svg" style="width: 400px;" />
 </p>
 
-## Highlights
+## Product Highlights
 * The device is passive and doesn't not interfere with the operation of the stepper, regardless if the device is in use or turned off.
-* Embedding the device in a 3D printer is easy. It is small, operates on 7-30 VDC, 1W, and uses a small external sticker antenna.
+* Embedding the device in a 3D printer is simple. It has a small footprint, operates on 7-30 VDC, and uses a small external sticker antenna.
 * The entire design is in the public domain and can be used commercially with no attribution or open source requirements.
-* The electronic design is based on common components such that the device can be ordered fully assembled from JLCPCB SMT service (about $12/unit in quantities of 30, as of Feb 2023)
-* The device firmware can be updated by users using a standard USB cable, no other tools required.
-* Each device has its own unique address such that multiple devices can be used in parallel to monitor multiple stepper motors.
-* An open Python API allows to write custom monitoring apps.
+* The electronic board uses common and low cost components and can be ordered fully assembled from JLCPCB or similar services.
+* The device firmware can be updated by users using a standard USB cable, no other tools are required.
+* Each device has its own factory-set unique address such that multiple devices can be used independently to monitor multiple stepper motors.
+* Open BLE and Python API allows to write custom monitoring apps, including on mobile devices.
 
 ## How does it work?
-The device contains two galvanic isolated current sensors that measure the current through the two stepper motor coils 40,000 times a second, a firmware that analyze the current readings and tracks information such as step count, and speed, and a Bluetooth BLE radio unit which transmits this information to the app which displays it with visual graphs.  
+The device contains two galvanic isolated current sensors that sense the currents through each of the two stepper coils. These two values are measured 40,000 times a second and a firmware analyzes the signals and tracks information such as step count, and motion speed speed. A Bluetooth BLE radio is then transmits that data to the app once it connects to it, and the app displays the data in a graphical form.
+
+ <p align="center">
+ Device Block diagram<br>
+  <img src="./www/device_block_diagram.svg" style="width: 400px;" />
+</p>
 
 
 
@@ -65,6 +73,8 @@ Open source license | Creative Commons CC0.
 4. Connect an antenna and run the analyzer app to verify that it can connect to the device.
 5. The device is not ready for installation in the 3D printer.
 
+> **_NOTE:_**  Resistor R16 acts as a jumper and allow the 3.3V supply from the rest of the electronics. This is useful when bringing up boards or diagnosing faulty boards. 
+
 ## Installing the device in your 3D printer
 
 1. 3D print a device carrier (STL models provided here) and attach the device to the carrier using two pieces of 3M VHB 1mm sticky tape or similar.
@@ -78,21 +88,113 @@ Open source license | Creative Commons CC0.
 &nbsp;
 
 <p align="center">
-  Wiring Diagram<br><br>
-  <img src="./www/wiring_diagram.png" />
+  Wiring Diagram<br>
+  <img src="./www/wiring_diagram.svg" style="height: 400px;"/>
 </p>
 
-## Operating the Analyzer app.
+## Using the Analyzer app.
+
+### Running the app using a provided binary
+To simplify the app installation, we prepare sometimes prepare stand alone binary files that includes the app and everything it needs, including the python system and module perquisite. These binary can be found under the 'release' directory.
+
+> **_NOTE:_**  The single binary files are created using the standard Pyinstaller tool. 
+
+### Running the app using the Python code
+If a single app binary is not available for your system, you can run the Python code directly. It is stored under the 'app' directory to run it on your system follow these steps:
+
+1. Install Python on your computer. Prefer the latest stable version.
+2. Install necessary python modules by running within the 'app' directory:
+```
+pip install -r requirements.txt
+```
+3. Make sure that your analyzer device is power on and start the app using the command
+
+```
+python analyzer.py
+```
+4. The app will start, try to find the device, and if found, will connect to it and display it's graphical screen. On the device side, the heatbeat LED will blink faster to indicate that a connection is active.
+
+> **_NOTE:_**  When the device is connected to an app, it will not be visible to other apps that start. The device will be available to a new connection only after the previous connection terminated and its heatbeat LED blinks slowly again once a second.
+
+### Understanding the app screen
+
+<p align="center">
+  <img src="./www/annotated_app_screenshot.jpg"  />
+</p>
+
+The apps screen contains the following graphs
+
+[A]. A scrolling graph of distance in steps. Updated 50 times a second.
+[B]. A scrolling graph of speed in steps/sec. Updated 50 times a second.
+[C]. A scrolling graph stepper absolute current in Amps. Updated 50 times a second. The absolute current of a stepper is sqrt(A^2 + B^2) where A and B are the momentary currents of coils A, B respectively.
+[D] An histogram of current vs speed, that shows how well the driver is able to maintain the stepper current at various speeds.
+[E] An histogram that shows the time spent in each speed range.
+[F] An histogram that shows the distance done in each speed range.
+[G] A phase graph that show the cleanliness of the sine/cosine signals the driver sends to the motor. 
+[H] An oscilloscope like graph that shows current samples from the two coils. During stepper movement, they should look like sine/cosine waves. 
+
+### App buttons
+The app contain the button listed below. Note that the buttons affect the app only and do not interfere with the operation of the motor.
+
+**Toggle Dir** - Click to change the direction of step counting.
+**Reset Data** - Click to clear the histograms and step count.
+**Time Scale X** - Click to toggle through time ranges of the Phase and oscilloscope graphs [G] and [H]. Adjust it to have at least one full cycle.
+**Pause*** - Click to pause/resume the display. Useful to capture and examine data.
+
+### Hidden app functionality
+The app is implemented using pyqggraph and as such provides additional functionality that is available by right-clicking the mouse over the graphs. It can be used for example to export data, zoom the graphs in and out, and so on.
+
+### App command line flags
+
+<i>--scan</i> instead of connecting to the device, just look for available BLE devices and exit.
+
+```
+python analyzer.py --scan
+```
+
+
+<i>--device</i> do not look for devices to connect to and connect directly  to the device with the given address. 
+```
+python analyzer.py --device ???
+```
+
 
 ## Flashing a firmware update
 
 TBD (using the esptool or ESP Web Tools, and the firmware provided here)
 
-## Firmware developement
+## Firmware development
 
-## Analyzer app developement
+This list outlines the steps to set up your own firmware developement environment.
+
+1. Install Visual Studio Code (VSC).
+2. In Visual Studio Code, add the platformio extension.
+3. Clone this git repository on your compute (download, clone, or first fork and then clone).
+4. In VSC, select File | Open Folder and open the 'firmware' directory in this repository.
+5. Connect a device to your computer using a USB cable. This will create a serial port on your compute.
+6. Click on the <i>Upload</i> icon at the bottom of the screen (right arrow icon) and platformio will install all the dependencies, build the project and upload it to your device via the serial port.  
+7. For more information on how to use platformio, check http://platformio.org.
+
+> **_NOTE:_**  For optional hardware debugging (breakpoints, single step, etc), you will need an Espressif ESP-Prog Development Board, and to solder a 10 pins JTAG connector to your analyzer device.
+
+> **_NOTE:_** It's OK to connect a stepper motor to the device while you debug it through a the USB connector since they current sensors are galvanically isolated from the electronic. However, it's safer not to connect at the same time both a USB cable and the Vin connector to avoid potential ground loop between the two.
+
+
+## Analyzer app development
+
+The Analyzer's Python app is stored in the 'app' directory. It's available as source code so can be modified like any other Python program.  The app is based on Bleak for BLE functionality and PyQtGraph for the user interface. The list of prerequisite modules is available in requirements.txt and you can install them using the command
+
+```
+pip install -r requirements.txt
+```
 
 ## FAQ
+
+Q: This is an exciting project, can I help?
+
+A: Of course. Course, we are looking forward for contribution of code, documentation and any other technical contribution from the community. For example, a cleanup of this document, or a new app for mobile devices, or anything else you  can think of.
+
+---
 
 Q: I want to monitor multiple motors in my 3D printer. Is it possible?
 
@@ -119,9 +221,9 @@ A: Of course. The design is in public domain and commercial usages are encourage
 
 ---
 
-Q: Do the designer fo this product also sell assembled boards? 
+Q: Do you sell boards? 
 
-A: We may make a limited numbers of boards available from time to time, but believe that others can do a better job mass producing it.
+A: We may make a limited numbers of boards available from time to time, but believe that others can do a better job mass producing it and making it available to the community.
 
 ---
 
