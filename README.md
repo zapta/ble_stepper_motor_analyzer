@@ -11,10 +11,10 @@ TODO: Add a screen shot of the desktop app
 
 ## Description
 
-The ESP32 Stepper Motor Analyzer ('the analyzer') is a low-cost, open source system that allows to analyze the behavior of stepper motor in systems such as 3D printers, and is made of two parts:
+The BLE Stepper Motor Analyzer ('the analyzer') is a low-cost, open source system that analyzes stepper motor signals and display the the data in real time on a computer screen. The system includes two components.
 
-1. The Stepper Motor Probe ('the device'). This is a small electronic board that monitors the currents through the stepper motor wires, extracts information such as step count, and speed, and transmits them in real time to an app via Bluetooth BLE.
-2. The Analyzer App ('the app'). This is a Python program that runs on a Windows, MaC OSX, or Linux PC, connects via Bluetooth BLE to the device and displays the stepper information in real time in a graphical view.
+1. The Stepper Motor Probe ('the device'). This is a small electronic board that monitors the currents through the stepper motor wires, extracts information such as steps, and speed, and transmits the data via Bluetooth BLE.
+2. The Analyzer App ('the app'). This is a Python program that runs on a Windows, MaC OSX, or Linux PC, and displays the stepper information in real time in a graphical view.
 
 ## Highlights
 * The device is passive and doesn't not interfere with the operation of the stepper, regardless if the device is in use or turned off.
