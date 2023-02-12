@@ -3,6 +3,11 @@
 TODO: Add a picture of the device
 TODO: Add a screen shot of the desktop app
 
+
+<video width="320" height="240" controls>
+  <source src="./www/app_video.mp4" type="video/mp4">
+</video>
+
 ## Description
 
 The ESP32 Stepper Motor Analyzer ('the analyzer') is a low-cost, open source system that allows to analyze the behavior of stepper motor in systems such as 3D printers, and is made of two parts:
@@ -10,7 +15,7 @@ The ESP32 Stepper Motor Analyzer ('the analyzer') is a low-cost, open source sys
 1. The Stepper Motor Probe ('the device'). This is a small electronic board that monitors the currents through the stepper motor wires, extracts information such as step count, and speed, and transmits them in real time to an app via Bluetooth BLE.
 2. The Analyzer App ('the app'). This is a Python program that runs on a Windows, MaC OSX, or Linux PC, connects via Bluetooth BLE to the device and displays the stepper information in real time in a graphical view.
 
-## Highlight
+## Highlights
 * The device is passive and doesn't not interfere with the operation of the stepper, regardless if the device is in use or turned off.
 * Embedding the device in a 3D printer is easy. It is small, operates on 7-30 VDC, 1W, and uses a small external sticker antenna.
 * The entire design is in the public domain and can be used commercially with no attribution or open source requirements.
@@ -49,23 +54,67 @@ Electronic design software | Kicad.
 Mechanical design software | Onshape.
 Open source license | Creative Commons CC0.
 
-## Building your own
+## Building your own device
 
-1. Order assembled boards (recommended) or just the PCBs and assembled the components yourself. Production files for JLCPCB PCB and SMT services are included.
-2. Connect to a compute via a USB cable and flash the firmware.
-3. The the stepper motor not connected and the devices powered, press the button for 5 second until the LED will flash three time. This calibrate and store the zero level of the sensors.
-4. Run the analyzer app and verify that it connects to the device and displays its data.
+1. Order assembled boards (recommended), or just the just bare PCB and assembled the components yourself. Production files for JLCPCB PCB and SMT service are included here.
+2. Connect the device to a computer via a USB cable and notice that one LED turn on solid to indicate 3.3V power.
+3. Flash the firmware to the device and notice that the second LED blinks every second or so, This indicates that the firmware is running and that the device is not connected to the app.
+3. Calibrate the zero level of the current sensor by pressing on the switch a few seconds until the third LED will blink 3 times, indicating that the zero calibration was saved.
+4. Connect an antenna and run the analyzer app to verify that it can connect to the device.
+5. The device is not ready for installation in the 3D printer.
 
-## Installing the device in a 3D printer
+## Installing the device in your 3D printer
 
-1. 3D print a device carrier (STL models provided) and attach the device to the carrier using two pieces of 3M VHB tape or similar.
-2. Attach the device carrier to the 3D printer using 3M VHB tape.
-3. Connect the external antenna and stick it to the outside of the 3D printer. 
-4. Disconnect the 4 wires of the stepper motor through the two connectors on the board. The two connectors implement a pass through path through the current sensors.
-5. Connect the power input of the device to a power source (7-30VDC). Pay attention to the polarity though reverse polarity should not damage the device. 
-6. Turn on the 3D printer and notice that device has one LED solid on and another blinks every second or so. You can now use the 3D normally, and connect and monitor the stepper from the app, any time you want.
+1. 3D print a device carrier (STL models provided here) and attach the device to the carrier using two pieces of 3M VHB 1mm sticky tape or similar.
+2. Attach the device carrier to the 3D printer using and additional piece of 3M VHB tape.
+3. Connect the external antenna connector and attach the antenna to the outside of the printer.
+4. Connect the driver and motor wires per the wiring diagram below. The two connectors are pass-through such that the signals from the driver are connected internally to their respective motor signals. (It's OK to swap between the two stepper motor connectors, the device will work just the same).
+5. Connect the power input of the device to a power source (7-30VDC). Pay attention to the polarity.  (The device contains reverse polarity protection). 
+6. Leave the USB connector unconnected. It is not used in normal operation of the device and should be used for firmware flashing only.
+7. Your device installation is complete. You can use your 3D printer just the same, regardless if you use the analyzer app.
+
+&nbsp;
+
+<p align="center">
+  Wiring Diagram<br><br>
+  <img src="./www/wiring_diagram.png" />
+</p>
 
 ## Operating the Analyzer app.
+
+## Flashing a firmware update
+
+TBD (using the esptool or ESP Web Tools, and the firmware provided here)
+
+## Firmware developement
+
+## Analyzer app developement
+
+## FAQ
+
+Q: I want to monitor multiple motors in my 3D printer. Can I do it?
+A: Of course. Simply install a a device for each stepper motor you want to monitor.
+
+&nbsp;
+
+Q: I am using multiple devices, how can I select which one I connect to?
+A: Each devices has a factory set unique address that looks like <i>0C:8B:95:F2:B4:36</i>. When you run the analyzer
+app, you can specify the address of the device you want to monitor by adding a command line flag such as <i>-d 0C:8B:95:F2:B4:36</i>
+
+Q: How far can my computer be away from my 3D printer?
+A: Bluetooth BLE radio communication is intended for short distances of a few yards. If the radio link will not be reliable, the analyzer program will detect data gaps and will report it in its console log.
+
+Q: This system can be a great idea for a Crowd Compute campaign. Can I do that?
+A: Of course. The design is in public domain and commercial usages are encouraged. Attribution and sharing any changes you make are not required. 
+
+Q: Do the designer fo this product also sell assembled boards?
+A: We may make a limited numbers of boards available from time to time, but believe that others can do a better job mass producing it.
+
+Q: Can the external antenna be eliminated to simplify installation and reduce cost?
+A: Yes. We believe that the ESP module ESP32-WROOM-32D-N4 which uses an internal antenna should be a drop-in replacement though we did not tested it.
+
+
+
 
 
 
