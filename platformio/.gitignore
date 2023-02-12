@@ -3,10 +3,5 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
-sdkconfig.release
-sdkconfig.release.old
-sdkconfig.debug
-sdkconfig.debug.old
-sdkconfig.test
-sdkconfig.test.old
+sdkconfig.esp32dev.old
 

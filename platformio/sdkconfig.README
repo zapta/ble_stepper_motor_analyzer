@@ -1,5 +1,0 @@
-The authorative configuration is in sdkconfig.defaults.
-
-sdkconfig.release and sdkconfig.debug are created automatically at 
-build time from sdkconfig.defaults. They are listed in .gitignore
-and are not checked in into github.
