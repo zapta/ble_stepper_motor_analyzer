@@ -5,16 +5,17 @@ TODO: Add a picture of the device
 TODO: Add a screen shot of the desktop app
 
 
-<video width="320" height="240" controls>
-  <source src="./www/app_video.mp4" type="video/mp4">
-</video>
-
 ## Description
 
 The BLE Stepper Motor Analyzer ('the analyzer') is a low-cost, open source system that analyzes stepper motor signals and display the the data in real time on a computer screen. The system includes two components.
 
 1. The Stepper Motor Probe ('the device'). This is a small electronic board that monitors the currents through the stepper motor wires, extracts information such as steps, and speed, and transmits the data via Bluetooth BLE.
 2. The Analyzer App ('the app'). This is a Python program that runs on a Windows, MaC OSX, or Linux PC, and displays the stepper information in real time in a graphical view.
+
+<p align="center">
+ System Block diagram<br><br>
+  <img src="./www/block_diagram.svg" style="width: 400px;" />
+</p>
 
 ## Highlights
 * The device is passive and doesn't not interfere with the operation of the stepper, regardless if the device is in use or turned off.
@@ -93,26 +94,42 @@ TBD (using the esptool or ESP Web Tools, and the firmware provided here)
 
 ## FAQ
 
-Q: I want to monitor multiple motors in my 3D printer. Can I do it?
+Q: I want to monitor multiple motors in my 3D printer. Is it possible?
+
 A: Of course. Simply install a a device for each stepper motor you want to monitor.
 
-&nbsp;
+---
 
-Q: I am using multiple devices, how can I select which one I connect to? <br>
+Q: I am using multiple devices, how can I select which one I connect to? 
+
 A: Each devices has a factory set unique address that looks like <i>0C:8B:95:F2:B4:36</i>. When you run the analyzer
 app, you can specify the address of the device you want to monitor by adding a command line flag such as <i>-d 0C:8B:95:F2:B4:36</i>
 
-Q: How far can my computer be away from my 3D printer? <br>
+---
+
+Q: How far can my computer be away from my 3D printer? 
+
 A: Bluetooth BLE radio communication is intended for short distances of a few yards. If the radio link will not be reliable, the analyzer program will detect data gaps and will report it in its console log.
 
-Q: This system can be a great idea for a Crowd Compute campaign. Can I do that? <br>
+---
+
+Q: This system can be a great idea for a Crowd Compute campaign. Can I do that? 
+
 A: Of course. The design is in public domain and commercial usages are encouraged. Attribution and sharing any changes you make are not required. 
 
-Q: Do the designer fo this product also sell assembled boards? <br>
+---
+
+Q: Do the designer fo this product also sell assembled boards? 
+
 A: We may make a limited numbers of boards available from time to time, but believe that others can do a better job mass producing it.
 
-Q: Can the external antenna be eliminated to simplify installation and reduce cost? <br>
+---
+
+Q: Can the external antenna be eliminated to simplify installation and reduce cost? 
+
 A: Yes. We believe that the ESP module ESP32-WROOM-32D-N4 which uses an internal antenna should be a drop-in replacement though we did not tested it.
+
+---
 
 
 
