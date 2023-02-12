@@ -1,4 +1,4 @@
-# ESP32 STEPPER MOTOR ANALYZER
+# BLE STEPPER MOTOR ANALYZER
 
 TODO: Add a picture of the device
 TODO: Add a screen shot of the desktop app
