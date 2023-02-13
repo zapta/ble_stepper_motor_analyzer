@@ -10,9 +10,32 @@
   <img src="./www/app_screenshot.jpg"  />
 </p>
 
-&nbsp;
 
 **A short video** of the app is available here https://vimeo.com/798169140
+
+---
+- [BLE STEPPER MOTOR ANALYZER](#ble-stepper-motor-analyzer)
+  - [Description](#description)
+  - [Design Highlights](#design-highlights)
+  - [How does it work?](#how-does-it-work)
+  - [Specification](#specification)
+  - [Installing the device in your 3D printer](#installing-the-device-in-your-3d-printer)
+  - [Using the Analyzer app.](#using-the-analyzer-app)
+    - [Running the app using a provided binary](#running-the-app-using-a-provided-binary)
+    - [Running the app using the Python code](#running-the-app-using-the-python-code)
+    - [Understanding the app screen](#understanding-the-app-screen)
+    - [App buttons](#app-buttons)
+    - [Hidden app functionality](#hidden-app-functionality)
+    - [App command line flags](#app-command-line-flags)
+  - [Flashing a firmware update](#flashing-a-firmware-update)
+  - [Building your own device](#building-your-own-device)
+  - [Antenna selection](#antenna-selection)
+  - [3D Models](#3d-models)
+  - [Firmware development](#firmware-development)
+  - [App development](#app-development)
+  - [FAQ](#faq)
+
+---
 
 ## Description
 
