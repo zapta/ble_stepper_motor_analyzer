@@ -243,6 +243,10 @@ The external antenna needs to satisfy these requirements:
 
 3D Models of the carrier and a cover for shipping are available at https://github.com/zapta/ble_stepper_motor_analyzer/tree/main/3D
 
+<p align="center">
+  <img src="./www/carrier.jpg" style="width: 200px;" />
+</p>
+
 ## Firmware development
 
 This list below outlines the steps to set up your own firmware development environment.
@@ -315,17 +319,3 @@ app, you can specify the address of the device you want to monitor by adding a c
 **A**: Yes. We believe that the ESP module ESP32-WROOM-32D-N4 which uses an internal antenna should be a drop-in replacement though we did not tested it.
 
 ---
-
-
-
-
-
-
-
-
-
-
-
-
-
-
