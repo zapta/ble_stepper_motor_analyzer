@@ -244,6 +244,10 @@ The external antenna needs to satisfy these requirements:
   <img src="./www/sample_antenna.jpg" style="width: 200px;" />
 </p>
 
+## Connectors
+
+* **Stepper Motor Connectors** - KF2510 connector 2.54mm pitch, female, 4 wires.
+* **Vin connector** - Dupont 2.54mm pitch, female, 2 wires. 
 
 ## 3D Models
 
