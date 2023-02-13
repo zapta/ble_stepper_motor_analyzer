@@ -30,6 +30,7 @@
   - [Flashing a firmware update](#flashing-a-firmware-update)
   - [Building your own device](#building-your-own-device)
   - [Antenna selection](#antenna-selection)
+  - [Connectors](#connectors)
   - [3D Models](#3d-models)
   - [Firmware development](#firmware-development)
   - [App development](#app-development)
