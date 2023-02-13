@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  The analyzer's app.
+  The analyzer's app<br>
   <img src="./www/app_screenshot.jpg"  />
 </p>
 
@@ -46,7 +46,7 @@ The BLE Stepper Motor Analyzer ('the analyzer') is a low-cost, open source syste
 2. **The Analyzer App** ('the app'). This is a Python program that runs on a Windows, MaC OSX, or Linux PC, and displays the stepper information in real time in a graphical view.
 
 <p align="center">
- System Block diagram<br><br>
+ System Block diagram<br>
   <img src="./www/system_block_diagram.svg" style="width: 400px;" />
 </p>
 
@@ -236,8 +236,14 @@ The external antenna needs to satisfy these requirements:
 * Having a connector that match the ESP32 WROOM module. The connector has several names including IPEX, U.FL, or MHF1, but it's easier to distinguish it by the wider body.
 
 <p align="center">
-  <img src="./www/connector.jpg" style="width: 200px;" />
+  <img src="./www/connector.jpg" style="width: 180px;" />
 </p>
+
+<p align="center">
+  Inexpensive Aliexpress antennas.<br>
+  <img src="./www/sample_antenna.jpg" style="width: 200px;" />
+</p>
+
 
 ## 3D Models
 
