@@ -2348,7 +2348,7 @@
     (at 17.9578 -38.0863 -90)
     (descr "LED SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC_7351 nominal, (Body size source: http://www.tortai-tech.com/upload/download/2011102023233369053.pdf), generated with kicad-footprint-generator")
     (tags "LED handsolder")
-    (property "LCSC" "C165978")
+    (property "LCSC" "C130722")
     (property "Sheetfile" "stepper_monitor.kicad_sch")
     (property "Sheetname" "")
     (path "/00000000-0000-0000-0000-000063192ea5")
