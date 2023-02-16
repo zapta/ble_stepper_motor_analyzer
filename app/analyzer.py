@@ -11,7 +11,7 @@ import signal
 import re
 import sys
 from tokenize import String
-from turtle import width
+#from turtle import width
 import pyqtgraph as pg
 from numpy import histogram
 from pyqtgraph.Qt import QtWidgets
