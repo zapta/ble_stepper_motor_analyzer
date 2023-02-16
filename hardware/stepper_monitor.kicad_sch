@@ -2986,7 +2986,7 @@
     (effects (font (size 1.27 1.27)) (justify right bottom))
     (uuid de616426-2556-4a0f-aed0-cc4f45b15a43)
   )
-  (text "ESP32 Stepper Motor Analyzer 1.4.1" (at 184.15 173.355 0)
+  (text "ESP32 Stepper Motor Analyzer 1.4.2" (at 184.15 173.355 0)
     (effects (font (size 2 2)) (justify left bottom))
     (uuid f92fb0ae-10f4-4bd5-bb8a-fce3705dc4bc)
   )
@@ -4408,7 +4408,7 @@
   (symbol (lib_id "Connector_Generic:Conn_02x05_Odd_Even") (at 149.86 174.625 0) (unit 1)
     (in_bom yes) (on_board yes)
     (uuid 4aa030a1-7b9f-40c4-b8f1-bb12c1377f35)
-    (property "Reference" "JJ5" (id 0) (at 149.86 165.735 0))
+    (property "Reference" "J5" (id 0) (at 149.86 165.735 0))
     (property "Value" "JTAG" (id 1) (at 154.305 165.735 0))
     (property "Footprint" "stepper_monitor:PinHeader_2x05_P1.27mm_Vertical_SMD" (id 2) (at 149.86 174.625 0)
       (effects (font (size 1.27 1.27)) hide)
@@ -5313,7 +5313,7 @@
       (reference "J4") (unit 1) (value "USB_C_Receptacle_USB2.0") (footprint "stepper_monitor:USB_C_Receptacle_XKB_U262-16XN-4BVC11")
     )
     (path "/4aa030a1-7b9f-40c4-b8f1-bb12c1377f35"
-      (reference "JJ5") (unit 1) (value "JTAG") (footprint "stepper_monitor:PinHeader_2x05_P1.27mm_Vertical_SMD")
+      (reference "J5") (unit 1) (value "JTAG") (footprint "stepper_monitor:PinHeader_2x05_P1.27mm_Vertical_SMD")
     )
     (path "/64c584ec-f1bc-453f-8b60-7c99d996b567"
       (reference "M1") (unit 1) (value "Motor-simple_stepper_motor_analyzer") (footprint "stepper_monitor:Empty")
