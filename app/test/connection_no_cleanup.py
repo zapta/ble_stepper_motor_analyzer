@@ -1,27 +1,10 @@
-# A test program for a bleak connection with atexit cleanup.
+# A test program for a Bleak connection with no atexit cleanup.
 
 import asyncio
 import platform
 import sys
-import atexit
 import time
-import signal
 from bleak import BleakClient, BleakScanner
-import signal
-
-signal.signal(signal.SIGINT, lambda number, frame: sys.exit())
-
-client = None
-event_loop = asyncio.new_event_loop()
-
-def atexit_cleanup():
-    if client and client.is_connected:
-        print(f"At exit: disconnecting device.", flush=True)
-        event_loop.run_until_complete(client.disconnect())
-    else:
-        print(f"At exit: no connection.", flush=True)
-
-atexit.register(atexit_cleanup)
 
 
 # Adapt to your actual device.
@@ -45,5 +28,5 @@ async def test():
     time.sleep(5.0)
     print(f"Test done", flush=True)
 
-# event_loop = asyncio.new_event_loop()
+event_loop = asyncio.new_event_loop()
 event_loop.run_until_complete(test())
