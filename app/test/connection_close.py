@@ -3,7 +3,6 @@
 import asyncio
 import platform
 import sys
-import atexit
 import time
 import signal
 from bleak import BleakClient, BleakScanner
@@ -23,17 +22,14 @@ async def test():
     print(f"Trying to connect to {device_address}", flush=True)
     device = await BleakScanner.find_device_by_address(device_address, timeout=10.0)
     assert device
-    client = BleakClient(device)
-    assert client
-    await client.connect(timeout=10.0)
-    assert client.is_connected
-    print(f"Connected", flush=True)
-    print(f"Waiting 5 secs...", flush=True)
-    time.sleep(5.0)
-    print(f"Closing...", flush=True)
-    assert client.is_connected
-    await client.disconnect()
-    print(f"Test done", flush=True)
+    async with BleakClient(device) as client:
+        assert client.is_connected
+        print(f"Connected", flush=True)
+        print(f"Waiting 5 secs...", flush=True)
+        time.sleep(5.0)
+        print(f"Closing...", flush=True)
+        assert client.is_connected
+        await client.disconnect()
+        print(f"Test done", flush=True)
 
-event_loop = asyncio.new_event_loop()
-event_loop.run_until_complete(test())
+asyncio.run(test())
