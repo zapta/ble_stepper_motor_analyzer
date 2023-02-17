@@ -44,7 +44,7 @@ class Probe:
 
     # Internal method to fetch information of a specific BLE service.
     async def __find_service_or_disconnect(self, name: str, uuid: str) -> (BleakGATTService | None):
-        if not self.__client.is_connected:
+        if not self.__client.is_connected():
             logger.error(f"Not connected (__find_service_or_disconnect).")
             return None
         service = self.__client.services.get_service(uuid)
@@ -58,7 +58,7 @@ class Probe:
 
     # Internal method to fetch information of a specific BLE characteristic.
     async def __find_chrc_or_disconnect(self, service: BleakGATTService, name: str, uuid: str) -> (BleakGATTCharacteristic | None):
-        if not self.__client.is_connected:
+        if not self.__client.is_connected():
             logger.error(f"Not connected (__find_chrc_or_disconnect).")
             return None
         chrc = service.get_characteristic(uuid)
@@ -72,7 +72,7 @@ class Probe:
 
     # An internal method to read a BLE charateristic's value.
     async def __read_chrc_or_disconnect(self, service: BleakGATTService, name: str, uuid: str) -> (bytearray | None):
-        if not self.__client.is_connected:
+        if not self.__client.is_connected():
             logger.error(f"Not connected (__read_chrc_or_disconnect).")
             return None
         chrc = await self.__find_chrc_or_disconnect(service, name, uuid)
@@ -267,6 +267,7 @@ class Probe:
         await self.__client.start_notify(self.__stepper_state_chrc, callback_handler)
         logger.info(f"Started device state notifications.")
 
+    # Problematic on Windows per https://github.com/hbldh/bleak/issues/1223
     async def disconnect(self):
         logger.info(f"Disconnecting.")
         if not self.is_connected():

@@ -10,8 +10,8 @@ import platform
 import signal
 import re
 import sys
+import atexit
 from tokenize import String
-#from turtle import width
 import pyqtgraph as pg
 from numpy import histogram
 from pyqtgraph.Qt import QtWidgets
@@ -57,6 +57,11 @@ parser.add_argument("-u", "--units", dest="units",
                     default="steps", help="Units of movements.")
 parser.add_argument("-s",  "--steps_per_unit", dest="steps_per_unit",
                     type=float, default=1.0, help="Steps per unit")
+# Per https://github.com/hbldh/bleak/issues/1223 client.disconnect() may be
+# problematic on some systems, so we provide this heuristics as a workaround,
+parser.add_argument("--conn_cleanup", dest="conn_cleanup",
+                    default='auto', choices=['auto', 'yes', 'no'],
+                    help="Specifies if to explicitly close the connection on program exit.")
 args = parser.parse_args()
 
 MAX_AMPS = args.max_amps
@@ -83,6 +88,37 @@ capture_divider = 5
 last_set_capture_divider = 0
 
 main_event_loop = asyncio.new_event_loop()
+probe = None
+
+
+def should_cleanup_connection():
+    str = args.conn_cleanup
+    if str == "yes":
+        return True
+    if str == "no":
+        return False
+    # TODO: If disconnect() works on Mac OSX, include it here
+    # as well. On windows it's problematic per
+    # https://github.com/hbldh/bleak/issues/1223
+    return ('linux' in platform.platform().lower())
+
+
+def atexit_cleanup():
+    global probe
+    is_connected = (probe and probe.is_connected())
+    if not should_cleanup_connection():
+        if is_connected:
+            print(f"atexit: Cleanup disabled (still connected)")
+        else:
+            print(f"atexit: Cleanup disabled (not connected)")
+    elif is_connected:
+        print(f"atexit: disconnecting device.", flush=True)
+        main_event_loop.run_until_complete(probe.disconnect())
+    else:
+        print(f"atexit: No connection to cleanup.", flush=True)
+
+
+atexit.register(atexit_cleanup)
 
 
 async def scan():
@@ -95,6 +131,7 @@ async def scan():
         name = device.name or ""
         print(f"{i} device address: {device.address}  ({name})", flush=True)
 
+# A special case where the user asked to just scan and exit.
 if args.scan:
     asyncio.run(scan())
     sys.exit("\nScanning done.")
