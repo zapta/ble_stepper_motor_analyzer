@@ -1,17 +1,16 @@
-Create clean releases (hardware, firmware, app)
 
-In app, change distance and speed to value and rate.
-
-Write documentation.
-
-Add bin releases for mac and linux
-
-
+Add bin releases for windows, mac, and linux
 
 
 ---------
 
-[Use github workflows to automate relase creation
+* Make it to work on Linux. See https://github.com/bluez/bluez/issues/480 .
+
+* Use github workflows to automate relase creation
+
+* Upgrade schematic and PCB to latest Kicad.
+
+* Upgrade platformio ESPIDF to latest version.
 
 
 
