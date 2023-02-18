@@ -329,6 +329,7 @@ static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
         {LEN_BYTES(kCharDeclUuid), ESP_GATT_PERM_READ,
             LEN_LEN_BYTES(kChrPropertyWriteOnly)}},
 
+    // Value
     [ATTR_IDX_COMMAND_VAL] = {{ESP_GATT_AUTO_RSP},
         {LEN_BYTES(command_uuid), ESP_GATT_PERM_WRITE,
             LEN_LEN_BYTES(command_val)}},
@@ -632,7 +633,6 @@ static esp_gatt_status_t on_command_write(
     // Command = Set ADC capture divider. Note that until the new capture
     // will be ready, the last capture is still with the old divider.
     case 0x03:
-      // printk("on_command_write: snapshot adc capture signal\n");
       if (len != 2) {
         ESP_LOGE(TAG, "Set divider command wrong length : %hu", len);
         return ESP_GATT_INVALID_ATTR_LEN;
@@ -848,6 +848,9 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       if (write_param.is_prep) {
         ESP_LOGW(TAG, "Unexpected is_prep write");
         status = ESP_GATT_OK;
+      } else if (write_param.need_rsp) {
+        ESP_LOGW(TAG, "Unexpected need_rsp write");
+        status = ESP_GATT_REQ_NOT_SUPPORTED;
       } else if (write_param.offset != 0) {
         status = ESP_GATT_INVALID_OFFSET;
       } else if (handle_table[ATTR_IDX_STEPPER_STATE_CCC] ==
@@ -858,7 +861,6 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
             "Command write:  is_prep=%d, need_rsp=%d, "
             "len=%d, value:",
             write_param.is_prep, write_param.need_rsp, write_param.len);
-
         status = on_command_write(write_param);
       }
 
