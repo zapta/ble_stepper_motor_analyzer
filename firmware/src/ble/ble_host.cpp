@@ -159,7 +159,7 @@ static const uint8_t kChrConfigDeclUuid[] = {
 static const uint8_t kChrPropertyReadNotify =
     ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
 static const uint8_t kChrPropertyReadOnly = ESP_GATT_CHAR_PROP_BIT_READ;
-static const uint8_t kChrPropertyWriteOnly = ESP_GATT_CHAR_PROP_BIT_WRITE;
+static const uint8_t kChrPropertyWriteNrOnly = ESP_GATT_CHAR_PROP_BIT_WRITE_NR;
 
 // TODO: what does it do?
 static uint8_t state_ccc_val[2] = {};
@@ -327,7 +327,7 @@ static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
     // Characteristic
     [ATTR_IDX_COMMAND] = {{ESP_GATT_AUTO_RSP},
         {LEN_BYTES(kCharDeclUuid), ESP_GATT_PERM_READ,
-            LEN_LEN_BYTES(kChrPropertyWriteOnly)}},
+            LEN_LEN_BYTES(kChrPropertyWriteNrOnly)}},
 
     // Value
     [ATTR_IDX_COMMAND_VAL] = {{ESP_GATT_AUTO_RSP},
