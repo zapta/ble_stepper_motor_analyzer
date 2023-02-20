@@ -3,20 +3,43 @@
 # A python program to connect to the device and log basic stepper info.
 
 import argparse
+import platform
 import asyncio
 import logging
 import signal
 import sys
+import atexit
+import time
 
-from probe import Probe
-from probe_state import ProbeState
+sys.path.append("..")
+from common.probe import Probe
+from common.probe_state import ProbeState
 
 
 # The default device used by the developers. For conviniance.
-DEFAULT_DEVICE_ADDRESS = "EE:E7:C3:26:42:83"
+DEFAULT_DEVICE_ADDRESS = "0C:8B:95:F2:B4:36"
 
 # Allows to stop the program by typing ctrl-c.
 signal.signal(signal.SIGINT, lambda number, frame: sys.exit())
+
+probe = None
+
+async def dummy():
+    pass
+
+def atexit_cleanup():
+    global probe
+    is_connected = (probe and probe.is_connected())
+    is_linux = 'linux' in platform.platform().lower()
+    print(f"atexit: is_connected = {is_connected}, is_linux = {is_linux}", flush=True)
+    if is_connected and is_linux:
+        print(f"atexit: Disconnecting", flush=True)
+        main_event_loop.run_until_complete(probe.disconnect())
+        for i in range(20):
+          main_event_loop.run_until_complete(dummy())
+          time.sleep(0.1)
+
+atexit.register(atexit_cleanup)
 
 logging.basicConfig(level=logging.INFO)
 
@@ -29,8 +52,10 @@ args = parser.parse_args()
 first_state = None
 
 
+# Sets probe.
 async def connect_to_probe():
     """ Co-routing. Returns Probe or None. """
+    global probe
     device_address = args.device_address
     print(
         f"Trying to connect to device [{device_address}]...", file=sys.stderr, flush=True)
@@ -43,7 +68,6 @@ async def connect_to_probe():
         return None
     print(f"Connected to probe", file=sys.stderr, flush=True)
     probe.info().dump(file=sys.stderr)
-    return probe
 
 
 def state_notification_callback_handler(state: ProbeState):
@@ -60,7 +84,8 @@ def state_notification_callback_handler(state: ProbeState):
 
 # Connect to device.
 main_event_loop = asyncio.new_event_loop()
-probe = main_event_loop.run_until_complete(connect_to_probe())
+main_event_loop.run_until_complete(connect_to_probe())
+assert(probe)
 
 # Install the notifications callback handler.
 main_event_loop.run_until_complete(

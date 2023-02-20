@@ -16,15 +16,19 @@ import pyqtgraph as pg
 from numpy import histogram
 from pyqtgraph.Qt import QtWidgets
 from bleak import BleakScanner
-from capture_signal import CaptureSignal
-from capture_signal_fetcher import CaptureSignalFetcher
-from chart import Chart
-from current_histogram import CurrentHistogram
-from distance_histogram import DistanceHistogram
-from filter import Filter
-from probe import Probe
-from probe_state import ProbeState
-from time_histogram import TimeHistogram
+
+sys.path.append(".")
+
+from common.capture_signal import CaptureSignal
+from common.capture_signal_fetcher import CaptureSignalFetcher
+from common.chart import Chart
+from common.current_histogram import CurrentHistogram
+from common.distance_histogram import DistanceHistogram
+from common.filter import Filter
+from common.probe import Probe
+from common.probe_state import ProbeState
+# from common.probe_info import ProbeInfo
+from common.time_histogram import TimeHistogram
 
 # NOTE: Color names list here https://matplotlib.org/stable/gallery/color/named_colors.html
 
