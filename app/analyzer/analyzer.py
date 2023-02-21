@@ -17,8 +17,7 @@ from numpy import histogram
 from pyqtgraph.Qt import QtWidgets
 from bleak import BleakScanner
 
-sys.path.append(".")
-
+sys.path.append("..")
 from common.capture_signal import CaptureSignal
 from common.capture_signal_fetcher import CaptureSignalFetcher
 from common.chart import Chart
@@ -27,7 +26,6 @@ from common.distance_histogram import DistanceHistogram
 from common.filter import Filter
 from common.probe import Probe
 from common.probe_state import ProbeState
-# from common.probe_info import ProbeInfo
 from common.time_histogram import TimeHistogram
 
 # NOTE: Color names list here https://matplotlib.org/stable/gallery/color/named_colors.html
