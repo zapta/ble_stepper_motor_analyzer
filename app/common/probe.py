@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class Probe:
-    def __init__(self, client: BleakClient, steps_per_unit: float):
+    def __init__(self, client: BleakClient):
         self.__client = client
         self.__probe_info = None
         self.__stepper_state_chrc = None
@@ -29,7 +29,6 @@ class Probe:
         self.__stepper_distance_histogram_chrc = None
         self.__stepper_command_chrc = None
         self.__capture_signal_chrc = None
-        self.__steps_per_unit = steps_per_unit
 
     def __str__(self) -> str:
         return self.__client.address
@@ -85,14 +84,14 @@ class Probe:
     # and start advertising again so we use timeout of 45 secs to make sure we
     # wait for it to recover.
     @classmethod
-    async def find_by_address(cls, dev_addr: str, steps_per_unit: float, timeout: float = 45.0) -> Optional[Probe]:
+    async def find_by_address(cls, dev_addr: str, timeout: float = 45.0) -> Optional[Probe]:
         device = await BleakScanner.find_device_by_address(dev_addr, timeout=timeout)
         if not device:
             logger.error(f"Device with address {dev_addr} not found.")
             return None
         logger.info(f"Found device: [{device.address}]")
         client = BleakClient(device)
-        probe = Probe(client, steps_per_unit)
+        probe = Probe(client)
         return probe
 
     def is_connected(self) -> bool:
@@ -188,26 +187,26 @@ class Probe:
         val_bytes = await self.__client.read_gatt_char(self.__stepper_state_chrc)
         return ProbeState.decode(val_bytes, self.__probe_info)
 
-    async def read_current_histogram(self) -> Optional[CurrentHistogram]:
+    async def read_current_histogram(self, steps_per_unit = 1.0) -> Optional[CurrentHistogram]:
         if not self.is_connected():
             logger.error(f"Not connected (read_current_histogram).")
             return None
         val_bytes = await self.__client.read_gatt_char(self.__stepper_current_histogram_chrc)
-        return CurrentHistogram.decode(val_bytes, self.__probe_info, self.__steps_per_unit)
+        return CurrentHistogram.decode(val_bytes, self.__probe_info, steps_per_unit)
 
-    async def read_time_histogram(self) -> Optional[TimeHistogram]:
+    async def read_time_histogram(self, steps_per_unit = 1.0) -> Optional[TimeHistogram]:
         if not self.is_connected():
             logger.error(f"Not connected (read_time_histogram).")
             return None
         val_bytes = await self.__client.read_gatt_char(self.__stepper_time_histogram_chrc)
-        return TimeHistogram.decode(val_bytes, self.__probe_info,  self.__steps_per_unit)
+        return TimeHistogram.decode(val_bytes, self.__probe_info,  steps_per_unit)
 
-    async def read_distance_histogram(self) -> Optional[DistanceHistogram]:
+    async def read_distance_histogram(self, steps_per_unit = 1.0) -> Optional[DistanceHistogram]:
         if not self.is_connected():
             logger.error(f"Not connected (read_distance_histogram).")
             return None
         val_bytes = await self.__client.read_gatt_char(self.__stepper_distance_histogram_chrc)
-        return DistanceHistogram.decode(val_bytes, self.__probe_info,  self.__steps_per_unit)
+        return DistanceHistogram.decode(val_bytes, self.__probe_info,  steps_per_unit)
 
     async def write_command_reset_data(self):
         if not self.is_connected():
@@ -272,10 +271,9 @@ class Probe:
         logger.info(f"Disconnecting.")
         if not self.is_connected():
             self.__client.disconnect()
-        self.__probe_info = None
-        self.__stepper_state_chrc = None
-        self.__stepper_current_histogram_chrc = None
-        self.__stepper_time_histogram_chrc = None
-        self.__stepper_distance_histogram_chrc = None
-        self.____stepper_distance_histogram_chrc = None
+        # self.__probe_info = None
+        # self.__stepper_state_chrc = None
+        # self.__stepper_current_histogram_chrc = None
+        # self.__stepper_time_histogram_chrc = None
+        # self.__stepper_distance_histogram_chrc = None
         return

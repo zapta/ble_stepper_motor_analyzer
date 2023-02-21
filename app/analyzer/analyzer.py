@@ -27,6 +27,7 @@ from common.filter import Filter
 from common.probe import Probe
 from common.probe_state import ProbeState
 from common.time_histogram import TimeHistogram
+from common import connections
 
 # NOTE: Color names list here https://matplotlib.org/stable/gallery/color/named_colors.html
 
@@ -48,21 +49,21 @@ print(f"Python {sys.version}", flush=True)
 parser = argparse.ArgumentParser()
 parser.add_argument('--scan', dest="scan", default=False,
                     action=argparse.BooleanOptionalAction, help="If specified, scan for devices and exit.")
-parser.add_argument("-d", "--device", dest="device",
+parser.add_argument("--device", dest="device",
                     default=None, help="The device name or address")
 # The device name is an arbitrary string such as "Extruder 1".
-parser.add_argument("-n", "--device_nick_name", dest="device_nick_name",
+parser.add_argument("--device-nick-name", dest="device_nick_name",
                     default=None, help="Optional nickname for the device, e.g. 'My Device'")
-parser.add_argument("-m", "--max_amps", dest="max_amps",
+parser.add_argument("--max-amps", dest="max_amps",
                     type=float, default=2.0, help="Max current display.")
-parser.add_argument("-u", "--units", dest="units",
+parser.add_argument("--units", dest="units",
                     default="steps", help="Units of movements.")
-parser.add_argument("-s",  "--steps_per_unit", dest="steps_per_unit",
+parser.add_argument("--steps-per-unit", dest="steps_per_unit",
                     type=float, default=1.0, help="Steps per unit")
 # Per https://github.com/hbldh/bleak/issues/1223 client.disconnect() may be
 # problematic on some systems, so we provide this heuristics as a workaround,
-parser.add_argument("--conn_cleanup", dest="conn_cleanup",
-                    default='auto', choices=['auto', 'yes', 'no'],
+parser.add_argument("--cleanup-forcing", dest="cleanup_forcing",
+                    default=None,  action=argparse.BooleanOptionalAction,
                     help="Specifies if to explicitly close the connection on program exit.")
 args = parser.parse_args()
 
@@ -93,164 +94,174 @@ main_event_loop = asyncio.new_event_loop()
 probe = None
 
 
-def should_cleanup_connection():
-    str = args.conn_cleanup
-    if str == "yes":
-        return True
-    if str == "no":
-        return False
-    # TODO: If disconnect() works on Mac OSX, include it here
-    # as well. On windows it's problematic per
-    # https://github.com/hbldh/bleak/issues/1223
-    return ('linux' in platform.platform().lower())
+# def should_cleanup_connection():
+#     str = args.conn_cleanup
+#     if str == "yes":
+#         return True
+#     if str == "no":
+#         return False
+#     # TODO: If disconnect() works on Mac OSX, include it here
+#     # as well. On windows it's problematic per
+#     # https://github.com/hbldh/bleak/issues/1223
+#     return ('linux' in platform.platform().lower())
 
+async def do_nothing():
+    None
+    
+exiting = False
 
 def atexit_cleanup():
-    global probe
-    is_connected = (probe and probe.is_connected())
-    if not should_cleanup_connection():
-        if is_connected:
-            print(f"atexit: Cleanup disabled (still connected)")
-        else:
-            print(f"atexit: Cleanup disabled (not connected)")
-    elif is_connected:
-        print(f"atexit: disconnecting device.", flush=True)
-        main_event_loop.run_until_complete(probe.disconnect())
-    else:
-        print(f"atexit: No connection to cleanup.", flush=True)
+    global probe, exiting
+    exiting = True
+    main_event_loop.run_until_complete(connections.atexit_cleanup(probe, args.cleanup_forcing))
+    for i in range(1000):
+      main_event_loop.run_until_complete(do_nothing())
+
+      
+    # is_connected = (probe and probe.is_connected())
+    # if not should_cleanup_connection():
+    #     if is_connected:
+    #         print(f"atexit: Cleanup disabled (still connected)")
+    #     else:
+    #         print(f"atexit: Cleanup disabled (not connected)")
+    # elif is_connected:
+    #     print(f"atexit: disconnecting device.", flush=True)
+    #     main_event_loop.run_until_complete(probe.disconnect())
+    # else:
+    #     print(f"atexit: No connection to cleanup.", flush=True)
 
 
 atexit.register(atexit_cleanup)
 
 
-async def scan():
-    print("Scanning 5 secs for advertising BLE devices ...\n", flush=True)
-    devices = await BleakScanner.discover(timeout=5)
-    i = 0
-    for device in devices:
-        i += 1
-        # print(device, flush=True)
-        name = device.name or ""
-        print(f"{i} device address: {device.address}  ({name})", flush=True)
+# async def scan():
+#     print("Scanning 5 secs for advertising BLE devices ...\n", flush=True)
+#     devices = await BleakScanner.discover(timeout=5)
+#     i = 0
+#     for device in devices:
+#         i += 1
+#         # print(device, flush=True)
+#         name = device.name or ""
+#         print(f"{i} device address: {device.address}  ({name})", flush=True)
 
 # A special case where the user asked to just scan and exit.
 if args.scan:
-    asyncio.run(scan())
+    asyncio.run(connections.scan_and_dump())
     sys.exit("\nScanning done.")
 
 
 # Returns device address or None if not specified.
 # Fatal error is specified but incorrectly.
-def parse_device_flag():
-    # Get flag value.
-    value = args.device
-    if not value:
-        print(f"No user specified --device flag.")
-        return None
-    value = value.strip().upper()
-    print(f"User specified device: [{value}]", flush=True)
+# def parse_device_flag():
+#     # Get flag value.
+#     value = args.device
+#     if not value:
+#         print(f"No user specified --device flag.")
+#         return None
+#     value = value.strip().upper()
+#     print(f"User specified device: [{value}]", flush=True)
 
-    # Handle the case of a direct address. Six dual hex digit values,
-    # separated by colons.
-    addr_match = re.search(
-        "^[0-9A-F]{2}:[0-9A-F]{2}:[0-9A-F]{2}"
-        ":[0-9A-F]{2}:[0-9A-F]{2}"":[0-9A-F]{2}$", value)
-    if addr_match:
-        return value
+#     # Handle the case of a direct address. Six dual hex digit values,
+#     # separated by colons.
+#     addr_match = re.search(
+#         "^[0-9A-F]{2}:[0-9A-F]{2}:[0-9A-F]{2}"
+#         ":[0-9A-F]{2}:[0-9A-F]{2}"":[0-9A-F]{2}$", value)
+#     if addr_match:
+#         return value
 
-    # Handle the case of a device name.
-    #
-    # TODO: Can we make this to work on Mac OSX where the device
-    #   address has a different format and value?
-    name_match = re.search(
-        "^STP-([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})"
-        "([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})$", value)
-    if name_match:
-        return (f"{name_match.group(1)}:{name_match.group(2)}"
-                f":{name_match.group(3)}:{name_match.group(4)}"
-                f":{name_match.group(5)}:{name_match.group(6)}")
+#     # Handle the case of a device name.
+#     #
+#     # TODO: Can we make this to work on Mac OSX where the device
+#     #   address has a different format and value?
+#     name_match = re.search(
+#         "^STP-([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})"
+#         "([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})$", value)
+#     if name_match:
+#         return (f"{name_match.group(1)}:{name_match.group(2)}"
+#                 f":{name_match.group(3)}:{name_match.group(4)}"
+#                 f":{name_match.group(5)}:{name_match.group(6)}")
 
-    # Fatal error. User specified device incorrectly.
-    sys.exit(
-        f"Can't figure device name or address, please check --device or -d args. Aborting.")
+#     # Fatal error. User specified device incorrectly.
+#     sys.exit(
+#         f"Can't figure device name or address, please check --device or -d args. Aborting.")
 
 
-async def select_device_address():
-    print("Scanning 5 secs for advertising BLE devices ...", flush=True)
-    all_devices = await BleakScanner.discover(timeout=5)
-    candidates_devices = []
-    for device in all_devices:
-        name = device.name or ""
-        if name.startswith("STP-"):
-            candidates_devices.append(device)
+# async def select_device_address():
+#     print("Scanning 5 secs for advertising BLE devices ...", flush=True)
+#     all_devices = await BleakScanner.discover(timeout=5)
+#     candidates_devices = []
+#     for device in all_devices:
+#         name = device.name or ""
+#         if name.startswith("STP-"):
+#             candidates_devices.append(device)
 
-    if len(candidates_devices) == 0:
-        sys.exit("No idle STP device found.")
-        return None
+#     if len(candidates_devices) == 0:
+#         sys.exit("No idle STP device found.")
+#         return None
 
-    if len(candidates_devices) == 1:
-        print(
-            f"Found a single STP device: device address: {candidates_devices[0].address}  ({name})", flush=True)
-        return candidates_devices[0].address
+#     if len(candidates_devices) == 1:
+#         print(
+#             f"Found a single STP device: device address: {candidates_devices[0].address}  ({name})", flush=True)
+#         return candidates_devices[0].address
 
-    while True:
-        print("\n-----", flush=True)
-        i = 0
-        for device in candidates_devices:
-            i += 1
-            print(f"\n{i}. {device.address} {device.name}",  flush=True)
+#     while True:
+#         print("\n-----", flush=True)
+#         i = 0
+#         for device in candidates_devices:
+#             i += 1
+#             print(f"\n{i}. {device.address} {device.name}",  flush=True)
 
-        ok = False
-        try:
-            num = int(
-                input(f"\nSelect device 1 to {len(candidates_devices)}, 0 abort: "))
-            if num == 0:
-                sys.exit("\nUser asked to abort.\n")
-            if num > 0 and num <= len(candidates_devices):
-                ok = True
-        except ValueError:
-            pass
+#         ok = False
+#         try:
+#             num = int(
+#                 input(f"\nSelect device 1 to {len(candidates_devices)}, 0 abort: "))
+#             if num == 0:
+#                 sys.exit("\nUser asked to abort.\n")
+#             if num > 0 and num <= len(candidates_devices):
+#                 ok = True
+#         except ValueError:
+#             pass
 
-        if ok:
-            return candidates_devices[num - 1].address
+#         if ok:
+#             return candidates_devices[num - 1].address
 
 
 # Determine device address.
-device_address = parse_device_flag()
+# device_address = parse_device_flag()
 
-if not device_address:
-    device_address = main_event_loop.run_until_complete(
-        select_device_address())
+# if not device_address:
+#     device_address = main_event_loop.run_until_complete(
+#         select_device_address())
 
-print(f"Device address: [{device_address}]", flush=True)
+# print(f"Device address: [{device_address}]", flush=True)
 
 # Co-routing. Returns Probe or None.
 
 
-async def connect_to_probe():
-    # device_address = args.device_address
-    print(f"Units: {args.units}", flush=True)
-    print(f"Steps per unit: {args.steps_per_unit}", flush=True)
-    print(f"Trying to connect to device [{device_address}]...", flush=True)
-    probe = await Probe.find_by_address(device_address, args.steps_per_unit)
-    if not probe:
-        print(f"Device not found", flush=True)
-        return None
-    if not await probe.connect():
-        print(f"Failed to connect", flush=True)
-        return None
-    print(f"Connected to probe", flush=True)
-    probe.info().dump()
+# async def connect_to_probe():
+#     # device_address = args.device_address
+#     print(f"Units: {args.units}", flush=True)
+#     print(f"Steps per unit: {args.steps_per_unit}", flush=True)
+#     print(f"Trying to connect to device [{device_address}]...", flush=True)
+#     probe = await Probe.find_by_address(device_address, args.steps_per_unit)
+#     if not probe:
+#         print(f"Device not found", flush=True)
+#         return None
+#     if not await probe.connect():
+#         print(f"Failed to connect", flush=True)
+#         return None
+#     print(f"Connected to probe", flush=True)
+#     probe.info().dump()
 
-    if probe.info().current_ticks_per_amp() == 0:
-        sys.exit(f"Device reported an invalid configuration of 0 current ticks"
-                 f" per Amp (hardware config {probe.info().hardware_config()}). Aborting.")
+#     if probe.info().current_ticks_per_amp() == 0:
+#         sys.exit(f"Device reported an invalid configuration of 0 current ticks"
+#                  f" per Amp (hardware config {probe.info().hardware_config()}). Aborting.")
 
-    return probe
+#     return probe
 
 
 logging.basicConfig(level=logging.INFO)
-probe = main_event_loop.run_until_complete(connect_to_probe())
+probe = main_event_loop.run_until_complete(connections.connect_to_probe(args.device))
 capture_signal_fetcher = CaptureSignalFetcher(probe)
 
 # Here we are connected successfully to the BLE device. Start the GUI.
@@ -261,7 +272,8 @@ win_height = 700
 # We set the actual size later. This is a workaround to force an
 # early compaction of the buttons row.
 win = pg.GraphicsLayoutWidget(show=True, size=[win_width, win_height-1])
-title = f"BLE Stepper Motor Analyzer [{device_address}]"
+# title = f"BLE Stepper Motor Analyzer [{device_address}]"
+title = f"BLE Stepper Motor Analyzer [{probe.address()}]"
 if args.device_nick_name:
     title += f" [{args.device_nick_name}]"
 win.setWindowTitle(title)
@@ -471,8 +483,7 @@ def on_direction_button():
     pending_direction_toggle = True
 
 
-async def do_nothing():
-    None
+
 
 
 def timer_handler():
@@ -521,17 +532,17 @@ def timer_handler():
     # Once in a while update the histograms.
     if updates_enabled and slot == 14:
         histogram: CurrentHistogram = main_event_loop.run_until_complete(
-            probe.read_current_histogram())
+            probe.read_current_histogram(args.steps_per_unit))
         graph4.setOpts(x=histogram.centers(), height=histogram.heights(
         ), width=0.75*histogram.bucket_width())
     elif updates_enabled and slot == 5:
         histogram: TimeHistogram = main_event_loop.run_until_complete(
-            probe.read_time_histogram())
+            probe.read_time_histogram(args.steps_per_unit))
         graph5.setOpts(x=histogram.centers(), height=histogram.heights(
         ), width=0.75*histogram.bucket_width())
     elif updates_enabled and slot == 10:
         histogram: DistanceHistogram = main_event_loop.run_until_complete(
-            probe.read_distance_histogram())
+            probe.read_distance_histogram(args.steps_per_unit))
         graph6.setOpts(x=histogram.centers(), height=histogram.heights(
         ), width=0.75*histogram.bucket_width())
     elif updates_enabled and slot in [16,  18, 20, 22, 24]:
@@ -559,7 +570,9 @@ button4.clicked.connect(lambda: on_pause_button())
 
 # Receives the state updates from the device.
 def callback_handler(probe_state: ProbeState):
-    update_from_state(probe_state)
+    global exiting
+    if not exiting:
+      update_from_state(probe_state)
 
 
 # NOTE: The notification system keeps a reference to the  event

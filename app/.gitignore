@@ -1,4 +1,2 @@
 __pycache__
-analyzer.spec
-.pyinstaller.*
-.run.sh
+*.swp
