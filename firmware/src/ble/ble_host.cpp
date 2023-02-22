@@ -19,6 +19,7 @@
 #include "acquisition/acq_consts.h"
 #include "acquisition/analyzer.h"
 #include "ble_util.h"
+#include "misc/util.h"
 #include "settings/controls.h"
 
 // Based on the sexample at
@@ -136,9 +137,16 @@ struct Vars {
 static Vars vars;
 
 struct ProtextedVars {
-  bool state_notifications_enabled = false;
+  // Set once, during initialization.
   uint16_t gatts_if = ESP_GATT_IF_NONE;
+
+  // Set per connection.
   uint16_t conn_id = kInvalidConnId;
+  bool state_notifications_enabled = false;
+  // Track the optional connection WDT feature.
+  // WDT is disabled if conn_wdt_period_millis is zero.
+  uint32_t conn_wdt_period_millis = 0;
+  uint32_t conn_wdt_timestamp_millis = 0;
 };
 
 // Protected by protected_vars_mutex.
@@ -674,6 +682,22 @@ static esp_gatt_status_t on_command_write(
       ESP_LOGI(TAG, "Sensors zero calibrated.");
       return ESP_GATT_OK;
 
+      // Command = wdt timer.
+    case 0x06: {
+      if (len != 2) {
+        ESP_LOGE(TAG, "WDT command wrong length : %hu", len);
+        return ESP_GATT_INVALID_ATTR_LEN;
+      }
+      ENTER_MUTEX {
+        protected_vars.conn_wdt_period_millis = (uint32_t)data[1] * 1000;
+        protected_vars.conn_wdt_timestamp_millis = util::time_ms();
+      }
+      EXIT_MUTEX
+
+      ESP_LOGI(TAG, "Conn WDT reset (%hhu secs)", data[1]);
+      return ESP_GATT_OK;
+    }
+
     default:
       ESP_LOGE(TAG, "on_command_write: unknown opcode: %02x", opcode);
       return ESP_GATT_REQ_NOT_SUPPORTED;
@@ -893,7 +917,12 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       // Verify our assumption that kInvalidConnId can't be a valid id.
       assert(param->connect.conn_id != kInvalidConnId);
 
-      ENTER_MUTEX { protected_vars.conn_id = param->connect.conn_id; }
+      ENTER_MUTEX {
+        protected_vars.conn_id = param->connect.conn_id;
+        protected_vars.state_notifications_enabled = false;
+        protected_vars.conn_wdt_period_millis = 0;
+        protected_vars.conn_wdt_timestamp_millis = 0;
+      }
       EXIT_MUTEX
 
       vars.conn_mtu = 23;  // Initial BLE MTU.
@@ -918,6 +947,8 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       ENTER_MUTEX {
         protected_vars.conn_id = kInvalidConnId;
         protected_vars.state_notifications_enabled = false;
+        protected_vars.conn_wdt_period_millis = 0;
+        protected_vars.conn_wdt_timestamp_millis = 0;
       }
       EXIT_MUTEX
 
@@ -966,12 +997,32 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
 
 bool is_connected() {
 
-  // Snapshot protected vars in a mutec.
-  bool result;
-  ENTER_MUTEX { result = protected_vars.conn_id != kInvalidConnId; }
+  ProtextedVars prot_vars;
+  ENTER_MUTEX { prot_vars = protected_vars; }
   EXIT_MUTEX
 
-  return result;
+  const bool connected = prot_vars.conn_id != kInvalidConnId;
+  const bool wdt_active = connected && (prot_vars.conn_wdt_period_millis != 0);
+  const uint32_t wdt_elapsed_millis =
+      wdt_active ? (util::time_ms() - prot_vars.conn_wdt_timestamp_millis) : 0;
+  const bool wdt_expired =
+      wdt_active && (wdt_elapsed_millis > prot_vars.conn_wdt_period_millis);
+
+  // printf("%u, %u\n", wdt_elapsed_millis);
+  if (wdt_expired) {
+    // Disable
+    // ENTER_MUTEX { protected_vars.conn_wdt_period_millis = 0; }
+    EXIT_MUTEX
+    const esp_err_t ret =
+        esp_ble_gatts_close(prot_vars.gatts_if, prot_vars.conn_id);
+
+    ESP_LOGW(TAG, "Disconnecting due to conn WDT (%u ms). Status: %s",
+        wdt_elapsed_millis, esp_err_to_name(ret));
+  }
+
+  // Since we didn't get yet a confirmation for the disconnection, we still
+  // report connected.
+  return connected;
 }
 
 void setup(uint8_t hardware_config, uint16_t adc_ticks_per_amp) {

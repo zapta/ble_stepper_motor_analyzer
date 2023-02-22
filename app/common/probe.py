@@ -232,7 +232,7 @@ class Probe:
     # is persisted on the device.
     async def write_command_toggle_direction(self):
         if not self.is_connected():
-            logger.error(f"Not connected (write_toggle_direction_command).")
+            logger.error(f"Not connected (write_command_toggle_direction).")
             return
         print("Toggle direction command", flush=True)
         await self.__client.write_gatt_char(self.__stepper_command_chrc, bytearray([0x04]))
@@ -241,10 +241,19 @@ class Probe:
     # is persisted on the device.
     async def write_command_zero_calibration(self):
         if not self.is_connected():
-            logger.error(f"Not connected (write_zero_calibration_command).")
+            logger.error(f"Not connected (write_command_zero_calibration).")
             return
         print("Zero calibration command", flush=True)
         await self.__client.write_gatt_char(self.__stepper_command_chrc, bytearray([0x05]))
+
+    # Called periodically to maintain connection wdt. Useful for systems where connection
+    # is maintained by the OS even after the program exits.
+    async def write_command_conn_wdt(self ,secs):
+        if not self.is_connected():
+            logger.error(f"Not connected (write_command_conn_wdt).")
+            return
+        # print(f"Conn wdt command {secs} secs", flush=True)
+        await self.__client.write_gatt_char(self.__stepper_command_chrc, bytearray([0x06, secs]))
 
     async def read_next_capture_signal_packet(self) -> Optional[bytearray]:
         if not self.is_connected():

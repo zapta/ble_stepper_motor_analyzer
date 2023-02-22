@@ -10,24 +10,26 @@ import platform
 import signal
 import re
 import sys
-import atexit
+# import atexit
 from tokenize import String
 import pyqtgraph as pg
 from numpy import histogram
 from pyqtgraph.Qt import QtWidgets
 from bleak import BleakScanner
 
-sys.path.append("..")
-from common.capture_signal import CaptureSignal
-from common.capture_signal_fetcher import CaptureSignalFetcher
-from common.chart import Chart
-from common.current_histogram import CurrentHistogram
-from common.distance_histogram import DistanceHistogram
-from common.filter import Filter
-from common.probe import Probe
-from common.probe_state import ProbeState
-from common.time_histogram import TimeHistogram
-from common import connections
+# A workaround to avoid auto formatting.
+if True:
+    sys.path.append("..")
+    from common.capture_signal import CaptureSignal
+    from common.capture_signal_fetcher import CaptureSignalFetcher
+    from common.chart import Chart
+    from common.current_histogram import CurrentHistogram
+    from common.distance_histogram import DistanceHistogram
+    from common.filter import Filter
+    from common.probe import Probe
+    from common.probe_state import ProbeState
+    from common.time_histogram import TimeHistogram
+    from common import connections
 
 # NOTE: Color names list here https://matplotlib.org/stable/gallery/color/named_colors.html
 
@@ -94,55 +96,26 @@ main_event_loop = asyncio.new_event_loop()
 probe = None
 
 
-# def should_cleanup_connection():
-#     str = args.conn_cleanup
-#     if str == "yes":
-#         return True
-#     if str == "no":
-#         return False
-#     # TODO: If disconnect() works on Mac OSX, include it here
-#     # as well. On windows it's problematic per
-#     # https://github.com/hbldh/bleak/issues/1223
-#     return ('linux' in platform.platform().lower())
-
 async def do_nothing():
     None
-    
-exiting = False
 
-def atexit_cleanup():
-    global probe, exiting
-    exiting = True
-    main_event_loop.run_until_complete(connections.atexit_cleanup(probe, args.cleanup_forcing))
-    for i in range(1000):
-      main_event_loop.run_until_complete(do_nothing())
-
-      
-    # is_connected = (probe and probe.is_connected())
-    # if not should_cleanup_connection():
-    #     if is_connected:
-    #         print(f"atexit: Cleanup disabled (still connected)")
-    #     else:
-    #         print(f"atexit: Cleanup disabled (not connected)")
-    # elif is_connected:
-    #     print(f"atexit: disconnecting device.", flush=True)
-    #     main_event_loop.run_until_complete(probe.disconnect())
-    # else:
-    #     print(f"atexit: No connection to cleanup.", flush=True)
+# exiting = False
 
 
-atexit.register(atexit_cleanup)
+# def atexit_cleanup():
+#     global probe, exiting
+#     exiting = True
+#     main_event_loop.run_until_complete(
+#         connections.atexit_cleanup(probe, args.cleanup_forcing))
+#     for i in range(1000):
+#         main_event_loop.run_until_complete(do_nothing())
+
+   
 
 
-# async def scan():
-#     print("Scanning 5 secs for advertising BLE devices ...\n", flush=True)
-#     devices = await BleakScanner.discover(timeout=5)
-#     i = 0
-#     for device in devices:
-#         i += 1
-#         # print(device, flush=True)
-#         name = device.name or ""
-#         print(f"{i} device address: {device.address}  ({name})", flush=True)
+# atexit.register(atexit_cleanup)
+
+
 
 # A special case where the user asked to just scan and exit.
 if args.scan:
@@ -150,118 +123,12 @@ if args.scan:
     sys.exit("\nScanning done.")
 
 
-# Returns device address or None if not specified.
-# Fatal error is specified but incorrectly.
-# def parse_device_flag():
-#     # Get flag value.
-#     value = args.device
-#     if not value:
-#         print(f"No user specified --device flag.")
-#         return None
-#     value = value.strip().upper()
-#     print(f"User specified device: [{value}]", flush=True)
 
-#     # Handle the case of a direct address. Six dual hex digit values,
-#     # separated by colons.
-#     addr_match = re.search(
-#         "^[0-9A-F]{2}:[0-9A-F]{2}:[0-9A-F]{2}"
-#         ":[0-9A-F]{2}:[0-9A-F]{2}"":[0-9A-F]{2}$", value)
-#     if addr_match:
-#         return value
-
-#     # Handle the case of a device name.
-#     #
-#     # TODO: Can we make this to work on Mac OSX where the device
-#     #   address has a different format and value?
-#     name_match = re.search(
-#         "^STP-([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})"
-#         "([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})$", value)
-#     if name_match:
-#         return (f"{name_match.group(1)}:{name_match.group(2)}"
-#                 f":{name_match.group(3)}:{name_match.group(4)}"
-#                 f":{name_match.group(5)}:{name_match.group(6)}")
-
-#     # Fatal error. User specified device incorrectly.
-#     sys.exit(
-#         f"Can't figure device name or address, please check --device or -d args. Aborting.")
-
-
-# async def select_device_address():
-#     print("Scanning 5 secs for advertising BLE devices ...", flush=True)
-#     all_devices = await BleakScanner.discover(timeout=5)
-#     candidates_devices = []
-#     for device in all_devices:
-#         name = device.name or ""
-#         if name.startswith("STP-"):
-#             candidates_devices.append(device)
-
-#     if len(candidates_devices) == 0:
-#         sys.exit("No idle STP device found.")
-#         return None
-
-#     if len(candidates_devices) == 1:
-#         print(
-#             f"Found a single STP device: device address: {candidates_devices[0].address}  ({name})", flush=True)
-#         return candidates_devices[0].address
-
-#     while True:
-#         print("\n-----", flush=True)
-#         i = 0
-#         for device in candidates_devices:
-#             i += 1
-#             print(f"\n{i}. {device.address} {device.name}",  flush=True)
-
-#         ok = False
-#         try:
-#             num = int(
-#                 input(f"\nSelect device 1 to {len(candidates_devices)}, 0 abort: "))
-#             if num == 0:
-#                 sys.exit("\nUser asked to abort.\n")
-#             if num > 0 and num <= len(candidates_devices):
-#                 ok = True
-#         except ValueError:
-#             pass
-
-#         if ok:
-#             return candidates_devices[num - 1].address
-
-
-# Determine device address.
-# device_address = parse_device_flag()
-
-# if not device_address:
-#     device_address = main_event_loop.run_until_complete(
-#         select_device_address())
-
-# print(f"Device address: [{device_address}]", flush=True)
-
-# Co-routing. Returns Probe or None.
-
-
-# async def connect_to_probe():
-#     # device_address = args.device_address
-#     print(f"Units: {args.units}", flush=True)
-#     print(f"Steps per unit: {args.steps_per_unit}", flush=True)
-#     print(f"Trying to connect to device [{device_address}]...", flush=True)
-#     probe = await Probe.find_by_address(device_address, args.steps_per_unit)
-#     if not probe:
-#         print(f"Device not found", flush=True)
-#         return None
-#     if not await probe.connect():
-#         print(f"Failed to connect", flush=True)
-#         return None
-#     print(f"Connected to probe", flush=True)
-#     probe.info().dump()
-
-#     if probe.info().current_ticks_per_amp() == 0:
-#         sys.exit(f"Device reported an invalid configuration of 0 current ticks"
-#                  f" per Amp (hardware config {probe.info().hardware_config()}). Aborting.")
-
-#     return probe
 
 
 logging.basicConfig(level=logging.INFO)
-probe = main_event_loop.run_until_complete(connections.connect_to_probe(args.device))
+probe = main_event_loop.run_until_complete(
+    connections.connect_to_probe(args.device))
 capture_signal_fetcher = CaptureSignalFetcher(probe)
 
 # Here we are connected successfully to the BLE device. Start the GUI.
@@ -483,15 +350,16 @@ def on_direction_button():
     pending_direction_toggle = True
 
 
-
-
-
 def timer_handler():
     global probe, timer_handler_counter, slot_cycle, graph1, graph2, graph3, graph4, graph5, graph6, plot8
     global capture_signal_fetcher, pending_reset, pause_enabled
     global buttons_layout, last_state, states_to_drop
     global capture_divider, last_set_capture_divider, pending_direction_toggle
     global main_event_loop
+
+    # We allocate API time by time slots.
+    timer_handler_counter += 1
+    slot = timer_handler_counter % 25
 
     # Process any pending events from background notifications.
     main_event_loop.run_until_complete(do_nothing())
@@ -525,41 +393,41 @@ def timer_handler():
         last_set_capture_divider = capture_divider
         print(f"Capture divider set to {last_set_capture_divider}", flush=True)
 
-    updates_enabled = not pause_enabled
+    
+    # Send conn WDT heatbeat, keeping the connection for additional
+    # 5 secs.
+    if slot == 2:
+        main_event_loop.run_until_complete(probe.write_command_conn_wdt(5))
 
-    slot = timer_handler_counter % 25
+    if not pause_enabled:
+        if slot == 14:
+            histogram: CurrentHistogram = main_event_loop.run_until_complete(
+                probe.read_current_histogram(args.steps_per_unit))
+            graph4.setOpts(x=histogram.centers(), height=histogram.heights(
+            ), width=0.75*histogram.bucket_width())
+        elif slot == 5:
+            histogram: TimeHistogram = main_event_loop.run_until_complete(
+                probe.read_time_histogram(args.steps_per_unit))
+            graph5.setOpts(x=histogram.centers(), height=histogram.heights(
+            ), width=0.75*histogram.bucket_width())
+        elif slot == 10:
+            histogram: DistanceHistogram = main_event_loop.run_until_complete(
+                probe.read_distance_histogram(args.steps_per_unit))
+            graph6.setOpts(x=histogram.centers(), height=histogram.heights(
+            ), width=0.75*histogram.bucket_width())
+        elif slot in [16,  18, 20, 22, 24]:
+            capture_signal: CaptureSignal = main_event_loop.run_until_complete(
+                capture_signal_fetcher.loop())
+            if capture_signal:
+                plot8.clear()
+                plot8.plot(capture_signal.times_sec(),
+                           capture_signal.amps_a(), pen='yellow')
+                plot8.plot(capture_signal.times_sec(),
+                           capture_signal.amps_b(), pen='skyblue')
 
-    # Once in a while update the histograms.
-    if updates_enabled and slot == 14:
-        histogram: CurrentHistogram = main_event_loop.run_until_complete(
-            probe.read_current_histogram(args.steps_per_unit))
-        graph4.setOpts(x=histogram.centers(), height=histogram.heights(
-        ), width=0.75*histogram.bucket_width())
-    elif updates_enabled and slot == 5:
-        histogram: TimeHistogram = main_event_loop.run_until_complete(
-            probe.read_time_histogram(args.steps_per_unit))
-        graph5.setOpts(x=histogram.centers(), height=histogram.heights(
-        ), width=0.75*histogram.bucket_width())
-    elif updates_enabled and slot == 10:
-        histogram: DistanceHistogram = main_event_loop.run_until_complete(
-            probe.read_distance_histogram(args.steps_per_unit))
-        graph6.setOpts(x=histogram.centers(), height=histogram.heights(
-        ), width=0.75*histogram.bucket_width())
-    elif updates_enabled and slot in [16,  18, 20, 22, 24]:
-        capture_signal: CaptureSignal = main_event_loop.run_until_complete(
-            capture_signal_fetcher.loop())
-        if capture_signal:
-            plot8.clear()
-            plot8.plot(capture_signal.times_sec(),
-                       capture_signal.amps_a(), pen='yellow')
-            plot8.plot(capture_signal.times_sec(),
-                       capture_signal.amps_b(), pen='skyblue')
-
-            plot7.clear()
-            plot7.plot(capture_signal.amps_a(),
-                       capture_signal.amps_b(), pen='greenyellow')
-
-    timer_handler_counter += 1
+                plot7.clear()
+                plot7.plot(capture_signal.amps_a(),
+                           capture_signal.amps_b(), pen='greenyellow')
 
 
 button1.clicked.connect(lambda: on_direction_button())
@@ -570,9 +438,9 @@ button4.clicked.connect(lambda: on_pause_button())
 
 # Receives the state updates from the device.
 def callback_handler(probe_state: ProbeState):
-    global exiting
-    if not exiting:
-      update_from_state(probe_state)
+    # global exiting
+    # if not exiting:
+    update_from_state(probe_state)
 
 
 # NOTE: The notification system keeps a reference to the  event

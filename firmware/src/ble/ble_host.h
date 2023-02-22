@@ -11,7 +11,9 @@ void setup(uint8_t hardware_config, uint16_t adc_ticks_per_amp);
 // this state.
 void notify_state_if_enabled(const analyzer::State& state);
 
-// Returns true if a host is connected.
+// Returns true if a host is connected. Used also to check
+// connection WDT expriation.
 bool is_connected();
+
 
 }  // namespace ble_host
