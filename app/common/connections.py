@@ -19,9 +19,6 @@ def atexit_handler(_probe, _event_loop):
         print("atexit: Not connected")
 
 
-
-
-
 async def scan_and_dump():
     print("Scanning 5 secs for advertising BLE devices ...", flush=True)
     devices = await BleakScanner.discover(timeout=5)
@@ -31,7 +28,6 @@ async def scan_and_dump():
         # print(device, flush=True)
         name = device.name or ""
         print(f"{i} device address: {device.address}  ({name})", flush=True)
-
 
 
 def parse_device_spec(device_spec):
@@ -108,9 +104,6 @@ async def select_device_address():
             return candidates_devices[num - 1].address
 
 
-
-
-
 async def connect_to_probe_at_address(device_address):
     # device_address = args.device_address
     print(f"Trying to connect to device [{device_address}]...", flush=True)
@@ -131,8 +124,6 @@ async def connect_to_probe_at_address(device_address):
     return probe
 
 
-
-
 async def connect_to_probe(device_spec):
     # Determine device address.
     device_address = parse_device_spec(device_spec)
@@ -145,5 +136,3 @@ async def connect_to_probe(device_spec):
     # logging.basicConfig(level=logging.INFO)
     probe = await connect_to_probe_at_address(device_address)
     return probe
-
-
