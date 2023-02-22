@@ -6,8 +6,8 @@
 set -e
 set -o xtrace
 
-if [[ $OSTYPE != "win32" ]]; then
-  echo "Unexpected OSTYPE for windows: [$OSTYPE]"
+if [[ $OS != "Windows_NT" ]]; then
+  echo "Unexpected OS for windows: [$OS]"
   exit 1
 fi
 
