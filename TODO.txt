@@ -1,10 +1,14 @@
+* Flakey connection on linux
 
-Add bin releases for windows, mac, and linux
+* Smooth display by spreading the out of bound read/write.
+
+* Add bin releases for windows, mac, and linux
+
+
 
 
 ---------
 
-* Make it to work on Linux. See https://github.com/bluez/bluez/issues/480 .
 
 * Use github workflows to automate relase creation
 
