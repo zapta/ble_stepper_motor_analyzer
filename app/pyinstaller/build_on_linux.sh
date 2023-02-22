@@ -1,7 +1,15 @@
-#!/usr/bin/bash -x
+#!/usr/bin/bash
 
 # A shell command to build a single file executable of the 
 # analyzer's app.
+
+set -e
+set -o xtrace
+
+if [[ $OSTYPE != "linux-gnu" ]]; then
+  echo "Unexpected OSTYPE for linux: [$OSTYPE]"
+  exit 1
+fi
 
 #pip install -U pyinstaller
 
@@ -14,7 +22,7 @@ mkdir _build
 mkdir _spec
 
 pyinstaller ../analyzer/analyzer.py \
-  --add-binary /home/user/.local/lib/python3.10/site-packages/dbus_fast/_private/marshaller.cpython-310-x86_64-linux-gnu.so:dbus_fast._private.marshaller \
+  --collect-submodules dbus_fast \
   --paths ".." \
   --clean \
   --onefile \
@@ -23,5 +31,7 @@ pyinstaller ../analyzer/analyzer.py \
   --specpath _spec 
 
 ls -al _dist
+
+cp _dist/analyzer ../../release/linux/analyzer
 
 
