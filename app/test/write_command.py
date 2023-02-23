@@ -28,9 +28,10 @@ async def test():
         chrc = service.get_characteristic("ff06")
         assert(chrc)
         print(f"Found characteristic", flush=True)
-        while True:
-          print(f"Sending command", flush=True)
-          await client.write_gatt_char(chrc, bytearray([0x03, 0x05]))
-          await asyncio.sleep(3)
+        for i in range(5):
+          print(f"\n{i + 1} Sending command", flush=True)
+          await client.write_gatt_char(chrc, bytearray([0x06, 0x03]))
+          print("done.")
+          await asyncio.sleep(1)
 
 asyncio.run(test())
