@@ -694,12 +694,12 @@ static esp_gatt_status_t on_command_write(
       }
       EXIT_MUTEX
 
-      ESP_LOGI(TAG, "Conn WDT reset (%hhu secs)", data[1]);
+      // ESP_LOGI(TAG, "Conn WDT reset (%hhu secs)", data[1]);
       return ESP_GATT_OK;
     }
 
     default:
-      ESP_LOGE(TAG, "on_command_write: unknown opcode: %02x", opcode);
+      ESP_LOGE(TAG, "on_command_write: unknown opcode: %02lx", opcode);
       return ESP_GATT_REQ_NOT_SUPPORTED;
   }
 }
@@ -1016,7 +1016,7 @@ bool is_connected() {
     const esp_err_t ret =
         esp_ble_gatts_close(prot_vars.gatts_if, prot_vars.conn_id);
 
-    ESP_LOGW(TAG, "Disconnecting due to conn WDT (%u ms). Status: %s",
+    ESP_LOGW(TAG, "Disconnecting due to conn WDT (%lu ms). Status: %s",
         wdt_elapsed_millis, esp_err_to_name(ret));
   }
 

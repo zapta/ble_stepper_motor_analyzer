@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 #include "analyzer_private.h"
-#include "driver/adc.h"
+#include "esp_adc/adc_continuous.h"
 #include "esp_assert.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -29,12 +29,12 @@ constexpr uint32_t kNumBuffers = 2000 / kValuePairsPerBuffer;
 #error "Unexpected target CPU."
 #endif
 
-static const adc_digi_init_config_t adc_dma_config = {
+static adc_continuous_handle_cfg_t continious_config = {
     .max_store_buf_size = kNumBuffers * kBytesPerBuffer,
-    .conv_num_each_intr = kBytesPerBuffer,
-    .adc1_chan_mask = BIT(6) | BIT(7),
-    .adc2_chan_mask = 0,
+    .conv_frame_size = kBytesPerBuffer,
 };
+
+static adc_continuous_handle_t handle = nullptr;
 
 // TODO: Ok to have only two entries in this array instead
 // of SOC_ADC_PATT_LEN_MAX?
@@ -53,10 +53,7 @@ static adc_digi_pattern_config_t adc_pattern[] = {
     },
 };
 
-static const adc_digi_configuration_t dig_cfg = {
-    .conv_limit_en = 1,
-    // .conv_limit_num = 255,
-    .conv_limit_num = 200,
+static const adc_continuous_config_t dig_cfg = {
 
     .pattern_num = 2,
     .adc_pattern = adc_pattern,
@@ -84,7 +81,7 @@ void dump_stats() {
   xSemaphoreTake(stats_mutex, portMAX_DELAY);
   { snapshot = stats; }
   xSemaphoreGive(stats_mutex);
-  ESP_LOGI(TAG, "bad: %u, good: %llu, good_swap: %llu", snapshot.bad_pairs,
+  ESP_LOGI(TAG, "bad: %lu, good: %llu, good_swap: %llu", snapshot.bad_pairs,
       stats.good_67_pairs, stats.good_76_pairs);
 }
 
@@ -118,13 +115,13 @@ void adc_task(void* ignored) {
   for (;;) {
     io::TEST1.clr();
     uint32_t num_ret_bytes = 0;
-    esp_err_t err_code = adc_digi_read_bytes(
-        buffer_bytes, kBytesPerBuffer, &num_ret_bytes, ADC_MAX_DELAY);
+    esp_err_t err_code = adc_continuous_read(
+        handle, buffer_bytes, kBytesPerBuffer, &num_ret_bytes, ADC_MAX_DELAY);
     io::TEST1.set();
 
     // Sanity check the results.
     if (err_code != ESP_OK || num_ret_bytes != kBytesPerBuffer) {
-      ESP_LOGE(TAG, "ADC read failed: %0x %u", err_code, num_ret_bytes);
+      ESP_LOGE(TAG, "ADC read failed: %0x %lu", err_code, num_ret_bytes);
       assert(false);
     }
 
@@ -163,9 +160,9 @@ void setup() {
   stats_mutex = xSemaphoreCreateMutex();
   assert(stats_mutex);
 
-  ESP_ERROR_CHECK(adc_digi_initialize(&adc_dma_config));
-  ESP_ERROR_CHECK(adc_digi_controller_configure(&dig_cfg));
-  ESP_ERROR_CHECK(adc_digi_start());
+  ESP_ERROR_CHECK(adc_continuous_new_handle(&continious_config, &handle));
+  ESP_ERROR_CHECK(adc_continuous_config(handle, &dig_cfg));
+  ESP_ERROR_CHECK(adc_continuous_start(handle));
 
   TaskHandle_t xHandle = NULL;
   // Create the task, storing the handle.  Note that the passed parameter

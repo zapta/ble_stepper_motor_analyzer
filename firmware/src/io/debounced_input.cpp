@@ -35,6 +35,6 @@ bool DebouncedInput::update(uint32_t rtos_ticks_now) {
 
 void DebouncedInput::dump_state() {
   // uint32_t a;
-  printf("%u, %d, %d, %d, %u\n", in_pin_.pin_num(), last_in_value_,
+  printf("%u, %d, %d, %d, %lu\n", in_pin_.pin_num(), last_in_value_,
       stable_state_, changing_, change_start_rtos_ticks_);
 }

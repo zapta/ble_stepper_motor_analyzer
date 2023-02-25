@@ -282,7 +282,7 @@ void get_settings(Settings* settings) {
 
 void dump_state(const State& state) {
   ESP_LOGI(TAG,
-      "[%6llu][er:%u, %u] [%5d, %5d] [en:%d %u] s:%hhu/%d  steps:%d "
+      "[%6llu][er:%lu, %lu] [%5d, %5d] [en:%d %lu] s:%hhu/%d  steps:%d "
       "max_steps:%d",
       state.tick_count, state.quadrature_errors, state.ticks_with_errors,
       state.v1, state.v2, state.is_energized, state.non_energized_count,
