@@ -6,4 +6,7 @@
 platformio.ini text eol=lf
 sdkconfig.* text eol=lf
 *.json text eol=lf
+*.kicad_prl text eol=lf
+*.kicad_pro text eol=lf
+*.csv text eol=lf
 
