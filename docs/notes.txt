@@ -1,0 +1,9 @@
+----
+Disabling a specific BT adapter on unix
+https://unix.stackexchange.com/questions/242937/i-have-two-usb-bluetooth-adapters-one-doesnt-work-hci1-but-seems-to-be-the-de
+
+sudo gedit /etc/udev/rules.d/81-bluetooth-hci.rules
+
+// Adjust USB vendor and product ids.
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0a5c", ATTRS{idProduct}=="21d7", ATTR{authorized}="0"
+
