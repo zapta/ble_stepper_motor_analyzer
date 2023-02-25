@@ -1,6 +1,4 @@
 
-
-
 * Flakey connection on linux 
 
 * Smooth display by spreading the out of bound read/write.
@@ -14,14 +12,4 @@
 
 
 * Use github workflows to automate relase creation
-
-* Upgrade schematic and PCB to latest Kicad.
-
-* Upgrade platformio ESPIDF to latest version.
-
-
-
-
-
-
 
