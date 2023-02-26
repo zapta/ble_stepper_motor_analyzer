@@ -14,3 +14,7 @@
 
 * Use github workflows to automate relase creation
 
+* Investigate the reset loop crash in an API function called from
+  ble_host.c. For now added a delay there to mitigate and configured
+  menuconfig to have FreeRTOS running on a single CPU.
+

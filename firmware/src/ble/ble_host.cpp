@@ -30,7 +30,7 @@ using gatts_write_evt_param = esp_ble_gatts_cb_param_t::gatts_write_evt_param;
 
 namespace ble_host {
 
-static constexpr auto TAG = "ble_srv";
+static constexpr auto TAG = "ble_host";
 
 #define ESP_APP_ID 0x55
 #define SVC_INST_ID 0
@@ -1042,6 +1042,8 @@ void setup(uint8_t hardware_config, uint16_t adc_ticks_per_amp) {
     assert(0);
   }
 
+  // TODO: Understand why esp_bt_controller_enable sometimes crashes on reboot. 
+  // Observed on IDF 5.0. 
   ret = esp_bt_controller_enable(ESP_BT_MODE_BLE);
   if (ret) {
     ESP_LOGE(
