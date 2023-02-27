@@ -1,8 +1,5 @@
-* Restart cache crash
 
 * Flakey connection on linux 
-
-* Smooth display by spreading the out of bound read/write.
 
 * Add bin releases for windows, mac, and linux
 
