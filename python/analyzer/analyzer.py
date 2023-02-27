@@ -328,19 +328,73 @@ def on_direction_button():
     pending_direction_toggle = True
 
 
-slot_start_time = None
-
-# timer_handler_counter = 0
 task_index = 0
-task_delay = 0
+task_start_time = time.time()
+
+
+def timer_handler_tasks(task_index: int) -> bool:
+    """ Execute next task slice, return True if completed."""
+    global pause_enabled
+
+    # Send conn WDT heartbeat, keeping the connection for additional
+    # 5 secs.
+    if task_index == 0:
+        main_event_loop.run_until_complete(probe.write_command_conn_wdt(5))
+        return True
+
+    # All tasks below are performed only when not paused.
+    if pause_enabled:
+        return True
+
+    # Read current histogram
+    if task_index == 1:
+        histogram: CurrentHistogram = main_event_loop.run_until_complete(
+            probe.read_current_histogram(args.steps_per_unit))
+        graph4.setOpts(x=histogram.centers(), height=histogram.heights(
+        ), width=0.75*histogram.bucket_width())
+        return True
+
+    # Read time histogram
+    if task_index == 2:
+        histogram: TimeHistogram = main_event_loop.run_until_complete(
+            probe.read_time_histogram(args.steps_per_unit))
+        graph5.setOpts(x=histogram.centers(), height=histogram.heights(
+        ), width=0.75*histogram.bucket_width())
+        return True
+
+    # Read distance histogram.
+    if task_index == 3:
+        histogram: DistanceHistogram = main_event_loop.run_until_complete(
+            probe.read_distance_histogram(args.steps_per_unit))
+        graph6.setOpts(x=histogram.centers(), height=histogram.heights(
+        ), width=0.75*histogram.bucket_width())
+        return True
+
+    # Next chunk of fetching the capture signal.
+    if task_index == 4:
+        capture_signal: CaptureSignal = main_event_loop.run_until_complete(
+            capture_signal_fetcher.loop())
+        if not capture_signal:
+            # Task is not completed, will be called again in next slot.
+            return False
+        # A new capture available, update phase and signal plots.
+        plot8.clear()
+        plot8.plot(capture_signal.times_sec(),
+                   capture_signal.amps_a(), pen='yellow')
+        plot8.plot(capture_signal.times_sec(),
+                   capture_signal.amps_b(), pen='skyblue')
+        plot7.clear()
+        plot7.plot(capture_signal.amps_a(),
+                   capture_signal.amps_b(), pen='greenyellow')
+        return True
 
 
 def timer_handler():
-    global probe, task_index, task_delay, graph1, graph2, graph3, graph4, graph5, graph6, plot8
+    global probe, task_index, task_start_time, graph1, graph2, graph3, graph4, graph5, graph6, plot8
     global capture_signal_fetcher, pending_reset, pause_enabled
     global buttons_layout, last_state, states_to_drop
     global capture_divider, last_set_capture_divider, pending_direction_toggle
-    global main_event_loop, slot_start_time
+    global main_event_loop
 
     # Process any pending events from background notifications.
     main_event_loop.run_until_complete(do_nothing())
@@ -374,70 +428,19 @@ def timer_handler():
         last_set_capture_divider = capture_divider
         print(f"Capture divider set to {last_set_capture_divider}", flush=True)
 
-    # We slow down the tasks by executing a task only on every fourth
-    # timer event.
-    if task_delay < 4:
-        task_delay += 1
-        return
-    task_delay = 0
-
-    # Advance to next task. Loop back if past the last task.
-    task_index += 1
-    if task_index > 4:
-        # print(f"New task loop", flush=True)
-        task_index = 0
-
-    # Send conn WDT heartbeat, keeping the connection for additional
-    # 5 secs.
-    if task_index == 0:
-        main_event_loop.run_until_complete(probe.write_command_conn_wdt(5))
-
-    # All tasks below are performed only when not paused.
-    if pause_enabled:
+    time_now = time.time()
+    # Slow down by forcing minimal task slot time (in secs).
+    if time_now - task_start_time < 0.100:
         return
 
-    # Read current histogram
-    if task_index == 1:
-        histogram: CurrentHistogram = main_event_loop.run_until_complete(
-            probe.read_current_histogram(args.steps_per_unit))
-        graph4.setOpts(x=histogram.centers(), height=histogram.heights(
-        ), width=0.75*histogram.bucket_width())
-        return
-
-    # Read time histogram
-    if task_index == 2:
-        histogram: TimeHistogram = main_event_loop.run_until_complete(
-            probe.read_time_histogram(args.steps_per_unit))
-        graph5.setOpts(x=histogram.centers(), height=histogram.heights(
-        ), width=0.75*histogram.bucket_width())
-        return
-
-    # Read distance histogram.
-    if task_index == 3:
-        histogram: DistanceHistogram = main_event_loop.run_until_complete(
-            probe.read_distance_histogram(args.steps_per_unit))
-        graph6.setOpts(x=histogram.centers(), height=histogram.heights(
-        ), width=0.75*histogram.bucket_width())
-        return
-
-    # Next chunk of fetching the capture signal.
-    if task_index == 4:
-        capture_signal: CaptureSignal = main_event_loop.run_until_complete(
-            capture_signal_fetcher.loop())
-        if not capture_signal:
-            # We want to perform this task again until we have a full capture.
-            task_index -= 1
-        else:
-            # A new capture available, update phase and signal plots.
-            plot8.clear()
-            plot8.plot(capture_signal.times_sec(),
-                       capture_signal.amps_a(), pen='yellow')
-            plot8.plot(capture_signal.times_sec(),
-                       capture_signal.amps_b(), pen='skyblue')
-            plot7.clear()
-            plot7.plot(capture_signal.amps_a(),
-                       capture_signal.amps_b(), pen='greenyellow')
-        return
+    # Time for next task slot.
+    task_start_time = time_now
+    task_done = timer_handler_tasks(task_index)
+    if task_done:
+        task_index += 1
+        # Currently we have tasks [0, 4]
+        if task_index > 4:
+            task_index = 0
 
 
 button1.clicked.connect(lambda: on_direction_button())
