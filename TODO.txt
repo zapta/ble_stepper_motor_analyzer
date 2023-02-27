@@ -1,7 +1,7 @@
 
-* Flakey connection on linux 
+* Find a good USB adapter for Linux
 
-* Add bin releases for windows, mac, and linux
+* Add analyzer bin releases for windows, mac, and linux
 
 
 
@@ -10,8 +10,3 @@
 
 
 * Use github workflows to automate relase creation
-
-* Investigate the reset loop crash in an API function called from
-  ble_host.c. For now added a delay there to mitigate and configured
-  menuconfig to have FreeRTOS running on a single CPU.
-
