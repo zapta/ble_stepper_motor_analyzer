@@ -65,7 +65,7 @@ def parse_device_spec(device_spec):
 
 
 def get_device_key(device):
-    device.address
+    return device.name
 
 
 async def select_device_address():
@@ -86,6 +86,8 @@ async def select_device_address():
             f"Found a single STP device: device address: {candidates_devices[0].address}  ({name})", flush=True)
         return candidates_devices[0].address
 
+    # Sort for a deterministic order. Here all the devices
+    # have proper STP-xxx names.
     candidates_devices.sort(key=get_device_key)
 
     while True:
@@ -93,7 +95,7 @@ async def select_device_address():
         i = 0
         for device in candidates_devices:
             i += 1
-            print(f"\n{i}. {device.address} {device.name}",  flush=True)
+            print(f"\n{i}. {device.address}  {device.name}",  flush=True)
 
         ok = False
         try:
