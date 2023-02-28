@@ -1,4 +1,3 @@
-* Crash on zero calibration.
 
 * Find a good USB adapter for Linux
 

@@ -113,6 +113,8 @@ void adc_task(void* ignored) {
   uint32_t samples_to_snapshot = 0;
 
   for (;;) {
+    // TEST1 pin is high during processing and low during waiting for new
+    // data.
     io::TEST1.clr();
     uint32_t num_ret_bytes = 0;
     esp_err_t err_code = adc_continuous_read(
