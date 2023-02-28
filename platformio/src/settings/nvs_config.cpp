@@ -1,13 +1,15 @@
 
 #include "settings/nvs_config.h"
 
+#include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "io/io.h"
+#include "nvs.h"
+#include "nvs_flash.h"
 #include <memory.h>
 #include <rom/crc.h>
 #include <stdio.h>
-
-#include "esp_log.h"
-#include "nvs.h"
-#include "nvs_flash.h"
 
 namespace nvs_config {
 
@@ -79,9 +81,19 @@ bool write_acquisition_settings(const analyzer::Settings& settings) {
     need_to_close = true;
   }
 
+  // TODO: What is the recomanded way to avoid crashing while
+  // writing to flash while interrupts are active? Currently we use
+  // taskDISABLE_INTERRUPTS, which disables only on the current
+  // core, and configure menuconfig for a single core FreeRTOS.
+  // 
+  // Interrupts are disabled here for up to 10ms as measured
+  // on osciloscope.
+
   // Write offset1.
   if (err == ESP_OK) {
+    taskDISABLE_INTERRUPTS();
     err = nvs_set_i16(my_handle, "offset1", settings.offset1);
+    taskENABLE_INTERRUPTS();
     if (err != ESP_OK) {
       ESP_LOGE(TAG, "write_settings() failed to write offset1: %04x", err);
     }
@@ -89,7 +101,9 @@ bool write_acquisition_settings(const analyzer::Settings& settings) {
 
   // Write offset2.
   if (err == ESP_OK) {
+    taskDISABLE_INTERRUPTS();
     err = nvs_set_i16(my_handle, "offset2", settings.offset2);
+    taskENABLE_INTERRUPTS();
     if (err != ESP_OK) {
       ESP_LOGE(TAG, "write_settings() failed to write offset2: %04x", err);
     }
@@ -97,8 +111,10 @@ bool write_acquisition_settings(const analyzer::Settings& settings) {
 
   // Write is_reverse flag.
   if (err == ESP_OK) {
+    taskDISABLE_INTERRUPTS();
     err = nvs_set_u8(
         my_handle, "is_reverse", settings.is_reverse_direction ? 0 : 1);
+    taskENABLE_INTERRUPTS();
     if (err != ESP_OK) {
       ESP_LOGE(TAG, "write_settings() failed to write is_reverse: %04x", err);
     }
@@ -106,7 +122,11 @@ bool write_acquisition_settings(const analyzer::Settings& settings) {
 
   // Commit updates.
   if (err == ESP_OK) {
+    io::TEST2.set();
+    taskDISABLE_INTERRUPTS();
     err = nvs_commit(my_handle);
+    taskENABLE_INTERRUPTS();
+    io::TEST2.clr();
     if (err != ESP_OK) {
       ESP_LOGE(TAG, "write_settings() failed to commit: %04x", err);
     }

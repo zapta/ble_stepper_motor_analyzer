@@ -64,6 +64,10 @@ def parse_device_spec(device_spec):
         f"Can't figure device name or address, please check --device flag. Aborting.")
 
 
+def get_device_key(device):
+    device.address
+
+
 async def select_device_address():
     print("Scanning 5 secs for advertising BLE devices ...", flush=True)
     all_devices = await BleakScanner.discover(timeout=5)
@@ -81,6 +85,8 @@ async def select_device_address():
         print(
             f"Found a single STP device: device address: {candidates_devices[0].address}  ({name})", flush=True)
         return candidates_devices[0].address
+
+    candidates_devices.sort(key=get_device_key)
 
     while True:
         print("\n-----", flush=True)

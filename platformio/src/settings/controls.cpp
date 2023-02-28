@@ -2,12 +2,10 @@
 
 #include "controls.h"
 
-// #include <zephyr.h>
-#include <stdio.h>
-
 #include "acquisition/analyzer.h"
 #include "esp_log.h"
 #include "settings/nvs_config.h"
+#include <stdio.h>
 
 namespace controls {
 
