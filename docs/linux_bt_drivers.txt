@@ -1,0 +1,36 @@
+user@linux:/usr/lib/firmware/rtl_bt$ ls -al
+total 1052
+drwxr-xr-x  2 root root   4096 Feb 15 19:51 .
+drwxr-xr-x 90 root root  61440 Feb 15 19:51 ..
+-rw-r--r--  1 root root  38764 Jan 26 00:10 rtl8192ee_fw.bin
+-rw-r--r--  1 root root  37904 Jan 26 00:10 rtl8192eu_fw.bin
+-rw-r--r--  1 root root  24548 Jan 26 00:10 rtl8723a_fw.bin
+-rw-r--r--  1 root root  45048 Jan 26 00:10 rtl8723b_fw.bin
+lrwxrwxrwx  1 root root     29 Jan 26 00:10 rtl8723bs_config-OBDA0623.bin -> rtl8723bs_config-OBDA8723.bin
+-rw-r--r--  1 root root     64 Jan 26 00:10 rtl8723bs_config-OBDA8723.bin
+-rw-r--r--  1 root root  52116 Jan 26 00:10 rtl8723bs_fw.bin
+-rw-r--r--  1 root root     10 Jan 26 00:10 rtl8723d_config.bin
+-rw-r--r--  1 root root  52080 Jan 26 00:10 rtl8723d_fw.bin
+-rw-r--r--  1 root root  74488 Jan 26 00:10 rtl8761a_fw.bin
+-rw-r--r--  1 root root     25 Jan 26 00:10 rtl8761b_config.bin
+-rw-r--r--  1 root root  44204 Jan 26 00:10 rtl8761b_fw.bin
+-rw-r--r--  1 root root      6 Jan 26 00:10 rtl8761bu_config.bin
+-rw-r--r--  1 root root  42088 Jan 26 00:10 rtl8761bu_fw.bin
+-rw-r--r--  1 root root  40520 Jan 26 00:10 rtl8812ae_fw.bin
+lrwxrwxrwx  1 root root     19 Jan 26 00:10 rtl8821a_config.bin -> rtl8821c_config.bin
+-rw-r--r--  1 root root  37420 Jan 26 00:10 rtl8821a_fw.bin
+-rw-r--r--  1 root root     10 Jan 26 00:10 rtl8821c_config.bin
+-rw-r--r--  1 root root  54636 Jan 26 00:10 rtl8821c_fw.bin
+-rw-r--r--  1 root root     14 Jan 26 00:10 rtl8822b_config.bin
+-rw-r--r--  1 root root  51176 Jan 26 00:10 rtl8822b_fw.bin
+-rw-r--r--  1 root root     33 Jan 26 00:10 rtl8822cs_config.bin
+-rw-r--r--  1 root root  61796 Jan 26 00:10 rtl8822cs_fw.bin
+-rw-r--r--  1 root root      6 Jan 26 00:10 rtl8822cu_config.bin
+-rw-r--r--  1 root root  58960 Jan 26 00:10 rtl8822cu_fw.bin
+-rw-r--r--  1 root root      6 Jan 26 00:10 rtl8852au_config.bin
+-rw-r--r--  1 root root  47244 Jan 26 00:10 rtl8852au_fw.bin
+-rw-r--r--  1 root root      6 Jan 26 00:10 rtl8852bu_config.bin
+-rw-r--r--  1 root root  55276 Jan 26 00:10 rtl8852bu_fw.bin
+-rw-r--r--  1 root root      6 Jan 26 00:10 rtl8852cu_config.bin
+-rw-r--r--  1 root root 106960 Jan 26 00:10 rtl8852cu_fw.bin
+
