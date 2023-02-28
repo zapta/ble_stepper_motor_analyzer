@@ -1,3 +1,4 @@
+* Qualify the power section of v 1.4.1
 
 * Find a good USB adapter for Linux
 
