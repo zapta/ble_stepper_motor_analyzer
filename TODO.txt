@@ -1,8 +1,9 @@
-* Qualify the power section of v 1.4.1
 
 * Find a good USB adapter for Linux
 
-* Add analyzer bin releases for windows, mac, and linux
+* Test analyzer app on MAC
+
+* Add analyzer bin releases for mac, and linux
 
 
 

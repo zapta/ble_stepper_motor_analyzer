@@ -31,7 +31,7 @@ pyinstaller ../analyzer/analyzer.py \
 
 ls -al _dist
 
-cp _dist/analyzer.exe ../../release/linux/analyzer.exe
+cp _dist/analyzer.exe ../../release/windows/analyzer.exe
 
 
 
