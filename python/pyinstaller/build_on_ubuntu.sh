@@ -32,6 +32,6 @@ pyinstaller ../analyzer/analyzer.py \
 
 ls -al _dist
 
-cp _dist/analyzer ../../release/linux/analyzer
+cp _dist/analyzer ../../release/ubuntu/analyzer
 
 

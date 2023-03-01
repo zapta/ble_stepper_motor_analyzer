@@ -3,7 +3,7 @@
 
 * Test analyzer app on MAC
 
-* Add analyzer bin releases for mac, and linux
+* Add analyzer bin releases for mac, and ubuntu
 
 
 
