@@ -7,3 +7,8 @@ sudo gedit /etc/udev/rules.d/81-bluetooth-hci.rules
 // Adjust USB vendor and product ids.
 SUBSYSTEM=="usb", ATTRS{idVendor}=="0a5c", ATTRS{idProduct}=="21d7", ATTR{authorized}="0"
 
+-----------------
+
+Fixing bluetooth rtl8761b rtl8761bu problem
+
+https://fosspost.org/fix-bluetooth-rtl8761b-problem-on-linux-ubuntu-22-04/
