@@ -175,21 +175,21 @@ plot4 = win.addPlot(name="Plot4")
 plot4.setLabel('left', 'Current', 'A')
 plot4.setLabel('bottom', 'Speed', f'{args.units}/s')
 plot4.setYRange(0, MAX_AMPS)
-graph4 = pg.BarGraphItem(x=[], height=[],  width=0.3, brush='yellow')
+graph4 = pg.BarGraphItem(x=[0], height=[0],  width=0.3, brush='yellow')
 plot4.addItem(graph4)
 
 # Graph 5 - Time histogram.
 plot5 = win.addPlot(name="Plot5")
 plot5.setLabel('left', 'Time', '%')
 plot5.setLabel('bottom', 'Speed', f"{args.units}/s")
-graph5 = pg.BarGraphItem(x=[], height=[],  width=0.3, brush='salmon')
+graph5 = pg.BarGraphItem(x=[0], height=[0],  width=0.3, brush='salmon')
 plot5.addItem(graph5)
 
 # Graph 6 - Distance histogram.
 plot6 = win.addPlot(name="Plot6")
 plot6.setLabel('left', 'Distance', '%')
 plot6.setLabel('bottom', 'Speed', f"{args.units}/s")
-graph6 = pg.BarGraphItem(x=[], height=[],  width=0.3, brush='skyblue')
+graph6 = pg.BarGraphItem(x=[0], height=[0],  width=0.3, brush='skyblue')
 plot6.addItem(graph6)
 
 # Graph 7 - Phase diagram.

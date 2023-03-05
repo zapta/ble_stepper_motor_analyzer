@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 
 # A shell command to build a single file executable of the 
 # analyzer's app.
@@ -6,7 +6,7 @@
 set -e
 set -o xtrace
 
-if [[ $OSTYPE != "linux-gnu" ]]; then
+if [[ $OSTYPE != darwin* ]]; then
   echo "Unexpected OSTYPE for linux: [$OSTYPE]"
   exit 1
 fi
@@ -21,7 +21,7 @@ mkdir _dist
 mkdir _build
 mkdir _spec
 
-pyinstaller ../analyzer/analyzer.py \
+/Library/Frameworks/Python.framework/Versions/3.11/bin/pyinstaller ../analyzer/analyzer.py \
   --collect-submodules dbus_fast \
   --paths ".." \
   --clean \
@@ -32,6 +32,6 @@ pyinstaller ../analyzer/analyzer.py \
 
 ls -al _dist
 
-cp _dist/analyzer ../../release/ubuntu/analyzer
+cp _dist/analyzer ../../release/mac/analyzer
 
 
