@@ -1,5 +1,4 @@
 
-
 * In the device info, report also software version.
 
 ---------

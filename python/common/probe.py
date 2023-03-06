@@ -20,8 +20,9 @@ logger = logging.getLogger(__name__)
 
 
 class Probe:
-    def __init__(self, client: BleakClient):
+    def __init__(self, client: BleakClient, name: str):
         self.__client = client
+        self.__name = name
         self.__probe_info = None
         self.__stepper_state_chrc = None
         self.__stepper_current_histogram_chrc = None
@@ -37,7 +38,12 @@ class Probe:
     def address(self) -> str:
         return self.__client.address
 
+    # Get device name.
+    def name(self) -> str:
+        return self.__name
+
     # Get chached device info.
+
     def probe_info(self) -> (ProbeInfo | None):
         return self.__probe_info
 
@@ -84,14 +90,16 @@ class Probe:
     # and start advertising again so we use timeout of 45 secs to make sure we
     # wait for it to recover.
     @classmethod
-    async def find_by_address(cls, dev_addr: str, timeout: float = 45.0) -> Optional[Probe]:
-        device = await BleakScanner.find_device_by_address(dev_addr, timeout=timeout)
+    async def find_by_name(cls, device_name, timeout):
+        device = await BleakScanner.find_device_by_filter(
+            lambda d, ad: ad.local_name == device_name,
+            timeout=timeout)
         if not device:
-            logger.error(f"Device with address {dev_addr} not found.")
+            logger.error(f"Device {device_name} not found.")
             return None
-        logger.info(f"Found device: [{device.address}]")
+        logger.info(f"Found device {device_name} at address {device.address}")
         client = BleakClient(device)
-        probe = Probe(client)
+        probe = Probe(client, device_name)
         return probe
 
     def is_connected(self) -> bool:
@@ -187,21 +195,21 @@ class Probe:
         val_bytes = await self.__client.read_gatt_char(self.__stepper_state_chrc)
         return ProbeState.decode(val_bytes, self.__probe_info)
 
-    async def read_current_histogram(self, steps_per_unit = 1.0) -> Optional[CurrentHistogram]:
+    async def read_current_histogram(self, steps_per_unit=1.0) -> Optional[CurrentHistogram]:
         if not self.is_connected():
             logger.error(f"Not connected (read_current_histogram).")
             return None
         val_bytes = await self.__client.read_gatt_char(self.__stepper_current_histogram_chrc)
         return CurrentHistogram.decode(val_bytes, self.__probe_info, steps_per_unit)
 
-    async def read_time_histogram(self, steps_per_unit = 1.0) -> Optional[TimeHistogram]:
+    async def read_time_histogram(self, steps_per_unit=1.0) -> Optional[TimeHistogram]:
         if not self.is_connected():
             logger.error(f"Not connected (read_time_histogram).")
             return None
         val_bytes = await self.__client.read_gatt_char(self.__stepper_time_histogram_chrc)
         return TimeHistogram.decode(val_bytes, self.__probe_info,  steps_per_unit)
 
-    async def read_distance_histogram(self, steps_per_unit = 1.0) -> Optional[DistanceHistogram]:
+    async def read_distance_histogram(self, steps_per_unit=1.0) -> Optional[DistanceHistogram]:
         if not self.is_connected():
             logger.error(f"Not connected (read_distance_histogram).")
             return None
@@ -248,7 +256,7 @@ class Probe:
 
     # Called periodically to maintain connection wdt. Useful for systems where connection
     # is maintained by the OS even after the program exits.
-    async def write_command_conn_wdt(self ,secs):
+    async def write_command_conn_wdt(self, secs):
         if not self.is_connected():
             logger.error(f"Not connected (write_command_conn_wdt).")
             return

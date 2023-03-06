@@ -49,7 +49,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--scan', dest="scan", default=False,
                     action=argparse.BooleanOptionalAction, help="If specified, scan for devices and exit.")
 parser.add_argument("--device", dest="device",
-                    default=None, help="The device name or address")
+                    default=None, help="Optional, the name of the device to connect to.")
 # The device name is an arbitrary string such as "Extruder 1".
 parser.add_argument("--device-nick-name", dest="device_nick_name",
                     default=None, help="Optional nickname for the device, e.g. 'My Device'")
@@ -116,7 +116,7 @@ win_height = 700
 # early compaction of the buttons row.
 win = pg.GraphicsLayoutWidget(show=True, size=[win_width, win_height-1])
 # title = f"BLE Stepper Motor Analyzer [{device_address}]"
-title = f"BLE Stepper Motor Analyzer [{probe.address()}]"
+title = f"BLE Stepper Motor Analyzer [{probe.name()}]"
 if args.device_nick_name:
     title += f" [{args.device_nick_name}]"
 win.setWindowTitle(title)
