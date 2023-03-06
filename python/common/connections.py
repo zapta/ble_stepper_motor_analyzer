@@ -10,6 +10,11 @@ from bleak import BleakScanner
 from .probe import Probe
 
 
+def is_mac():
+    """Return true if running under Mac OSX. """
+    return sys.platform == "darwin"
+
+
 def atexit_handler(_probe, _event_loop):
     print("\natexit: invoked")
     if _probe and _probe.is_connected():
@@ -27,10 +32,10 @@ async def scan_and_dump():
         i += 1
         # print(device, flush=True)
         name = device.name or ""
-        print(f"{i} device address: {device.address}  ({name})", flush=True)
+        print(f"{i:2} device address: {device.address}  ({name})", flush=True)
 
 
-def parse_device_spec(device_spec):
+async def parse_device_spec(device_spec):
     # Get flag value.
     value = device_spec
     if not value:
@@ -41,27 +46,45 @@ def parse_device_spec(device_spec):
 
     # Handle the case of a direct address. Six dual hex digit values,
     # separated by colons.
-    addr_match = re.search(
-        "^[0-9A-F]{2}:[0-9A-F]{2}:[0-9A-F]{2}"
-        ":[0-9A-F]{2}:[0-9A-F]{2}"":[0-9A-F]{2}$", value)
+    if is_mac():
+        print(f"Running on Mac.", flush=True)
+        # 9BAEB8A6-E88B-4B4B-1F1B-529C5141D620
+        addr_match = re.search(
+            "^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}"
+            "-[0-9A-F]{4}-[0-9A-F]{12}$", value)
+    else:
+        print(f"Not running on Mac.", flush=True)
+        addr_match = re.search(
+            "^[0-9A-F]{2}:[0-9A-F]{2}:[0-9A-F]{2}"
+            ":[0-9A-F]{2}:[0-9A-F]{2}:[0-9A-F]{2}$", value)
     if addr_match:
         return value
 
     # Handle the case of a device name.
-    #
-    # TODO: Can we make this to work on Mac OSX where the device
-    #   address has a different format and value?
     name_match = re.search(
         "^STP-([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})"
         "([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})$", value)
-    if name_match:
+
+    if not name_match:
+        sys.exit(
+            f"Can't figure device name or address, please check --device flag. Aborting.")
+
+    # On non mac systems, the address can be parsed from the device name.
+    if not is_mac:
         return (f"{name_match.group(1)}:{name_match.group(2)}"
                 f":{name_match.group(3)}:{name_match.group(4)}"
                 f":{name_match.group(5)}:{name_match.group(6)}")
 
-    # Fatal error. User specified device incorrectly.
+    # On mac, the system assign its own device and therefore we need
+    # to scan and look the device address by name.
+    print(f"Running on Mac. Scanning to find device named {value}", flush=True)
+    devices = await BleakScanner.discover(timeout=5)
+    for device in devices:
+        if device.name == value:
+            return device.address
+
     sys.exit(
-        f"Can't figure device name or address, please check --device flag. Aborting.")
+        f"Did not find a device named {value}.")
 
 
 def get_device_key(device):
@@ -114,7 +137,8 @@ async def select_device_address():
 
 async def connect_to_probe_at_address(device_address):
     # device_address = args.device_address
-    print(f"Trying to connect to device [{device_address}]...", flush=True)
+    print(
+        f"Trying to connect to device at address [{device_address}]...", flush=True)
     probe = await Probe.find_by_address(device_address)
     if not probe:
         print(f"Device not found", flush=True)
@@ -133,8 +157,9 @@ async def connect_to_probe_at_address(device_address):
 
 
 async def connect_to_probe(device_spec):
+    """device_spec is device address or name"""
     # Determine device address.
-    device_address = parse_device_spec(device_spec)
+    device_address = await parse_device_spec(device_spec)
 
     if not device_address:
         device_address = await select_device_address()

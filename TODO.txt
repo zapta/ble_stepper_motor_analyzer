@@ -2,13 +2,6 @@
 
 * In the device info, report also software version.
 
-* Test analyzer app on MAC
-
-* Add analyzer bin releases for mac, and ubuntu
-
-
-
-
 ---------
 
 

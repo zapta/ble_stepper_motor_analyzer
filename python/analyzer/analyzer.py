@@ -10,11 +10,9 @@ import platform
 import signal
 import sys
 import time
-# from tokenize import String
 import pyqtgraph as pg
 from numpy import histogram
 from pyqtgraph.Qt import QtWidgets
-# from bleak import BleakScanner
 
 # A workaround to avoid auto formatting.
 if True:
