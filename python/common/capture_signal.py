@@ -5,11 +5,11 @@ import logging
 from typing import List
 from .probe_info import ProbeInfo
 
-
 logger = logging.getLogger(__name__)
 
 
 class CaptureSignal:
+
     def __init__(self, times_sec: List[float], amps_a: List[float], amps_b: List[float]):
         self.__times_sec = times_sec
         self.__amps_a = amps_a
@@ -21,8 +21,7 @@ class CaptureSignal:
             logger.error(f"No capture signal packets.")
             return None
 
-        divider = int.from_bytes(
-            packets[0][4:5],  byteorder='big', signed=False)
+        divider = int.from_bytes(packets[0][4:5], byteorder='big', signed=False)
         time_step_secs = divider / probe_info.time_ticks_per_sec()
 
         # Decode data points.
@@ -32,14 +31,12 @@ class CaptureSignal:
         for packet in packets:
             # NOTE: For now we ignore the packet sequence number and offset field and
             # assume that the packets match.
-            n = int.from_bytes(packet[5:7],  byteorder='big', signed=False)
+            n = int.from_bytes(packet[5:7], byteorder='big', signed=False)
             for i in range(n):
                 # 9 is the byte Offset of the a/b pair in the packet.
                 base = 9 + (i * 4)
-                ticks_a = int.from_bytes(
-                    packet[base:base+2],  byteorder='big', signed=True)
-                ticks_b = int.from_bytes(
-                    packet[base+2:base+4],  byteorder='big', signed=True)
+                ticks_a = int.from_bytes(packet[base:base + 2], byteorder='big', signed=True)
+                ticks_b = int.from_bytes(packet[base + 2:base + 4], byteorder='big', signed=True)
                 time_sec = len(amps_a_list) * time_step_secs
                 amps_a = ticks_a / probe_info.current_ticks_per_amp()
                 amps_b = ticks_b / probe_info.current_ticks_per_amp()

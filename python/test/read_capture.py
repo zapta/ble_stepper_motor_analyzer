@@ -7,7 +7,7 @@ from bleak import BleakClient, BleakScanner
 import signal
 
 sys.path.append("..")
-from  common.filter import Filter
+from common.filter import Filter
 
 # ESP32 device
 device_address = "0C:8B:95:F2:B4:36"
@@ -20,7 +20,6 @@ capture_uuid = "ff07"
 #service_uuid =   "68e1a034-8125-4525-8a30-8799018c4bd0"
 #command_uuid =   "37e75add-a610-448d-9fd3-3e3130e2c7f6"
 #capture_uuid =   "37e75add-a610-448d-9fd3-3e3130e2c7f7"
-
 
 signal.signal(signal.SIGINT, lambda number, frame: sys.exit())
 
@@ -53,5 +52,6 @@ async def test():
             bytes = await client.read_gatt_char(capture_chrc)
             print(f"Read2: {len(bytes)}", flush=True)
             # await asyncio.sleep(3)
+
 
 asyncio.run(test())

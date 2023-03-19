@@ -15,6 +15,7 @@ print(f"OS: {platform.platform()}", flush=True)
 print(f"Platform:: {platform.uname()}", flush=True)
 print(f"Python {sys.version}", flush=True)
 
+
 async def test():
     print(f"Trying to connect to {device_address}", flush=True)
     device = await BleakScanner.find_device_by_address(device_address, timeout=10.0)
@@ -23,15 +24,16 @@ async def test():
         assert client.is_connected
         print(f"Connected", flush=True)
         service = client.services.get_service("6b6a78d7-8ee0-4a26-ba7b-62e357dd9720")
-        assert(service)
+        assert (service)
         print(f"Found service", flush=True)
         chrc = service.get_characteristic("ff06")
-        assert(chrc)
+        assert (chrc)
         print(f"Found characteristic", flush=True)
         for i in range(5):
-          print(f"\n{i + 1} Sending command", flush=True)
-          await client.write_gatt_char(chrc, bytearray([0x06, 0x03]))
-          print("done.")
-          await asyncio.sleep(1)
+            print(f"\n{i + 1} Sending command", flush=True)
+            await client.write_gatt_char(chrc, bytearray([0x06, 0x03]))
+            print("done.")
+            await asyncio.sleep(1)
+
 
 asyncio.run(test())

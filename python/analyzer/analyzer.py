@@ -15,7 +15,6 @@ from numpy import histogram
 from pyqtgraph.Qt import QtWidgets
 from collections import deque
 
-
 # A workaround to avoid auto formatting.
 if True:
     sys.path.append("..")
@@ -38,7 +37,6 @@ if True:
 # The device address has different format on Windows and
 # on Mac OSX.
 
-
 # Allows to stop the program by typing ctrl-c.
 signal.signal(signal.SIGINT, lambda number, frame: sys.exit())
 
@@ -50,32 +48,49 @@ print(f"Python {sys.version}", flush=True)
 # Command line flags.
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--scan', dest="scan", default=False,
-                    action=argparse.BooleanOptionalAction, help="If specified, scan for devices and exit.")
-parser.add_argument("--device", dest="device",
-                    default=None, help="Optional, the name of the device to connect to.")
+parser.add_argument('--scan',
+                    dest="scan",
+                    default=False,
+                    action=argparse.BooleanOptionalAction,
+                    help="If specified, scan for devices and exit.")
+
+parser.add_argument("--device",
+                    dest="device",
+                    default=None,
+                    help="Optional, the name of the device to connect to.")
+
 # The device name is an arbitrary string such as "Extruder 1".
-parser.add_argument("--device-nick-name", dest="device_nick_name",
-                    default=None, help="Optional nickname for the device, e.g. 'My Device'")
-parser.add_argument("--max-amps", dest="max_amps",
-                    type=float, default=2.0, help="Max current display.")
-parser.add_argument("--units", dest="units",
-                    default="steps", help="Units of movements.")
-parser.add_argument("--steps-per-unit", dest="steps_per_unit",
-                    type=float, default=1.0, help="Steps per unit")
+parser.add_argument("--device-nick-name",
+                    dest="device_nick_name",
+                    default=None,
+                    help="Optional nickname for the device, e.g. 'My Device'")
+
+parser.add_argument("--max-amps",
+                    dest="max_amps",
+                    type=float,
+                    default=2.0,
+                    help="Max current display.")
+parser.add_argument("--units", dest="units", default="steps", help="Units of movements.")
+parser.add_argument("--steps-per-unit",
+                    dest="steps_per_unit",
+                    type=float,
+                    default=1.0,
+                    help="Steps per unit")
 # Per https://github.com/hbldh/bleak/issues/1223 client.disconnect() may be
 # problematic on some systems, so we provide this heuristics as a workaround,
-parser.add_argument("--cleanup-forcing", dest="cleanup_forcing",
-                    default=None,  action=argparse.BooleanOptionalAction,
+parser.add_argument("--cleanup-forcing",
+                    dest="cleanup_forcing",
+                    default=None,
+                    action=argparse.BooleanOptionalAction,
                     help="Specifies if to explicitly close the connection on program exit.")
 args = parser.parse_args()
 
 # ProbeStates from the device which are waiting to be processed.
-# Keeping up to a large enough number to cover the display in case of 
+# Keeping up to a large enough number to cover the display in case of
 # a very long pause.
 pending_states = deque(maxlen=600)
 
-# Used to slightly smooth the abs current signal. 
+# Used to slightly smooth the abs current signal.
 amps_abs_filter = Filter(0.5)
 
 # Indicates if there is a pending request to reset the data
@@ -117,8 +132,7 @@ if args.scan:
 
 # Connect to the probe.
 logging.basicConfig(level=logging.INFO)
-probe = main_event_loop.run_until_complete(
-    connections.connect_to_probe(args.device))
+probe = main_event_loop.run_until_complete(connections.connect_to_probe(args.device))
 
 # An object that tracks the incremental fetch of the capture
 # signal. We don't perform all of them at once to avoid choppy
@@ -148,13 +162,11 @@ win.ci.layout.setColumnPreferredWidth(2, 240)
 win.ci.layout.setColumnPreferredWidth(3, 240)
 win.ci.layout.setColumnPreferredWidth(4, 380)
 
-
 win.ci.layout.setColumnStretchFactor(0, 1)
 win.ci.layout.setColumnStretchFactor(1, 1)
 win.ci.layout.setColumnStretchFactor(2, 1)
 win.ci.layout.setColumnStretchFactor(3, 1)
 win.ci.layout.setColumnStretchFactor(4, 1)
-
 
 # Graph 1 - Distance Chart.
 plot: pyqtgraph.PlotItem = win.addPlot(name="Plot1", colspan=5)
@@ -191,21 +203,21 @@ plot4 = win.addPlot(name="Plot4")
 plot4.setLabel('left', 'Current', 'A')
 plot4.setLabel('bottom', 'Speed', f'{args.units}/s')
 plot4.setYRange(0, args.max_amps)
-graph4 = pyqtgraph.BarGraphItem(x=[0], height=[0],  width=0.3, brush='yellow')
+graph4 = pyqtgraph.BarGraphItem(x=[0], height=[0], width=0.3, brush='yellow')
 plot4.addItem(graph4)
 
 # Graph 5 - Time Histogram.
 plot5 = win.addPlot(name="Plot5")
 plot5.setLabel('left', 'Time', '%')
 plot5.setLabel('bottom', 'Speed', f"{args.units}/s")
-graph5 = pyqtgraph.BarGraphItem(x=[0], height=[0],  width=0.3, brush='salmon')
+graph5 = pyqtgraph.BarGraphItem(x=[0], height=[0], width=0.3, brush='salmon')
 plot5.addItem(graph5)
 
 # Graph 6 - Distance Histogram.
 plot6 = win.addPlot(name="Plot6")
 plot6.setLabel('left', 'Distance', '%')
 plot6.setLabel('bottom', 'Speed', f"{args.units}/s")
-graph6 = pyqtgraph.BarGraphItem(x=[0], height=[0],  width=0.3, brush='skyblue')
+graph6 = pyqtgraph.BarGraphItem(x=[0], height=[0], width=0.3, brush='skyblue')
 plot6.addItem(graph6)
 
 # Graph 7 - Phase Diagram.
@@ -221,7 +233,6 @@ plot8 = win.addPlot(name="Plot7")
 plot8.setLabel('left', 'Current', 'A')
 plot8.setLabel('bottom', 'Time', 's')
 plot8.setYRange(-args.max_amps, args.max_amps)
-
 
 # Add a row for the buttons
 win.nextRow()
@@ -253,11 +264,8 @@ button4 = QtWidgets.QPushButton('Pause')
 button4_proxy.setWidget(button4)
 buttons_layout.addItem(button4_proxy, row=0, col=3)
 
-
 # We cache the last reported state so we can compute speed.
 last_state = None
-
-
 
 
 def add_state(state: ProbeState):
@@ -274,7 +282,7 @@ def add_state(state: ProbeState):
         if delta_t <= 0:
             print(f"Duplicate notifcation TS {delta_t}", flush=True)
             return
-        # Normal intervals are 0.020 sec. If it's larger, we missed 
+        # Normal intervals are 0.020 sec. If it's larger, we missed
         # notification packets.
         if delta_t > 0.025:
             print(f"Data loss: {delta_t*1000:3.0f} ms", flush=True)
@@ -283,14 +291,11 @@ def add_state(state: ProbeState):
     amps_abs_filter.add(state.amps_abs)
 
     # Update distance chart.
-    graph1.add_point(state.timestamp_secs,
-                      state.steps / args.steps_per_unit)
+    graph1.add_point(state.timestamp_secs, state.steps / args.steps_per_unit)
     # Update speed chart.
     graph2.add_point(state.timestamp_secs, speed / args.steps_per_unit)
     # Update current chart.
     graph3.add_point(state.timestamp_secs, amps_abs_filter.value())
-
-
 
     last_state = state
 
@@ -329,7 +334,8 @@ def on_direction_button():
     global pending_direction_toggle
     pending_direction_toggle = True
 
-# In addition to update the charts with the state reports, we 
+
+# In addition to update the charts with the state reports, we
 # also need to update the other charts in the background. We spread
 # this work evenly using 'task slots'.
 
@@ -340,7 +346,6 @@ task_read_current_histogram = None
 task_read_time_histogram = None
 task_read_distance_histogram = None
 task_read_capture_signal = None
-
 
 
 async def timer_handler_tasks(task_index: int) -> bool:
@@ -360,74 +365,80 @@ async def timer_handler_tasks(task_index: int) -> bool:
     # Read current histogram
     if task_index == 1:
         if not task_read_current_histogram:
-          # print("CURRENT: Creating task", flush=True)
-          task_read_current_histogram = asyncio.create_task(probe.read_current_histogram(args.steps_per_unit))
-          return False
+            # print("CURRENT: Creating task", flush=True)
+            task_read_current_histogram = asyncio.create_task(
+                probe.read_current_histogram(args.steps_per_unit))
+            return False
         if not task_read_current_histogram.done():
-          # print("CURRENT: Task not ready", flush=True)
-          return False
+            # print("CURRENT: Task not ready", flush=True)
+            return False
         # print("CURRENT: Task ready", flush=True)
         histogram: CurrentHistogram = task_read_current_histogram.result()
         task_read_current_histogram = None
-        graph4.setOpts(x=histogram.centers(), height=histogram.heights(), width=0.75*histogram.bucket_width())
+        graph4.setOpts(x=histogram.centers(),
+                       height=histogram.heights(),
+                       width=0.75 * histogram.bucket_width())
         return True
 
     # Read time histogram
     if task_index == 2:
         if not task_read_time_histogram:
-          # print("TIME: Creating task", flush=True)
-          task_read_time_histogram = asyncio.create_task(probe.read_time_histogram(args.steps_per_unit))
-          return False
+            # print("TIME: Creating task", flush=True)
+            task_read_time_histogram = asyncio.create_task(
+                probe.read_time_histogram(args.steps_per_unit))
+            return False
         if not task_read_time_histogram.done():
-          # print("TIME: Task not ready", flush=True)
-          return False
+            # print("TIME: Task not ready", flush=True)
+            return False
         # print("TIME: Task ready", flush=True)
         histogram: TimeHistogram = task_read_time_histogram.result()
         task_read_time_histogram = None
-        graph5.setOpts(x=histogram.centers(), height=histogram.heights(), width=0.75*histogram.bucket_width())
+        graph5.setOpts(x=histogram.centers(),
+                       height=histogram.heights(),
+                       width=0.75 * histogram.bucket_width())
         return True
 
     # Read distance histogram.
     if task_index == 3:
         if not task_read_distance_histogram:
-          # print("DISTANCE: Creating task", flush=True)
-          task_read_distance_histogram = asyncio.create_task( probe.read_distance_histogram(args.steps_per_unit))
-          return False
+            # print("DISTANCE: Creating task", flush=True)
+            task_read_distance_histogram = asyncio.create_task(
+                probe.read_distance_histogram(args.steps_per_unit))
+            return False
         if not task_read_distance_histogram.done():
-          # print("DISTANCE: Task not ready", flush=True)
-          return False
+            # print("DISTANCE: Task not ready", flush=True)
+            return False
         # print("DISTANCE: Task ready", flush=True)
         histogram: DistanceHistogram = task_read_distance_histogram.result()
         task_read_distance_histogram = None
-        graph6.setOpts(x=histogram.centers(), height=histogram.heights(), width=0.75*histogram.bucket_width())
+        graph6.setOpts(x=histogram.centers(),
+                       height=histogram.heights(),
+                       width=0.75 * histogram.bucket_width())
         return True
 
     # Next chunk of fetching the capture signal.
     if task_index == 4:
         if not task_read_capture_signal:
-          # print("CAPTURE: Creating initial task", flush=True)
-          capture_signal_fetcher.reset()
-          task_read_capture_signal = asyncio.create_task(capture_signal_fetcher.loop())
-          return False
+            # print("CAPTURE: Creating initial task", flush=True)
+            capture_signal_fetcher.reset()
+            task_read_capture_signal = asyncio.create_task(capture_signal_fetcher.loop())
+            return False
         if not task_read_capture_signal.done():
-          # print("DISTANCE: Task not ready", flush=True)
-          return False
+            # print("DISTANCE: Task not ready", flush=True)
+            return False
         capture_signal: CaptureSignal = task_read_capture_signal.result()
         if not capture_signal:
-          # print("CAPTURE: Creating additional task", flush=True)
-          task_read_capture_signal = asyncio.create_task(capture_signal_fetcher.loop())
-          return False
+            # print("CAPTURE: Creating additional task", flush=True)
+            task_read_capture_signal = asyncio.create_task(capture_signal_fetcher.loop())
+            return False
         task_read_capture_signal = None
         # print("CAPTURE: Data ready", flush=True)
         # A new capture available, update phase and signal plots.
         plot8.clear()
-        plot8.plot(capture_signal.times_sec(),
-                   capture_signal.amps_a(), pen='yellow')
-        plot8.plot(capture_signal.times_sec(),
-                   capture_signal.amps_b(), pen='skyblue')
+        plot8.plot(capture_signal.times_sec(), capture_signal.amps_a(), pen='yellow')
+        plot8.plot(capture_signal.times_sec(), capture_signal.amps_b(), pen='skyblue')
         plot7.clear()
-        plot7.plot(capture_signal.amps_a(),
-                   capture_signal.amps_b(), pen='greenyellow')
+        plot7.plot(capture_signal.amps_a(), capture_signal.amps_b(), pen='greenyellow')
         return True
 
 
@@ -465,13 +476,11 @@ def timer_handler():
 
     if pending_direction_toggle:
         print(f"Changing direction", flush=True)
-        main_event_loop.run_until_complete(
-            probe.write_command_toggle_direction())
+        main_event_loop.run_until_complete(probe.write_command_toggle_direction())
         pending_direction_toggle = False
 
     if capture_divider != last_set_capture_divider:
-        main_event_loop.run_until_complete(
-            probe.write_command_set_capture_divider(capture_divider))
+        main_event_loop.run_until_complete(probe.write_command_set_capture_divider(capture_divider))
         last_set_capture_divider = capture_divider
         print(f"Capture divider set to {last_set_capture_divider}", flush=True)
 
@@ -483,7 +492,7 @@ def timer_handler():
             state = pending_states.popleft()
             add_state(state)
             n += 1
-      
+
     # Slow down by forcing minimal task slot time (in secs).
     time_now = time.time()
     if time_now - task_start_time < 0.100:
@@ -491,7 +500,7 @@ def timer_handler():
 
     # Time for next task slot.
     task_start_time = time_now
-    task_done =  main_event_loop.run_until_complete(timer_handler_tasks(task_index))
+    task_done = main_event_loop.run_until_complete(timer_handler_tasks(task_index))
     if task_done:
         task_index += 1
         # Currently we have tasks [0, 4]
@@ -505,9 +514,9 @@ button2.clicked.connect(lambda: on_reset_button())
 button3.clicked.connect(lambda: on_scale_button())
 button4.clicked.connect(lambda: on_pause_button())
 
-
 # Number of state updates so far.
 updates_counter = 0
+
 
 # Receives the state updates from the device.
 def state_notification_callback_handler(probe_state: ProbeState):
@@ -517,12 +526,12 @@ def state_notification_callback_handler(probe_state: ProbeState):
         states_to_drop -= 1
         # print(f"Dropped a state, left to drop: {states_to_drop}", flush=True)
         return
-    
+
     # Dump the state periodically.
     if updates_counter % 100 == 0:
         print(f"{updates_counter:06d}: {probe_state}", flush=True)
     updates_counter += 1
-    
+
     # print(f"PUSH {probe_state.timestamp_secs}", flush=True)
     pending_states.append(probe_state)
 
@@ -536,7 +545,7 @@ main_event_loop.run_until_complete(
 
 timer = pyqtgraph.QtCore.QTimer()
 timer.timeout.connect(timer_handler)
-# Delay between timer calls, in milliseconds. We try to 
+# Delay between timer calls, in milliseconds. We try to
 # keep the event loop running as tight as possible.
 timer.start(1)
 

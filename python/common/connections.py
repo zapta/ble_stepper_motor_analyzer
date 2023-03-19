@@ -6,7 +6,6 @@ import sys
 
 from bleak import BleakScanner
 
-
 from .probe import Probe
 
 
@@ -48,8 +47,7 @@ async def select_device_name():
         return None
 
     if len(candidates_devices) == 1:
-        print(
-            f"Found a single STP device: {candidates_devices[0].name}  ", flush=True)
+        print(f"Found a single STP device: {candidates_devices[0].name}  ", flush=True)
         return candidates_devices[0].name
 
     # Sort for a deterministic order. Here all the devices
@@ -61,12 +59,11 @@ async def select_device_name():
         i = 0
         for device in candidates_devices:
             i += 1
-            print(f"\n{i}. {device.name}",  flush=True)
+            print(f"\n{i}. {device.name}", flush=True)
 
         ok = False
         try:
-            num = int(
-                input(f"\nSelect device 1 to {len(candidates_devices)}, 0 abort: "))
+            num = int(input(f"\nSelect device 1 to {len(candidates_devices)}, 0 abort: "))
             if num == 0:
                 sys.exit("\nUser asked to abort.\n")
             if num > 0 and num <= len(candidates_devices):
@@ -92,8 +89,7 @@ async def connect_to_probe(device_name):
     else:
         device_name = await select_device_name()
 
-    print(
-        f"Trying to connect to device [{device_name}]...", flush=True)
+    print(f"Trying to connect to device [{device_name}]...", flush=True)
     probe = await Probe.find_by_name(device_name, timeout=5)
     if not probe:
         print(f"Device not found", flush=True)

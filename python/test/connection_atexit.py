@@ -11,14 +11,14 @@ import signal
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--conn_cleanup", dest="conn_cleanup",
-                    default='auto', choices=['auto', 'yes', 'no'],
+parser.add_argument("--conn_cleanup",
+                    dest="conn_cleanup",
+                    default='auto',
+                    choices=['auto', 'yes', 'no'],
                     help="Specifies if to explicitly close the connection on program exit.")
 args = parser.parse_args()
 
-
 # print(f"Cleanup: {args.conn_cleanup}", flush=True)
-
 
 signal.signal(signal.SIGINT, lambda number, frame: sys.exit())
 
@@ -53,15 +53,13 @@ def atexit_cleanup():
 
 atexit.register(atexit_cleanup)
 
-
 # Adapt to your actual device.
 device_address = "0C:8B:95:F2:B4:36"
 
 print(f"OS: {platform.platform()}", flush=True)
 print(f"Platform:: {platform.uname()}", flush=True)
 print(f"Python {sys.version}", flush=True)
-print(f"Cleanup: '{args.conn_cleanup}' -> {should_cleanup_connection()}",
-      flush=True)
+print(f"Cleanup: '{args.conn_cleanup}' -> {should_cleanup_connection()}", flush=True)
 
 
 async def test():
@@ -77,6 +75,7 @@ async def test():
     print(f"Waiting 5 secs...", flush=True)
     time.sleep(5.0)
     print(f"Test done", flush=True)
+
 
 # event_loop = asyncio.new_event_loop()
 event_loop.run_until_complete(test())

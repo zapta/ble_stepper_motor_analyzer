@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class Probe:
+
     def __init__(self, client: BleakClient, name: str):
         self.__client = client
         self.__name = name
@@ -54,29 +55,29 @@ class Probe:
             return None
         service = self.__client.services.get_service(uuid)
         if not service:
-            logger.error(
-                f"Failed to find service {name} at device {self.address()}.")
+            logger.error(f"Failed to find service {name} at device {self.address()}.")
             await self.disconnect()
             return None
         logger.info(f"Found {name} info service {service}.")
         return service
 
     # Internal method to fetch information of a specific BLE characteristic.
-    async def __find_chrc_or_disconnect(self, service: BleakGATTService, name: str, uuid: str) -> (BleakGATTCharacteristic | None):
+    async def __find_chrc_or_disconnect(self, service: BleakGATTService, name: str,
+                                        uuid: str) -> (BleakGATTCharacteristic | None):
         if not self.is_connected():
             logger.error(f"Not connected (__find_chrc_or_disconnect).")
             return None
         chrc = service.get_characteristic(uuid)
         if not chrc:
-            logger.error(
-                f"Failed to find characteristic {name} of device {self.address()}.")
+            logger.error(f"Failed to find characteristic {name} of device {self.address()}.")
             await self.disconnect()
             return None
         logger.info(f"Found {name} characteristic {chrc}.")
         return chrc
 
     # An internal method to read a BLE charateristic's value.
-    async def __read_chrc_or_disconnect(self, service: BleakGATTService, name: str, uuid: str) -> (bytearray | None):
+    async def __read_chrc_or_disconnect(self, service: BleakGATTService, name: str,
+                                        uuid: str) -> (bytearray | None):
         if not self.is_connected():
             logger.error(f"Not connected (__read_chrc_or_disconnect).")
             return None
@@ -92,8 +93,7 @@ class Probe:
     @classmethod
     async def find_by_name(cls, device_name, timeout):
         device = await BleakScanner.find_device_by_filter(
-            lambda d, ad: ad.local_name == device_name,
-            timeout=timeout)
+            lambda d, ad: ad.local_name == device_name, timeout=timeout)
         if not device:
             logger.error(f"Device {device_name} not found.")
             return None
@@ -122,55 +122,65 @@ class Probe:
         #     return False
 
         # stepper_service = await self.__find_service_or_disconnect("Stepper", "68e1a034-8125-4525-8a30-8799018c4bd0")
-        stepper_service = await self.__find_service_or_disconnect("Stepper", "6b6a78d7-8ee0-4a26-ba7b-62e357dd9720")
+        stepper_service = await self.__find_service_or_disconnect(
+            "Stepper", "6b6a78d7-8ee0-4a26-ba7b-62e357dd9720")
         if not stepper_service:
             return False
 
-        model_number_bytes = await self.__read_chrc_or_disconnect(stepper_service, "Model Number", "2A24")
+        model_number_bytes = await self.__read_chrc_or_disconnect(stepper_service, "Model Number",
+                                                                  "2A24")
         if not model_number_bytes:
             return False
 
-        manufacturer_bytes = await self.__read_chrc_or_disconnect(stepper_service, "Manufacturer", "2A29")
+        manufacturer_bytes = await self.__read_chrc_or_disconnect(stepper_service, "Manufacturer",
+                                                                  "2A29")
         if not manufacturer_bytes:
             return False
 
-        probe_info_bytes = await self.__read_chrc_or_disconnect(stepper_service, "Probe Info", "ff01")
+        probe_info_bytes = await self.__read_chrc_or_disconnect(stepper_service, "Probe Info",
+                                                                "ff01")
         if not probe_info_bytes:
             return False
 
         # Get stepper state characteristic.
-        stepper_state_chrc = await self.__find_chrc_or_disconnect(stepper_service, "Stepper State", "ff02")
+        stepper_state_chrc = await self.__find_chrc_or_disconnect(stepper_service, "Stepper State",
+                                                                  "ff02")
         if not stepper_state_chrc:
             return False
 
         # Get current histogram characteristic.
-        stepper_current_histogram_chrc = await self.__find_chrc_or_disconnect(stepper_service, "Current Histogram", "ff03")
+        stepper_current_histogram_chrc = await self.__find_chrc_or_disconnect(
+            stepper_service, "Current Histogram", "ff03")
         if not stepper_current_histogram_chrc:
             return False
 
         # Get time histogram characteristic.
-        stepper_time_histogram_chrc = await self.__find_chrc_or_disconnect(stepper_service, "Time Histogram", "ff04")
+        stepper_time_histogram_chrc = await self.__find_chrc_or_disconnect(
+            stepper_service, "Time Histogram", "ff04")
         if not stepper_time_histogram_chrc:
             return False
 
         # Get distance histogram characteristic.
-        stepper_distance_histogram_chrc = await self.__find_chrc_or_disconnect(stepper_service, "Distance Histogram", "ff05")
+        stepper_distance_histogram_chrc = await self.__find_chrc_or_disconnect(
+            stepper_service, "Distance Histogram", "ff05")
         if not stepper_distance_histogram_chrc:
             return False
 
         # Get stepper command characteristic.
-        stepper_command_chrc = await self.__find_chrc_or_disconnect(stepper_service, "Command", "ff06")
+        stepper_command_chrc = await self.__find_chrc_or_disconnect(stepper_service, "Command",
+                                                                    "ff06")
         if not stepper_command_chrc:
             return False
 
         # Get capture signal characteristic.
-        capture_signal_chrc = await self.__find_chrc_or_disconnect(stepper_service, "Capture", "ff07")
+        capture_signal_chrc = await self.__find_chrc_or_disconnect(stepper_service, "Capture",
+                                                                   "ff07")
         if not capture_signal_chrc:
             return False
 
         # Set this object.
-        self.__probe_info = ProbeInfo.decode(
-            probe_info_bytes, model_number_bytes.decode(), manufacturer_bytes.decode())
+        self.__probe_info = ProbeInfo.decode(probe_info_bytes, model_number_bytes.decode(),
+                                             manufacturer_bytes.decode())
         self.__stepper_state_chrc = stepper_state_chrc
         self.__stepper_current_histogram_chrc = stepper_current_histogram_chrc
         self.__stepper_time_histogram_chrc = stepper_time_histogram_chrc
@@ -207,14 +217,14 @@ class Probe:
             logger.error(f"Not connected (read_time_histogram).")
             return None
         val_bytes = await self.__client.read_gatt_char(self.__stepper_time_histogram_chrc)
-        return TimeHistogram.decode(val_bytes, self.__probe_info,  steps_per_unit)
+        return TimeHistogram.decode(val_bytes, self.__probe_info, steps_per_unit)
 
     async def read_distance_histogram(self, steps_per_unit=1.0) -> Optional[DistanceHistogram]:
         if not self.is_connected():
             logger.error(f"Not connected (read_distance_histogram).")
             return None
         val_bytes = await self.__client.read_gatt_char(self.__stepper_distance_histogram_chrc)
-        return DistanceHistogram.decode(val_bytes, self.__probe_info,  steps_per_unit)
+        return DistanceHistogram.decode(val_bytes, self.__probe_info, steps_per_unit)
 
     async def write_command_reset_data(self):
         if not self.is_connected():
@@ -224,8 +234,7 @@ class Probe:
 
     async def write_command_capture_signal_snapshot(self):
         if not self.is_connected():
-            logger.error(
-                f"Not connected (write_command_capture_signal_snapshot).")
+            logger.error(f"Not connected (write_command_capture_signal_snapshot).")
             return
         await self.__client.write_gatt_char(self.__stepper_command_chrc, bytearray([0x02]))
 
@@ -269,8 +278,7 @@ class Probe:
             return None
         return await self.__client.read_gatt_char(self.__capture_signal_chrc)
 
-    async def set_state_notifications(self,
-                                      handler: Callable[[ProbeState], None]):
+    async def set_state_notifications(self, handler: Callable[[ProbeState], None]):
         # Adapter handler.
         async def callback_handler(sender, data):
             probe_state = ProbeState.decode(data, self.__probe_info)

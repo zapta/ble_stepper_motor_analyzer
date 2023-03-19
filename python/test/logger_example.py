@@ -1,4 +1,3 @@
-
 import argparse
 import asyncio
 import logging
@@ -13,14 +12,12 @@ if True:
     from common.probe_state import ProbeState
     from common.probe import Probe
 
-
 # Allows to stop the program by typing ctrl-c.
 signal.signal(signal.SIGINT, lambda number, frame: sys.exit())
 
 # Command line flags.
 parser = argparse.ArgumentParser()
-parser.add_argument("--device", dest="device",
-                    default=None, help="The device name or address")
+parser.add_argument("--device", dest="device", default=None, help="The device name or address")
 args = parser.parse_args()
 
 logging.basicConfig(level=logging.INFO)
@@ -40,7 +37,9 @@ def state_notification_callback_handler(state: ProbeState):
     # Make the timestamp and distance relative to logger start state.
     rel_timestamp_secs = state.timestamp_secs - first_state.timestamp_secs
     rel_distance_steps = state.steps - first_state.steps
-    print(f"{rel_timestamp_secs:.3f},{rel_distance_steps:.2f},{state.amps_a:.2f},{state.amps_b:.2f},{state.amps_abs:.2f}", flush=True)
+    print(
+        f"{rel_timestamp_secs:.3f},{rel_distance_steps:.2f},{state.amps_a:.2f},{state.amps_b:.2f},{state.amps_abs:.2f}",
+        flush=True)
 
 
 async def init():
@@ -49,8 +48,7 @@ async def init():
     # Connect to device.
     probe = await connections.connect_to_probe(args.device)
     assert (probe)
-    atexit.register(connections.atexit_handler, _probe=probe,
-                    _event_loop=main_event_loop)
+    atexit.register(connections.atexit_handler, _probe=probe, _event_loop=main_event_loop)
     await probe.set_state_notifications(state_notification_callback_handler)
 
 
