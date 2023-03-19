@@ -11,12 +11,12 @@ from .probe import Probe
 
 
 def atexit_handler(_probe, _event_loop):
-    print("\natexit: invoked")
+    print("\natexit: invoked", flush=True)
     if _probe and _probe.is_connected():
         _event_loop.run_until_complete(_probe.write_command_conn_wdt(1))
         print("atexit: Device should disconnect in 1 sec", flush=True)
     else:
-        print("atexit: Not connected")
+        print("atexit: Not connected", flush=True)
 
 
 async def scan_and_dump():

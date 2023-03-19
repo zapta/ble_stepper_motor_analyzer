@@ -49,7 +49,7 @@ class Probe:
 
     # Internal method to fetch information of a specific BLE service.
     async def __find_service_or_disconnect(self, name: str, uuid: str) -> (BleakGATTService | None):
-        if not self.__client.is_connected():
+        if not self.is_connected():
             logger.error(f"Not connected (__find_service_or_disconnect).")
             return None
         service = self.__client.services.get_service(uuid)
@@ -63,7 +63,7 @@ class Probe:
 
     # Internal method to fetch information of a specific BLE characteristic.
     async def __find_chrc_or_disconnect(self, service: BleakGATTService, name: str, uuid: str) -> (BleakGATTCharacteristic | None):
-        if not self.__client.is_connected():
+        if not self.is_connected():
             logger.error(f"Not connected (__find_chrc_or_disconnect).")
             return None
         chrc = service.get_characteristic(uuid)
@@ -77,7 +77,7 @@ class Probe:
 
     # An internal method to read a BLE charateristic's value.
     async def __read_chrc_or_disconnect(self, service: BleakGATTService, name: str, uuid: str) -> (bytearray | None):
-        if not self.__client.is_connected():
+        if not self.is_connected():
             logger.error(f"Not connected (__read_chrc_or_disconnect).")
             return None
         chrc = await self.__find_chrc_or_disconnect(service, name, uuid)
@@ -242,7 +242,7 @@ class Probe:
         if not self.is_connected():
             logger.error(f"Not connected (write_command_toggle_direction).")
             return
-        print("Toggle direction command", flush=True)
+        # print("Toggle direction command", flush=True)
         await self.__client.write_gatt_char(self.__stepper_command_chrc, bytearray([0x04]))
 
     # Should be done with steppers disconnected or turned off. New zero calibration
