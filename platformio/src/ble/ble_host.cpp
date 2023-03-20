@@ -104,17 +104,16 @@ static esp_ble_adv_data_t scan_rsp_data = {
     .flag = (ESP_BLE_ADV_FLAG_GEN_DISC | ESP_BLE_ADV_FLAG_BREDR_NOT_SPT),
 };
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 static esp_ble_adv_params_t adv_params = {
-    .adv_int_min = 150,  // x 0.65ms
-    .adv_int_max = 300,  // x 0.65ms
+    .adv_int_min = 0x20,  // x 0.625ms = 20ms
+    .adv_int_max = 0x40,  // x 0.625ms = 40ms
     .adv_type = ADV_TYPE_IND,
     .own_addr_type = BLE_ADDR_TYPE_PUBLIC,
+    .peer_addr = {0},
+    .peer_addr_type = BLE_ADDR_TYPE_PUBLIC,
     .channel_map = ADV_CHNL_ALL,
     .adv_filter_policy = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,
 };
-#pragma GCC diagnostic pop
 
 // These vars accessed ony from the BLE callback thread and
 // thus don't need mutex protection.
