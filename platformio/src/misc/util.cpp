@@ -58,7 +58,7 @@ void nvs_init() {
 // main thread on initialization.
 static char app_info[110] = "";
 
-// ESP32 0.01 | Mar 20 2023 | 14:27:41  | 75dccb0-dirty | 23aa3d9fb9de4f4a
+// esp32 v1.0 | Mar 20 2023 | 14:27:41  | 75dccb0-dirty | 23aa3d9fb9de4f4a
 const char* app_version_str() {
   // Initialize if first call. Assuming a mutex is not necessary.
   if (!app_info[0]) {
@@ -66,11 +66,11 @@ const char* app_version_str() {
     char short_sha[17];
     esp_app_get_elf_sha256(short_sha, sizeof(short_sha));
     const uint32_t revision = efuse_hal_chip_revision();
-    snprintf(app_info, sizeof(app_info), "ESP32 %lu.%02lu | %s | %s | %s | %s",
-        revision / 100, revision % 100, app_desc->date, app_desc->time,
-        app_desc->version, &short_sha[0]);
+    snprintf(app_info, sizeof(app_info), "%s v%lu.%lu | %s | %s | %s | %s",
+        CONFIG_IDF_TARGET, revision / 100, revision % 100, app_desc->date,
+        app_desc->time, app_desc->version, &short_sha[0]);
   }
-  
+
   return app_info;
 }
 

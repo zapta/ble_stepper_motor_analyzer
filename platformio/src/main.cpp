@@ -70,7 +70,7 @@ static void setup() {
   io::LED1.clr();
   io::LED2.clr();
 
-  ESP_LOGI(TAG, "App version: %s", util::app_version_str());
+  ESP_LOGI(TAG, "Version: [%s]", util::app_version_str());
 
   // For diagnostics.
   efuses::dump_esp32_efuses();
