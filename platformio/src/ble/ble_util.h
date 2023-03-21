@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string.h>
+
 #include "assert.h"
 #include "esp_gap_ble_api.h"
 #include "esp_gatts_api.h"
@@ -87,6 +89,16 @@ class Serializer {
     *_p_next++ = v >> 16;
     *_p_next++ = v >> 8;
     *_p_next++ = v >> 0;
+  }
+
+  // Length <= 255.
+  inline void append_str(const char* str) {
+    size_t len = strlen(str);
+    assert(len <= 255);
+    check_avail(1 + len);
+    *_p_next++ = static_cast<uint8_t>(len);  // Length byte
+    memcpy(_p_next, str, len);
+    _p_next += len;
   }
 
  private:

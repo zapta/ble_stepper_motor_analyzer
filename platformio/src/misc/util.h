@@ -22,4 +22,7 @@ void dump_tasks();
 // Required for NVS config and for BT.
 void nvs_init();
 
+// App build version info.
+const char* app_version_str();
+
 }  // namespace util

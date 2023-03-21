@@ -12,17 +12,18 @@ class ProbeInfo:
 
     def __init__(self, model: str, manufacturer: str, hardware_config: int,
                  current_ticks_per_amp: int, time_ticks_per_sec: int,
-                 histogram_bucket_steps_per_sec: int):
+                 histogram_bucket_steps_per_sec: int, app_version_str: str):
         self.__model = model
         self.__manufacturer = manufacturer
         self.__hardware_config = hardware_config
         self.__current_ticks_per_amp = current_ticks_per_amp
         self.__time_ticks_per_sec = time_ticks_per_sec
         self.__histogram_bucket_steps_per_sec = histogram_bucket_steps_per_sec
+        self.__app_version_str = app_version_str
 
     @classmethod
     def decode(cls, data: bytearray, model: str, manufacturer: str) -> (ProbeInfo | None):
-        if len(data) != 9:
+        if len(data) < 9:
             logger.error(f"Invalid probe info data length {len(data)}.")
             return None
         # Uint8
@@ -39,8 +40,15 @@ class ProbeInfo:
         # Uint16
         histogram_bucket_steps_per_sec = int.from_bytes(data[7:9], byteorder='big', signed=False)
 
+        # Added March 2023.
+        if len(data) > 9:
+            device_version_str_len = data[9]
+            device_version_str = data[10:10 + device_version_str_len].decode()
+        else:
+            device_version_str = "[No device version str]"
+        
         return ProbeInfo(model, manufacturer, hardware_config, current_ticks_per_amp,
-                         time_ticks_per_sec, histogram_bucket_steps_per_sec)
+                         time_ticks_per_sec, histogram_bucket_steps_per_sec, device_version_str)
 
     def model(self) -> str:
         return self.__model
@@ -60,8 +68,12 @@ class ProbeInfo:
     def histogram_bucket_steps_per_sec(self) -> int:
         return self.__histogram_bucket_steps_per_sec
 
+    def device_version_str(self) -> str:
+        return self.__device_version_str
+
     # Dump.
     def dump(self, file=sys.stdout) -> None:
+        print(f"Version: [{self.__app_version_str}]", file=file, flush=True)
         print(f"Model: [{self.__model}]", file=file, flush=True)
         print(f"Manufacturer: [{self.__manufacturer}]", file=file, flush=True)
         print(f"Hardware config: [{self.__hardware_config}]", file=file, flush=True)

@@ -205,7 +205,7 @@ win.nextRow()
 plot4 = win.addPlot(name="Plot4")
 plot4.setLabel('left', 'Current', 'A')
 plot4.setLabel('bottom', 'Speed', f'{args.units}/s')
-plot4.setLimits(yMin = 0)
+plot4.setLimits(yMin=0)
 plot4.setYRange(0, args.max_amps)
 graph4 = pyqtgraph.BarGraphItem(x=[0], height=[0], width=0.3, brush='yellow')
 plot4.addItem(graph4)
@@ -214,7 +214,7 @@ plot4.addItem(graph4)
 plot5 = win.addPlot(name="Plot5")
 plot5.setLabel('left', 'Time', '%')
 plot5.setLabel('bottom', 'Speed', f"{args.units}/s")
-plot5.setLimits(yMin = 0, yMax = 100)
+plot5.setLimits(yMin=0, yMax=100)
 graph5 = pyqtgraph.BarGraphItem(x=[0], height=[0], width=0.3, brush='salmon')
 plot5.addItem(graph5)
 
@@ -222,7 +222,7 @@ plot5.addItem(graph5)
 plot6 = win.addPlot(name="Plot6")
 plot6.setLabel('left', 'Distance', '%')
 plot6.setLabel('bottom', 'Speed', f"{args.units}/s")
-plot6.setLimits(yMin = 0, yMax = 100)
+plot6.setLimits(yMin=0, yMax=100)
 graph6 = pyqtgraph.BarGraphItem(x=[0], height=[0], width=0.3, brush='skyblue')
 plot6.addItem(graph6)
 
@@ -280,7 +280,7 @@ def add_state(state: ProbeState):
 
     # Compute speed based on change from previous state.
     if last_state is None:
-        print(f"No last state", flush=True)
+        # print(f"No last state", flush=True)
         speed = 0
     else:
         delta_t = state.timestamp_secs - last_state.timestamp_secs

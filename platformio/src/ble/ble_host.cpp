@@ -371,6 +371,10 @@ static esp_gatt_status_t on_probe_info_read(
   ser->append_uint16(acq_consts::kBucketStepsPerSecond);
   assert(ser->size() == 9);
 
+  // Added March 2023. Not available in older versions.
+  const char* app_info_str = util::app_version_str();
+  ser->append_str(app_info_str);
+
   return ESP_GATT_OK;
 }
 
@@ -1041,8 +1045,8 @@ void setup(uint8_t hardware_config, uint16_t adc_ticks_per_amp) {
     assert(0);
   }
 
-  // TODO: Understand why esp_bt_controller_enable sometimes crashes on reboot. 
-  // Observed on IDF 5.0. 
+  // TODO: Understand why esp_bt_controller_enable sometimes crashes on reboot.
+  // Observed on IDF 5.0.
   ret = esp_bt_controller_enable(ESP_BT_MODE_BLE);
   if (ret) {
     ESP_LOGE(
