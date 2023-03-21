@@ -46,7 +46,7 @@ class ProbeInfo:
             device_version_str = data[10:10 + device_version_str_len].decode()
         else:
             device_version_str = "NOT AVAILABLE"
-        
+
         return ProbeInfo(model, manufacturer, hardware_config, current_ticks_per_amp,
                          time_ticks_per_sec, histogram_bucket_steps_per_sec, device_version_str)
 
@@ -73,9 +73,9 @@ class ProbeInfo:
 
     # Dump.
     def dump(self, file=sys.stdout) -> None:
-        print(f"Version: [{self.__app_version_str}]", file=file, flush=True)
         print(f"Model: [{self.__model}]", file=file, flush=True)
         print(f"Manufacturer: [{self.__manufacturer}]", file=file, flush=True)
+        print(f"Version: [{self.__app_version_str}]", file=file, flush=True)
         print(f"Hardware config: [{self.__hardware_config}]", file=file, flush=True)
         print(f"Current ticks per amp: [{self.__current_ticks_per_amp}]", file=file, flush=True)
         print(f"Time ticks per sec: [{self.__time_ticks_per_sec}]", file=file, flush=True)
