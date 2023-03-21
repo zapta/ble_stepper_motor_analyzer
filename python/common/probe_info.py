@@ -45,7 +45,7 @@ class ProbeInfo:
             device_version_str_len = data[9]
             device_version_str = data[10:10 + device_version_str_len].decode()
         else:
-            device_version_str = "NOT AVAILABlE"
+            device_version_str = "NOT AVAILABLE"
         
         return ProbeInfo(model, manufacturer, hardware_config, current_ticks_per_amp,
                          time_ticks_per_sec, histogram_bucket_steps_per_sec, device_version_str)
