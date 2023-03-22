@@ -31,6 +31,7 @@
   - [Antenna selection](#antenna-selection)
   - [Connectors](#connectors)
   - [3D Models](#3d-models)
+  - [Troubleshooting connection issues](#troubleshooting-connection-issues)
   - [Firmware development](#firmware-development)
   - [Analyzer App development](#analyzer-app-development)
   - [FAQ](#faq)
@@ -82,6 +83,7 @@ Current measurement | +/-2.5A per coil.
 PCB | 39mm x 43mm, two layers
 Antenna  | 2.4Ghz external antenna IPX IPEX connector.
 Simultaneous connections | 1 max.
+Protocol | BLE 4.1 with Data Length Extension feature.
 Current sensors | CC6920BSO-5A
 Zero calibration | Using onboard button.
 Count direction | User selected, 
@@ -273,6 +275,21 @@ The external antenna should  satisfy these requirements:
 <p align="center">
   <img src="./www/carrier.jpg" style="width: 200px;" />
 </p>
+
+## Troubleshooting connection issues
+
+The analyzer requires on the PC side support for Bluetooth BLE 4.1 or higher with support for the Data Length Extension feature. It is expected that most computer come with a built in adapters that support
+this standard, but we also observed a very low cost BeeLink mini computer that came with an old internal Bluetooth adapter that doesn't support this standard.
+
+The workaround in this case is to **disable the internal Bluetooth adapter** and use an **external USB Bluetooth adapter** that has an external antenna for better range. For example we had good result with this adapter that as of 2023 cost about $15 https://www.amazon.com/gp/product/B09KGVFX1K, which is based on the RTL876B chip.
+
+<p align="center">
+  <img src="./www/xdo_adapter.jpg" style="height: 250px;" />
+</p>
+
+> **_NOTE:_**  Installing a RTL876B based adapter on Ubuntu requires a minor tweak of the firmware file names as explained at https://fosspost.org/fix-bluetooth-rtl8761b-problem-on-linux-ubuntu-22-04/. Also, 
+
+The symptoms of a PC bluetooth adapter that doesn't support the required protocol are that the device shows up when running *analyzer --scan* but when running the analyzer without the *--scan* flag, it fails to connect to the device.  For the more technical readers, a discussion on this topic is available here https://github.com/hbldh/bleak/issues/1227#issuecomment-1435708347
 
 ## Firmware development
 
