@@ -1,6 +1,11 @@
 # BLE STEPPER MOTOR ANALYZER
 
+<div align="center">
+<a  href="https://github.com/zapta/ble_stepper_motor_analyzer">github.com/zapta/ble_stepper_motor_analyzer</a>
+</div>
+
 <p align="center">
+  <br>
   The analyzer device<br>
   <img src="./www/device_overall.jpg" style="width: 350px;" />
 </p>
@@ -32,8 +37,9 @@
   - [Connectors](#connectors)
   - [3D Models](#3d-models)
   - [Troubleshooting connection issues](#troubleshooting-connection-issues)
+  - [Hardware design files](#hardware-design-files)
   - [Firmware development](#firmware-development)
-  - [Analyzer App development](#analyzer-app-development)
+  - [Analyzer App Python development](#analyzer-app-python-development)
   - [FAQ](#faq)
 
 ---
@@ -276,6 +282,8 @@ The external antenna should  satisfy these requirements:
   <img src="./www/carrier.jpg" style="width: 200px;" />
 </p>
 
+
+
 ## Troubleshooting connection issues
 
 The analyzer requires on the PC side support for Bluetooth BLE 4.1 or higher with support for the Data Length Extension feature. It is expected that most computer come with a built in adapters that support
@@ -290,6 +298,10 @@ The workaround in this case is to **disable the internal Bluetooth adapter** and
 > **_NOTE:_**  Installing a RTL876B based adapter on Ubuntu requires a minor tweak of the firmware file names as explained at https://fosspost.org/fix-bluetooth-rtl8761b-problem-on-linux-ubuntu-22-04/. Also, 
 
 The symptoms of a PC bluetooth adapter that doesn't support the required protocol are that the device shows up when running *analyzer --scan* but when running the analyzer without the *--scan* flag, it fails to connect to the device.  For the more technical readers, a discussion on this topic is available here https://github.com/hbldh/bleak/issues/1227#issuecomment-1435708347
+
+## Hardware design files
+
+The Kicad source files and the generated JLCPCB production files are available under the *kicad* directory of this repository. As of Mar 2023, we are using Kicad 7.0, and the built in plugins **Fabrication Toolkit** and **Interactive Html Bom**.
 
 ## Firmware development
 
@@ -311,7 +323,7 @@ This list below outlines the steps to set up your own firmware development envir
 
 
 
-## Analyzer App development
+## Analyzer App Python development
 
 The Analyzer's Python app is stored in the 'python/analyzer' directory and uses a library at python/common. The app is based on Bleak (BLE client) PyQtGraph (a graphing library) and uses asyncio for non blocking background operation. The list of requires python modules is in requirements.txt and they can be installed using the command
 
