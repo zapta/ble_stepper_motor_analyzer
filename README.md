@@ -77,19 +77,19 @@ The device contains two galvanic isolated current sensors that sense the current
 Item | Specification
 :------------ | :-------------
 Power consumption | 7-30 VDC, 1W.
-Firmware update connector | USB Type C
-SOIC Module | ESP32-WROOM-32U-N4 
+Firmware update connector | USB Type C.
+SOIC Module | ESP32-WROOM-32U-N4.
 Current measurement | +/-2.5A per coil.
-PCB | 39mm x 43mm, two layers
+PCB | 39mm x 43mm, two layers.
 Antenna  | 2.4Ghz external antenna IPX IPEX connector.
 Simultaneous connections | 1 max.
 Protocol | BLE 4.1 or higher, with Data Length Extension feature.
 Current sensors | CC6920BSO-5A
 Zero calibration | Using onboard button.
-Count direction | User selected, 
+Count direction | User selected (doesn't change motor direction).
 Sampling rate | 40Khz per channel.
-Sampling resolution | 12bits
-Current accuracy | estimated at +/- 2%
+Sampling resolution | 12bits.
+Current accuracy | estimated at +/- 2%.
 Max step rate | 5K full steps/sec.
 Step resolution | 1/100th of a full step.
 Firmware programming language | C++
