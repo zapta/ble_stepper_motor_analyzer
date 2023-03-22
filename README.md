@@ -21,30 +21,31 @@
   - [Specification](#specification)
   - [Installing the device in your 3D printer](#installing-the-device-in-your-3d-printer)
   - [Using the Analyzer app.](#using-the-analyzer-app)
-    - [Running the app using a provided binary](#running-the-app-using-a-provided-binary)
-    - [Running the app using the Python code](#running-the-app-using-the-python-code)
-    - [Understanding the app screen](#understanding-the-app-screen)
-    - [App buttons](#app-buttons)
-    - [Hidden app functionality](#hidden-app-functionality)
-    - [App command line flags](#app-command-line-flags)
-  - [Flashing a firmware update](#flashing-a-firmware-update)
+    - [Running the Analyzer app using a provided binary](#running-the-analyzer-app-using-a-provided-binary)
+    - [Running the Analyzer app using the Python source files](#running-the-analyzer-app-using-the-python-source-files)
+    - [Understanding the Analyzer app screen](#understanding-the-analyzer-app-screen)
+    - [The Analyzer app buttons](#the-analyzer-app-buttons)
+    - [Ananalyzer app command line flags](#ananalyzer-app-command-line-flags)
+  - [Updating the firmware](#updating-the-firmware)
   - [Building your own device](#building-your-own-device)
   - [Antenna selection](#antenna-selection)
   - [Connectors](#connectors)
   - [3D Models](#3d-models)
   - [Firmware development](#firmware-development)
-  - [App development](#app-development)
+  - [Analyzer App development](#analyzer-app-development)
   - [FAQ](#faq)
 
 ---
 
 ## Description
 
-The BLE Stepper Motor Analyzer ('the analyzer') is a low-cost, open source system that analyzes stepper motor signals and display the the data in real time on a computer screen. The system includes two components.
+The BLE Stepper Motor Analyzer ('the analyzer') is a low-cost, open source system that analyzes stepper motor signals and display the the data in real time on a computer screen. The system includes two parts:
 
 1. **The Stepper Motor Probe** ('the device'). This is a small electronic board that monitors the currents through the stepper motor wires, extracts information such as steps, and speed, and transmits the data via Bluetooth BLE.
 
 2. **The Analyzer App** ('the app'). This is a Python program that runs on a Windows, MaC OSX, or Linux PC, and displays the stepper information in real time in a graphical view.
+
+The following block diagram shows how the device and the app related to the controller and stepper motor of an existing system such as a 3D printer. 
 
 <p align="center">
  System Block diagram<br>
@@ -52,16 +53,16 @@ The BLE Stepper Motor Analyzer ('the analyzer') is a low-cost, open source syste
 </p>
 
 ## Design Highlights
-* The device is passive and doesn't not interfere with the operation of the stepper motor, regardless if the device is in use or turned off.
-* Embedding the device in a 3D printer is simple. It has a small footprint, operates on 7-30 VDC, and uses a small external sticker antenna that overcomes shielding by the printer case.
-* The design is in the public domain (Creative Commons CC0) and can be used commercially.
-* The hardware design is low cost and devices can be ordered fully assembled from JLCPCB or similar services.
-* The device firmware can be updated by users using a standard USB cable, no other tools are required.
-* Each device has its own factory assigned address such that multiple devices can be used independently (e.g. one for each stepper motor in your printer).
-* Open BLE and Python APIs allows to write custom monitoring apps, including for mobile devices.
+* The device is passive and does not interfere with the operation of the stepper motor, regardless if it is in use or turned off. Furthermore, the stepper signals are galvanically isolated from the electronics.
+* Embedding the device in a 3D printer is simple. It has a small footprint, operates on 7-30 VDC, and can use a small external sticker antenna that overcomes shielding by the printer enclosure.
+* The design is in the public domain (Creative Commons CC0) and can be used also commercially. Attribution and code sharing are not required.
+* The device design is low cost and can be ordered fully assembled from JLCPCB or similar services.
+* The device firmware can upgraded by users using a standard USB cable, no tools or adapter required.
+* Each device has its fixed unique address such that multiple devices can be used and addressed independently (e.g. one for each stepper motor in your printer).
+* Open BLE and Python APIs supports custom monitoring apps, such as specialized analyzers or mobile apps.
 
 ## How does it work?
-The device contains two galvanic isolated current sensors that sense the currents through the two stepper coils. These values are measured 40,000 times a second and analysis firmware on the device extracts information such as step count, and motion speed. A Bluetooth BLE radio then transmits the data to the app which displays it in a graphical form.
+The device contains two galvanic isolated current sensors that sense the currents through the two stepper coils. These values are measured 40,000 times a second and firmware on the device analyzes them and extracts information such as step count, speed, and current patterns. A Bluetooth BLE radio then transmits the data to the app which displays it in a graphical form.
 
  <p align="center">
  Device Block diagram<br>
@@ -80,6 +81,7 @@ SOIC Module | ESP32-WROOM-32U-N4
 Current measurement | +/-2.5A per coil.
 PCB | 39mm x 43mm, two layers
 Antenna  | 2.4Ghz external antenna IPX IPEX connector.
+Simultaneous connections | 1 max.
 Current sensors | CC6920BSO-5A
 Zero calibration | Using onboard button.
 Count direction | User selected, 
@@ -89,7 +91,7 @@ Current accuracy | estimated at +/- 2%
 Max step rate | 5K full steps/sec.
 Step resolution | 1/100th of a full step.
 Firmware programming language | C++
-Firmware programming IDE | VSCode, Platformio, esdidf framework.
+Firmware programming IDE | VSCode, Platformio, ESPIDF framework.
 Firmware debugging | Via optional 10 pins JTAG connector.
 Electronic design tool | Kicad.
 Mechanical design tool | Onshape.
@@ -99,13 +101,13 @@ Open source license | Creative Commons CC0.
 
 ## Installing the device in your 3D printer
 
-1. 3D print a device carrier (STL models provided here) and attach the device to the carrier using two pieces of 3M VHB 1mm sticky tape or similar.
-2. Attach the device carrier to the 3D printer using and additional piece of 3M VHB tape.
+1. Print a device carrier using a 3D printer (STL model included here) and attach the device to the carrier using two pieces of 3M VHB 1mm sticky tape or similar.
+2. Attach the device carrier to the 3D printer using an additional piece of 3M VHB tape.
 3. Connect the external antenna and attach the antenna to the outside of the printer.
-4. Connect the motor driver and stepper motor to the two connectors as shown in the wiring diagram below. (It's OK to swap between the two stepper motor connectors, the device will work just the same).
-5. Connect 7-30VDC power to the VIN connector of the board and pay attention to the polarity. (Yes, dhe device does contain reverse polarity protection). 
-6. Leave the USB connector unconnected. The USB connector is not used during  normal operation of the device. It is intended for firmware flashing only.
-7. Your device installation is complete. You can use your 3D printer just as you did before, regardless if the analyzer app is active or not.
+4. Connect the motor driver and stepper motor to the two connectors as shown in the wiring diagram below. The two connectors form a path through path, such that one pair of adjacent pins are used for one coil and the other pair for the second coil.
+5. Connect 7-30VDC power to the VIN connector of the device. Pay attention to polarity, though the device will not get damaged by reverse polarity. 
+6. Do not connect anything to the USB connector. This connector is intended for firmware flashing only.
+7. The device installation is complete. You can use your 3D printer just as you did before, regardless if the analyzer app is active or not. To monitor the stepper while your printer is turned on, use the provided analyzer app on your Windows, Mac, or Linux PC as described below. 
 
 &nbsp;
 
@@ -116,29 +118,30 @@ Open source license | Creative Commons CC0.
 
 ## Using the Analyzer app.
 
-### Running the app using a provided binary
-The simplest way to run the analyzer app on your computer is to look for an  executable file for your system under the 'release' directory of this repository.  
+### Running the Analyzer app using a provided binary
+The simplest way to run the analyzer app on your computer is to look for an  executable file for your system under the 'release' directory in this repository. They also released as 'release.zip' file.
 
-> **_NOTE:_**  The single binary files are created from the app's Python code using the standard Pyinstaller tool. 
+> **_NOTE:_**  The single binary files are created from the app's Python code using the Pyinstaller tool and the scripts in the python/pyinstaller directory.
 
-### Running the app using the Python code
-If a single app binary is not available for your system, or if you prefer to run the Python code directly, you will first need to do a few preperation to satisfy the prerequisites of the Python code.
+### Running the Analyzer app using the Python source files
+If a single app binary is not available for your system, or if you prefer to run the Python code directly, you will first need to do a few preparation to satisfy the prerequisites of the Python code.
 
 1. Install Python on your computer. Prefer the latest stable version.
-2. Install the required python modules by running this command the 'app' directory:
+2. Clone the repository on your computer or download and extract the 'python.zip' release file.
+3. Install the required python modules by running this command the 'python' directory :
+   
 ```
 pip install -r requirements.txt
 ```
-3. Make sure that your analyzer device is powered on and start the app using the command
+4. Make sure that your analyzer device is powered on and start the app using the command
 
 ```
 python analyzer.py
 ```
-4. The app will start and try to find the device, and if found, will connect to it and display it's data on the screen. 
 
-> **_NOTE:_**  When the device is connected to an app, it will not be visible to other apps that start. The device will be available to a new connection only after the previous connection terminated and its heatbeat LED blinks slowly again once a second.
+> **_NOTE:_**  When the device is idle, its LED blink at a rate of about 1 blink per second. When connected to the app, it blink faster about 3 blinks per second. The app can connect to a device only when it's idle as indicated by the slower blink rate.
 
-### Understanding the app screen
+### Understanding the Analyzer app screen
 
 <p align="center">
   <img src="./www/annotated_app_screenshot.jpg"  />
@@ -146,54 +149,60 @@ python analyzer.py
 
 The apps screen contains the following graphs
 
-* [A]. A rolling chat with distance in steps. Updated 50 times a second.
+* [A]. A rolling chart with distance in steps. Updated 50 times a second.
 * [B]. A rolling chart with speed in steps/sec. Updated 50 times a second.
 * [C]. A rolling chart with stepper absolute current in Amps. Updated 50 times a second. The absolute current of a stepper is sqrt(A^2 + B^2) where A and B are the momentary currents of coils A, B respectively.
-* [D] A histogram of current vs speed, that shows how well the driver is able to maintain the stepper current at various speeds.
-* [E] A histogram that shows the time spent in each speed range.
-* [F] A histogram that shows the distance done in each speed range.
-* [G] A phase (Lissajous curve) graph that show the cleanliness of the sine/cosine signals the driver sends to the motor.
-* [H] An oscilloscope graph that shows current samples from the two coils. During stepper movement, they should look like sine/cosine waves. 
+* [D] A histogram of current vs speed that shows how well the driver is able to maintain the stepper current at various speeds. High coil inductance of low power voltage result in significant current level at higher speeds.
+* [E] A histogram that shows the relative time spent in each speed range.
+* [F] A histogram that shows the relative distance done in each speed range.
+* [G] A phase (Lissajous curve) graph that shows the 'cleanliness' of the sine/cosine current signals the driver sends to the motor.
+* [H] An oscilloscope graph that shows current samples from the two coils. During stepper movement in a constant speed, they should look like sine/cosine waves. 
 
-### App buttons
-The app contain the button listed below. Note that the buttons affect the app only and do not interfere with the operation of the motor.
+> **_NOTE:_**  In the oscilloscope graph, a single sine or cosine cycle represents 4 stepper full steps, as shown in the graph below.
+
+<p align="center">
+  <img src="./www/quadrants_plot.png" style="height: 300px;"/>
+</p>
+
+### The Analyzer app buttons
+The Analyzer app contain the button listed below. 
+
+> **_NOTE:_**  The buttons affect the app only and do not interfere with the operation of the motor.
 
 * **Toggle Dir** - Click to change the direction of step counting.
 * **Reset Data** - Click to clear the histograms and step count.
-* **Time Scale X** - Click to toggle through time ranges of the Phase and oscilloscope graphs [G] and [H]. Adjust it to have at least one full cycle.
-* **Pause** - Click to pause/resume the display. Useful to capture and examine data.
+* **Time Scale X** - Click to toggle the sampling time of the signals shown in the phase graph [G] and oscilloscope graph [H] to match the movement speed. As a rule of thumb, you want to have at least one full sine/cosine wave, with higher values for slower stepper movements.
+* **Pause** - Click to pause/resume the display. Useful examine interesting captured data.
 
-### Hidden app functionality
-The app is implemented using pyqggraph and as such provides additional functionality that is available by right-clicking the mouse over the graphs, or by interactive with the graphs using the mouse. For example, the right-click functionality can be used to export data or zoom the graphs.
+> **_NOTE:_** The graphs are implemented using pyqtgraph and thus provide additional functionality that is accessible by a right mouse click on the graphs.
 
-### App command line flags
 
-<i>--scan</i> The analyzer will scan for BLE devices for a few seconds, print a list with the devices it found and will exit. Note that this will print all BLE devices detected, not just analyzer's devices. You can identify analyzer devices by their names which look like <si>STP-0C8B95F2B436</i>.
+### Ananalyzer app command line flags
+
+**--scan** The analyzer will scan for BLE devices for a few seconds, print a list of  devices it found and exit. This intended for diagnostics. The stepper motor analyzer devices have names that look like <si>STP-0C8B95F2B436</i>.
 
 ```
 python analyzer.py --scan
 ```
 
 
-<i>--device</i> Instructs the analyzer to not search for available devices on startup and instead, connect to the given device directly.
+**--device** Instructs the analyzer to not search on start for available devices, and instead, connect to the device with given name directly.
 
 ```
 python analyzer.py --device "STP-0C8B95F2B436"
-
-python analyzer.py --device "0C:8B:95:F2:B4:36"
 ```
 
-<i>--device_nick_name</i> Specify a user friendly name of the stepper motor being monitor. This name is displayed at the top of the analyzer's app. 
+**--device_nickname** Specify a user friendly name of the stepper motor being monitor. This name will be displayed at the top of the analyzer's app. 
 ```
-python analyzer.py --device_nick_name "X Axis"
-```
-
-<i>--max-amps</i> If you monitor a low current stepper motor such as a 600ma extruder motor, you can use this flag to limit the range of the current display in the Phase and Oscilloscope graphs.
-```
-python analyzer.py --max_amps 0.8
+python analyzer.py --device_nickname "X Axis"
 ```
 
-<i>--units</i> The default units for stepper distance or rotation are full steps. You can use this flag to display other units such as mm, degrees, or mm^3. 
+**--max-amps** If you monitor a low current stepper motor such as a 600ma extruder motor, you can use this flag to limit the range of the current display in the Phase and Oscilloscope graphs, to zoom in on details.
+```
+python analyzer.py --max-amps 0.8
+```
+
+***--units*** The default units for stepper distance or rotation are full steps. You can use this flag to display other units such as mm, degrees, or extrusion mm^3. 
 ```
 python analyzer.py --units "mm"
 
@@ -202,46 +211,51 @@ python analyzer.py --units "degrees"
 python analyzer.py --units "mm^3"
 ```
 
-<i>--steps_per_unit</i> If you are using the <i>--units</i> flag, use this flag to specify the number of full motor steps that correspond to one unit. For example, if your extruder esteps is 540 micro steps per mm, with 16 microsteps per full step, specify the flags below:
+**--steps_per_unit** If you are using the **--units** flag, use this flag to specify the number of full motor steps that correspond to one unit. For example, if your extruder esteps value is 540 micro steps per mm, with 16 microsteps per full step, specify the flags below:
 ```
 python analyzer.py --units=mm --steps_per_unit 33.75
 ```
 
+## Updating the firmware
 
+To flash a firmware version follow these steps.
 
-
-## Flashing a firmware update
-
-**TBD** (using the esptool or ESP Web Tools, and the firmware provided here)
+1. Download the release.zip file of the desired release and extract it.
+2. Disconnect the power connector of the device and connect it to your computer using a USB cable.
+3. Run the flash script for your Windows, Mac or Linux computer. For example:
+```
+flash.bat
+```
+ 4. Verify that the the script completed with no errors and that the LED on the device is blinking at about one blink per second. The device with the new firmware is ready.
 
 ## Building your own device
 
-1. Order assembled boards (recommended), or just order bare PCBs and assemble the components yourself. Production files for JLCPCB PCB and SMT service are included in this repository.
+1. Order assembled boards (recommended), or just order bare PCBs and assemble the components yourself. Production files for JLCPCB PCB, including for the SMT service are included in this repository.
 2. Connect the device to a computer via a USB cable and notice that one LED turn on solid to indicate 3.3V power.
-3. Flash the device with firmware and make sure that the second LED blinks at 1 sec intervals to indicate the device is ready for connection from the app.
-3. Calibrate the current sensors for zero level  by long pressing the switch  until the third LED will blink 3 times to indicate that the calibration values were saved in the non volatile memory.
-4. Connect an antenna, start the analyzer app and verify that it connects successfully to the device. The LED on the device will blink faster to indicate an active connection.
-5. The device is now ready for installation in the 3D printer or for shipping to your customers.
+3. Flash the device with firmware as explained above.
+4. Calibrate the current sensors for zero level by long pressing the switch until the second LED will blink 3 times to indicate that the calibration values were saved in the non volatile memory.
+5. Connect an antenna, run an analyzer program as explain above and that you see some signals from the device. The LED on the device will blink faster to indicate an active connection.
+6. The device is now ready for installation in the 3D printer or for shipping to your customers.
 
 * **Schematic**: https://github.com/zapta/ble_stepper_motor_analyzer/blob/main/hardware/stepper_monitor.pdf
 * **JLCPCB production files**: https://github.com/zapta/ble_stepper_motor_analyzer/tree/main/hardware/JLCPCB
 
 
 
-> **_NOTE:_**  Resistor R16 acts as a jumper and allows to disconnect the 3.3V supply from the rest of the electronics. This is useful when testing a new batch of boards or when diagnosing faulty boards. 
+> **_NOTE:_**  Resistor R16 acts as a jumper and allows to disconnect the 3.3V supply from the rest of the electronics. This is useful when diagnosing power issues.
 
 ## Antenna selection
 
-The external antenna needs to satisfy these requirements:
-* Specified by the Bluetooth band of 2.4GHZ.
-* Having a connector that match the ESP32 WROOM module. The connector has several names including IPEX, U.FL, or MHF1, but it's easier to distinguish it by the wider body.
+The external antenna should  satisfy these requirements:
+* Specified for the Bluetooth band of 2.4GHZ.
+* Having a connector that match the ESP32 WROOM module. The connector has several names including IPEX, U.FL, or MHF1, but it's easier to distinguish it by its wider body.
 
 <p align="center">
   <img src="./www/connector.jpg" style="width: 180px;" />
 </p>
 
 <p align="center">
-  Inexpensive Aliexpress antennas.<br>
+  Inexpensive Aliexpress sticker antennas.<br>
   <img src="./www/sample_antenna.jpg" style="width: 200px;" />
 </p>
 
@@ -265,22 +279,22 @@ This list below outlines the steps to set up your own firmware development envir
 1. Install Visual Studio Code (VSC).
 2. In Visual Studio Code, enable the <i>platformio</i> extension.
 3. Download or clone this git repository on your computer.
-4. In VSC, select <i>File | Open Folder</i> and select the 'firmware' directory.
-5. Connect a device to your computer using a USB cable. This will create a serial port on your compute.
+4. In VSC, select <i>File | Open Folder</i> and select the 'platformio' directory.
+5. Connect a device to your computer using a USB cable. This will create a serial port on your computer.
 6. Click on the platformio <i>Upload</i> icon at the bottom of the screen (right arrow icon) and platformio will automatically install all the dependencies, build the project, and upload it to your device via the serial port.  
 7. For more information on how to use platformio, check http://platformio.org.
 
 > **_NOTE:_**  For optional hardware debugging (breakpoints, single step, etc), you will need an Espressif ESP-Prog Development Board, and to solder on your device a 10 pins JTAG connector.
 
-> **_NOTE:_** It's OK to connect a stepper motor to the device while you develope code since the stepper signals are galvanically isolated from the USB interface.
+> **_NOTE:_** It's OK to connect a stepper motor to the device while you develope code since the stepper signals are galvanically isolated from the USB interface and from your computer.
 
-> **_NOTE:_** It is recommended to not connect VIN and the USB connectors to the device at the same time to avoid ground loop, in case both the VIN power supply and your computer are grounded independently.
+> **_NOTE:_** It is recommended to not connect VIN and the USB connectors at the same time to avoid ground loop, in case both the Vin power supply and your computer are grounded independently.
 
 
 
-## App development
+## Analyzer App development
 
-The Analyzer's Python app is stored in the 'app' directory. It's available as source code so can be modified like any other Python program.  The app is based on Bleak (BLE client) PyQtGraph (a graphing library) and uses asyncio to satisfy Bleak's requirements. The list of requires modules is available in requirements.txt and can be installed using the command
+The Analyzer's Python app is stored in the 'python/analyzer' directory and uses a library at python/common. The app is based on Bleak (BLE client) PyQtGraph (a graphing library) and uses asyncio for non blocking background operation. The list of requires python modules is in requirements.txt and they can be installed using the command
 
 ```
 pip install -r requirements.txt
@@ -290,20 +304,19 @@ pip install -r requirements.txt
 
 **Q**: This is an exciting project, can I help?
 
-A: Of course. Course, we are looking forward for contribution of code, documentation and any other technical contribution from the community. For example, a cleanup of this document, or a new app for mobile devices, or anything else you  can think of.
+A: Of course, contribution of code, documentation, test programs or ideas are welcome.
 
 ---
 
 **Q**: I want to monitor multiple motors in my 3D printer. Is it possible?
 
-**A**: Of course. Simply install a a device for each stepper motor you want to monitor.
+**A**: Of course. Simply install a device for each stepper motor you want to monitor. 
 
 ---
 
 **Q**: I am using multiple devices, how can I select which one I connect to? 
 
-**A**: Each devices has a factory set unique address that looks like <i>0C:8B:95:F2:B4:36</i>. When you run the analyzer
-app, you can specify the address of the device you want to monitor by adding a command line flag such as <i>-d 0C:8B:95:F2:B4:36</i>
+**A**: Each device has a fixed unique name such STP-0C8B95F2B436. When you run the analyzer app, it will allow you to select a device, if more than one are available, or you can use the --device flag to force a specific device.
 
 ---
 
@@ -315,18 +328,18 @@ app, you can specify the address of the device you want to monitor by adding a c
 
 **Q**: This system can be a great idea for a Crowd Compute campaign. Can I do that? 
 
-**A**: Of course. The design is in public domain and commercial usages are encouraged. Attribution and sharing any changes you make are not required. 
+**A**: Of course. The design is in public domain and commercial usages are encouraged. Attribution and sharing of modification you make are not required. 
 
 ---
 
 **Q**: Do you sell boards? 
 
-**A**: We may make a limited numbers of boards available from time to time, but believe that others can do a better job mass producing it and making it available to the community.
+**A**: We may produce a limited numbers of boards from time to time, but we also believe that others can do a better job job of mass producing and making it available to the community.
 
 ---
 
 **Q**: Can the external antenna be eliminated to simplify installation and reduce cost? 
 
-**A**: Yes. We believe that the ESP module ESP32-WROOM-32D-N4 which uses an internal antenna should be a drop-in replacement though we did not tested it.
+**A**: Yes. We believe that the ESP module ESP32-WROOM-32D-N4 which uses an internal antenna should be a drop-in replacement though we did not have the chance yet to test it.
 
 ---
