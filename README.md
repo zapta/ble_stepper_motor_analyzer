@@ -179,6 +179,8 @@ The Analyzer app contain the button listed below.
 
 ### Ananalyzer app command line flags
 
+**--help** Prints a list with the available flags.
+
 **--scan** The analyzer will scan for BLE devices for a few seconds, print a list of  devices it found and exit. This intended for diagnostics. The stepper motor analyzer devices have names that look like <si>STP-0C8B95F2B436</i>.
 
 ```
