@@ -83,7 +83,7 @@ Current measurement | +/-2.5A per coil.
 PCB | 39mm x 43mm, two layers
 Antenna  | 2.4Ghz external antenna IPX IPEX connector.
 Simultaneous connections | 1 max.
-Protocol | BLE 4.1 with Data Length Extension feature.
+Protocol | BLE 4.1 or higher with Data Length Extension feature.
 Current sensors | CC6920BSO-5A
 Zero calibration | Using onboard button.
 Count direction | User selected, 
