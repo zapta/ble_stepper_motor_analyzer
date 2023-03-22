@@ -60,8 +60,8 @@ parser.add_argument("--device",
                     help="Optional, the name of the device to connect to.")
 
 # The device name is an arbitrary string such as "Extruder 1".
-parser.add_argument("--device-nick-name",
-                    dest="device_nick_name",
+parser.add_argument("--device-nickname",
+                    dest="device_nickname",
                     default=None,
                     help="Optional nickname for the device, e.g. 'My Device'")
 
@@ -150,8 +150,8 @@ win_height = 700
 win = pyqtgraph.GraphicsLayoutWidget(show=True, size=[win_width, win_height])
 # title = f"BLE Stepper Motor Analyzer [{device_address}]"
 title = f"BLE Stepper Motor Analyzer [{probe.name()}]"
-if args.device_nick_name:
-    title += f" [{args.device_nick_name}]"
+if args.device_nickname:
+    title += f" [{args.device_nickname}]"
 win.setWindowTitle(title)
 
 # Layout class doc: https://doc.qt.io/qt-5/qgraphicsgridlayout.html
