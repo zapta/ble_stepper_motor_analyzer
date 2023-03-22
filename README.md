@@ -25,7 +25,7 @@
     - [Running the Analyzer app using the Python source files](#running-the-analyzer-app-using-the-python-source-files)
     - [Understanding the Analyzer app screen](#understanding-the-analyzer-app-screen)
     - [The Analyzer app buttons](#the-analyzer-app-buttons)
-    - [Ananalyzer app command line flags](#ananalyzer-app-command-line-flags)
+    - [Analyzer app command line flags](#analyzer-app-command-line-flags)
   - [Updating the firmware](#updating-the-firmware)
   - [Building your own device](#building-your-own-device)
   - [Antenna selection](#antenna-selection)
@@ -177,7 +177,7 @@ The Analyzer app contain the button listed below.
 > **_NOTE:_** The graphs are implemented using pyqtgraph and thus provide additional functionality that is accessible by a right mouse click on the graphs.
 
 
-### Ananalyzer app command line flags
+### Analyzer app command line flags
 
 **--help** Prints a list with the available flags.
 
