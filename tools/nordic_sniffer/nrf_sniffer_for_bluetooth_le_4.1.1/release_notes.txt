@@ -1,0 +1,162 @@
+Version 4.1.1:
+
+This is a bugfix release for compatibility with Wireshark 4.0.0.
+
+Bug fixes:
+    - Fixed an issue in Wireshark 4.0.0 termination handling of the sniffer extcap executable.
+    - Fixed an issue with the sniffer crashing on MacOS 12.x.
+    - Fixed an issue with receiving non-connectable directed advertising packets.
+
+Version 4.1.0:
+This release adds support for following privacy-enabled advertisers and periodic advertisers.
+It also improves recovery and stability of following an encrypted connection.
+Recommended Wireshark 3.4.7 or later.
+
+New features:
+    - Added support for following a periodic advertiser.
+    - Added support for following chained auxiliary advertising data.
+    - Added support for the nRF52833 DK.
+    - Added support for decrypting retransmitted packets.
+    - Added support for following a privacy-enabled advertiser.
+    - Added support for following an LE address from user input.
+    - Added support for using the nRF USB for serial communication (nRF52840 DK and nRF52833 DK).
+
+Bug fixes:
+    - Fixed not being able to receive advertising packets larger than 251 bytes.
+    - Fixed crash on nrf51 boards.
+    - Fixed SnifferAPI not handling POSIX errors during sniffer discovery.
+    - Fixed crash in creating a lock file for a port that failed to open on Linux.
+    - Fixed packets with CRC errors causing failure to decrypt an encrypted connection.
+
+Changes:
+    - Faster and more robust recovery when packets are lost in an encrypted connection.
+    - Report auxiliary advertising packets received with CRC errors.
+    - Removed dependency on external 32KHz crystal in all boards.
+
+Version 4.0.0:
+
+Summary:
+This release updates to use version 3 of the sniffer UART protocol which supports new Bluetooth packet formats.
+Recommended Wireshark 3.4.1 or later.
+
+New features:
+    - Added support for input of DH Private Key used in LE Secure Connections pairing
+    - Added support for input of LTK used in LE Secure Connections pairing.
+    - Added support for input of LTK used in Legacy pairing.
+    - Added support for LE Coded PHY in connections (nrf52840dk_nrf52840 and nrf52840dongle_nrf52840).
+    - Added support for Extended Advertising.
+    - Added support for scanning and following advertisers on LE Coded PHY.
+
+Changes:
+    - Time delta field has been changed to a Timestamp field.
+    - Advertising and connected packets no longer share the same packet ID.
+      Could only be distinguished earlier by inspecting the Access Address of the packet.
+
+Bug fixes:
+    - Fix advertisers with '0' character in advertising name truncating the device list entry.
+    - Fix firmware processing LL control and SMP PDUs with CRC errors as valid.
+
+Version 3.1.0:
+
+This release adds support for the nRF52840 Dongle.
+
+Removed features:
+    - Removed support for PCA10000 board.
+    - Removed support for PCA10001 board.
+
+New features:
+    - Added support for nrf52840dongle_nrf52840 (PCA10059) board.
+
+Changes:
+    - Renamed PCA10028 board to nrf51dk_nrf51422.
+    - Renamed PCA10031 board to nrf51dongle_nrf51422.
+    - Renamed PCA10040 board to nrf52dk_nrf52832.
+    - Renamed PCA10056 board to nrf52840dk_nrf52840.
+
+Bug fixes:
+    - Fix unable to decrypt when re-encrypting a connection using LE secure connection LTK if one of the devices is
+      privacy-enabled and has cycled its resolvable private address.
+
+Version 3.0.0:
+
+This release switches the required Python runtime from 2.7 to 3.5 and above.
+Make sure you have installed Python 3 in order to use this release.
+
+New features:
+    - All Python code has been ported to Python 3 and is no longer compatible
+      with Python 2
+
+Bug fixes:
+    - Fix unstable behavior on Windows (coupled with Wireshark 3.0.7 and above)
+    - Fix incorrect session key calculated when ENC_RSP and START_ENC_REQ was sent in same connection event.
+
+Version 2.0.0:
+
+This release adds support for following an LE secure encrypted connection when the Security Manager
+of any of the devices has been placed in Debug mode. It also makes improvements to the UART implementation in
+order to increase the throughput between the sniffer board and the host.
+
+Deprecated features:
+    - The version 2.0.0 sniffer firmware is not compatible with older host implementations due to a change in UART baudrate.
+
+New features:
+    - Support for following a connection using Security Manager defined debug public and private key
+      pair, only one side (initiator or responder) needs to be set in Debug mode.
+    - The firmware UART baudrate has been updated to 1M on all firmware versions.
+    - The nRF52 UART implementation was moved to UARTE for increased efficiency and throughput.
+    - Increased UART buffer size in the firmware leads to better tolerance for bursts of traffic in BLE connections.
+    - Improved sniffer auto-detection should make Wireshark launch quicker and adds support for old and new firmwares.
+
+Bug fixes:
+    - Improved stability in finding connection request packets.
+    - Fixed issue where sniffer was not able to decrypt packets when using Data Length Update.
+    - Improved recovery when packets are lost in an encrypted connection.
+    - Fixed a firmware bug where packets with a corrupted length field could lead to an invalid state
+    - Fixed a host bug where the Sniffer would not be garbage collected due to a cyclic reference
+    - Fixed a host bug where the PacketReader would wait for the full byte timeout before shutting down
+    - Fixed a host bug where some packets would be discarded due to a read timeout
+    - Added workraround for errata 102, 106 and 107 for all nRF52 devices
+
+
+Version 2.0.0-beta-3:
+
+Bugfix release to fix the the sniffing for DLE and 2Mbit PHY
+    - Bugfix for Data Length Update procedure and 2Mbit PHY (PCA10040 only, requires Wireshark version 2.4.6 or
+      newer)
+
+Version 2.0.0-beta-2:
+
+Summary:
+This release updates to use version 2 of the sniffer UART protocol which supports UART packets
+larger than 256 bytes.
+
+New features:
+    - Support for v2 of sniffer UART protocol. SnifferAPI supports firmware v1 sniffer UART
+      protocol.
+    - Support for Data Length Update procedure (PCA10040 only, requires Wireshark version 2.4.6 or
+      newer)
+
+Bug fixes:
+    - Improved UART stability.
+
+Version 2.0.0-b1:
+
+Summary:
+This release replaces the old nRF Sniffer.exe control window used for sending
+commands to the sniffer hardware. This functionality is now moved to Wireshark.
+
+As a result of this, nrf_sniffer now supports all platforms supported by
+Wireshark (Windows, Linux, OSX).
+
+The supported hardware has also been updated to PCA10028, PCA10031 and PCA10040.
+Note that PCA10040 uses nRF52 while the others uses nRF51.
+
+Deprecated features:
+    - nRF_Sniffer.exe application (replaced with support in Wireshark)
+
+New features:
+    - Support for nRF52 (PCA10040).
+    - Support for 2mbit mode (PCA10040 only, Requires Wireshark version 2.4.2 or newer).
+
+Known issues:
+    - Several lost packets is reported when starting the sniffer.
