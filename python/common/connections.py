@@ -18,19 +18,42 @@ def atexit_handler(_probe, _event_loop):
         print("atexit: Not connected", flush=True)
 
 
+def scan_tuple_sort_key(tuple):
+    # Tuple is [name, nickname]
+    return [tuple[1], tuple[2], tuple[0]]
+
+
 async def scan_and_dump():
     print("Scanning 5 secs for advertising BLE devices ...", flush=True)
     devices = await BleakScanner.discover(return_adv=True, timeout=5)
-    i = 0
+    if not devices:
+        print("No BLE devices found", flush=True)
+    tuples = []
+    max_address_len = 7
+    max_name_len = 4
+    max_nickname_len = 8
     for device, adv in devices.values():
-        i += 1
         name, nickname = ble_util.extract_device_name_and_nickname(adv)
-        print(f"{i:2} device address: {device.address}  ({name}) ({nickname})", flush=True)
-        # print(f"Adv data: {adv}\n", flush=True)
+        tuples.append([device.address, name, nickname])
+        max_address_len = max(max_address_len, len(device.address))
+        max_name_len = max(max_name_len, len(name))
+        max_nickname_len = max(max_nickname_len, len(nickname))
+
+    tuples.sort(key=scan_tuple_sort_key)
+
+    print(
+        f"\n{' #':2}  {'ADDRESS':{max_address_len}}   {'NAME':{max_name_len}}   {'NICKNAME':{max_nickname_len}}",
+        flush=True)
+    print("-" * (10 + max_address_len + max_name_len + max_nickname_len))
+    i = 0
+    for tuple in tuples:
+        i += 1
+        print(
+            f"{i:2}  {tuple[0]:{max_address_len}}   {tuple[1]:{max_name_len}}   {tuple[2]:{max_nickname_len}}",
+            flush=True)
 
 
-
-def device_tuple_sort_key(tuple):
+def device_select_tuple_sort_key(tuple):
     # Tuple is [name, nickname]
     return tuple[0]
 
@@ -55,7 +78,7 @@ async def select_device_name():
 
     # Sort for a deterministic order. Here all the devices
     # have proper STP-xxx names.
-    candidates_devices.sort(key=device_tuple_sort_key)
+    candidates_devices.sort(key=device_select_tuple_sort_key)
 
     while True:
         print("\n-----", flush=True)
