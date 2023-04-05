@@ -12,17 +12,14 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "io/io.h"
+#include "misc/efuses.h"
 #include "misc/elapsed.h"
 #include "misc/util.h"
-#include "misc/efuses.h"
 #include "settings/controls.h"
 #include "settings/nvs_config.h"
 #include "tools/enum_code_gen.h"
 
 static constexpr auto TAG = "main";
-
-static const analyzer::Settings kDefaultSettings = {
-    .offset1 = 1800, .offset2 = 1800, .is_reverse_direction = false};
 
 static analyzer::State state;
 
@@ -78,20 +75,20 @@ static void setup() {
   // Init nvs. Used also by ble_host.
   util::nvs_init();
 
-  // Fetch settings.
-  analyzer::Settings settings;
+  // Fetch acquisition settings.
+  nvs_config::AcquistionSettings settings;
   if (!nvs_config::read_acquisition_settings(&settings)) {
-    ESP_LOGE(TAG, "Failed to read settings, will use default.");
-    settings = kDefaultSettings;
+    ESP_LOGE(TAG, "Failed to read acquisition settings, will use default.");
+    settings = nvs_config::kDefaultAcquisitionSettings;
   }
-  ESP_LOGI(TAG, "Settings: %d, %d, %d", settings.offset1, settings.offset2,
-      settings.is_reverse_direction);
+  ESP_LOGI(TAG, "Acqusition settings: %d, %d, %d", settings.offset1,
+      settings.offset2, settings.is_reverse_direction);
 
   // Init acquisition.
   analyzer::setup(settings);
   adc_task::setup();
 
-  // Determine the confiuration to pass to ble host.
+  // Determine the hardware confiuration to pass to ble host.
   const uint8_t hardware_config = io::read_hardware_config();
   ESP_LOGI(TAG, "Hardware config: %hhu", hardware_config);
   const uint16_t adc_ticks_per_amp =

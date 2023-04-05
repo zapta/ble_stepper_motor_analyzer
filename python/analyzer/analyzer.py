@@ -28,6 +28,7 @@ if True:
     from common.probe_state import ProbeState
     from common.time_histogram import TimeHistogram
     from common import connections
+    from common import ble_util
 
 # NOTE: Color names list here https://matplotlib.org/stable/gallery/color/named_colors.html
 
@@ -57,13 +58,12 @@ parser.add_argument('--scan',
 parser.add_argument("--device",
                     dest="device",
                     default=None,
-                    help="Optional, the name of the device to connect to.")
+                    help="Optional, the name or nickname of the device to connect to.")
 
-# The device name is an arbitrary string such as "Extruder 1".
-parser.add_argument("--device-nickname",
-                    dest="device_nickname",
+parser.add_argument("--set-nickname",
+                    dest="set_nickname",
                     default=None,
-                    help="Optional nickname for the device, e.g. 'My Device'")
+                    help="If true, update the device to have the given nickname and exit.'")
 
 parser.add_argument("--max-amps",
                     dest="max_amps",
@@ -133,6 +133,21 @@ if args.scan:
 # Connect to the probe.
 logging.basicConfig(level=logging.INFO)
 probe = main_event_loop.run_until_complete(connections.connect_to_probe(args.device))
+if not probe:
+    # NOTE: Error message already been printed by connect_to_probe().
+    sys.exit()
+
+if args.set_nickname is not None :
+    # NOTE: Writing an empty nickname is equivalent to deleting it.
+    if not ble_util.is_valid_nickname(args.set_nickname, empty_ok=True):
+        sys.exit(f"Invalid --set-nickname value: [{args.set_nickname}].", flush=True)
+    main_event_loop.run_until_complete(probe.write_command_set_nickname(args.set_nickname))
+    # Keep the event loop busy for a little bit, to let the command complete.
+    # TODO: Is there a cleaner way?  See https://github.com/hbldh/bleak/discussions/1274
+    for i in range(1000):
+        main_event_loop.run_until_complete(do_nothing())
+        time.sleep(0.001)
+    sys.exit(f"\nDevice updated with nickname [{args.set_nickname}].")
 
 # An object that tracks the incremental fetch of the capture
 # signal. We don't perform all of them at once to avoid choppy
@@ -150,8 +165,9 @@ win_height = 700
 win = pyqtgraph.GraphicsLayoutWidget(show=True, size=[win_width, win_height])
 # title = f"BLE Stepper Motor Analyzer [{device_address}]"
 title = f"BLE Stepper Motor Analyzer [{probe.name()}]"
-if args.device_nickname:
-    title += f" [{args.device_nickname}]"
+# if args.device_nickname:
+if probe.nickname():
+    title += f" [{probe.nickname()}]"
 win.setWindowTitle(title)
 
 # Layout class doc: https://doc.qt.io/qt-5/qgraphicsgridlayout.html

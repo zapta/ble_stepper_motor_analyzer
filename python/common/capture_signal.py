@@ -3,7 +3,7 @@
 from __future__ import annotations
 import logging
 from typing import List
-from .probe_info import ProbeInfo
+from common.probe_info import ProbeInfo
 
 logger = logging.getLogger(__name__)
 

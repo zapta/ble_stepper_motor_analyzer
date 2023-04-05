@@ -8,20 +8,9 @@
 
 #include "acq_consts.h"
 #include "misc/circular_buffer.h"
+#include "settings/nvs_config.h"
 
 namespace analyzer {
-
-// This is set in the Settings page.
-struct Settings {
-  // Offsets to substract from the ADC readings to have zero reading
-  // when the current is zero.
-  // Typically around ~1900 which represents ~1.5V from the current
-  // sensors.
-  int16_t offset1;
-  int16_t offset2;
-  // If true, reverse interpretation of forward/backward movement.
-  bool is_reverse_direction;
-};
 
 // Number of pairs of ADC readings to capture for the signal
 // capture page. The capture logic try to sync a ch1 up crossing
@@ -181,7 +170,7 @@ void dump_adc_capture_buffer(const AdcCaptureBuffer& adc_capture_buffer);
 
 // Called once during program initialization, before enabling
 // ADC interrupts.
-void setup(const Settings& settings);
+void setup(const nvs_config::AcquistionSettings& settings);
 
 void get_last_capture_snapshot(AdcCaptureBuffer* buffer);
 
@@ -225,6 +214,6 @@ void set_signal_capture_divider(uint8_t divider);
 // Return a copy of the internal settings. Used after
 // calibrate_zeros() to save the current settings in the
 // EEPROM.
-void get_settings(Settings* settings);
+void get_settings(nvs_config::AcquistionSettings* settings);
 
 }  // namespace analyzer

@@ -271,7 +271,9 @@ void set_signal_capture_divider(uint8_t divider) {
   ESP_LOGI(TAG, "Signal capture divider set to %hu", divider);
 }
 
-void get_settings(Settings* settings) {
+void get_settings(nvs_config::AcquistionSettings* settings) {
+  // A weak check that new fields where not added to settings.
+  static_assert(sizeof(sizeof(*settings) == 6)); 
   ENTER_MUTEX {
     settings->offset1 = isr_data.offset1;
     settings->offset2 = isr_data.offset2;
@@ -569,7 +571,7 @@ static int clip_offset(int requested_offset) {
 
 // Call once on program initialization, before ADC interrupts are
 // enabled.
-void setup(const Settings& settings) {
+void setup(const nvs_config::AcquistionSettings& settings) {
   data_mutex = xSemaphoreCreateMutex();
   assert(data_mutex);
 

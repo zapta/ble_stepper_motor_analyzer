@@ -5,8 +5,8 @@ import re
 import sys
 
 from bleak import BleakScanner
-
-from .probe import Probe
+from common.probe import Probe
+from common import ble_util
 
 
 def atexit_handler(_probe, _event_loop):
@@ -20,27 +20,30 @@ def atexit_handler(_probe, _event_loop):
 
 async def scan_and_dump():
     print("Scanning 5 secs for advertising BLE devices ...", flush=True)
-    devices = await BleakScanner.discover(timeout=5)
+    devices = await BleakScanner.discover(return_adv=True, timeout=5)
     i = 0
-    for device in devices:
+    for device, adv in devices.values():
         i += 1
-        # print(device, flush=True)
-        name = device.name or ""
-        print(f"{i:2} device address: {device.address}  ({name})", flush=True)
+        name, nickname = ble_util.extract_device_name_and_nickname(adv)
+        print(f"{i:2} device address: {device.address}  ({name}) ({nickname})", flush=True)
+        # print(f"Adv data: {adv}\n", flush=True)
 
 
-def get_device_key(device):
-    return device.name
+
+def device_tuple_sort_key(tuple):
+    # Tuple is [name, nickname]
+    return tuple[0]
 
 
 async def select_device_name():
     print("Scanning 5 secs for advertising BLE devices ...", flush=True)
-    all_devices = await BleakScanner.discover(timeout=5)
+    all_devices = await BleakScanner.discover(return_adv=True, timeout=5)
     candidates_devices = []
-    for device in all_devices:
-        name = device.name or ""
+    for device, adv in all_devices.values():
+        name, nickname = ble_util.extract_device_name_and_nickname(adv)
+        # TODO: Use full name validation regex
         if name.startswith("STP-"):
-            candidates_devices.append(device)
+            candidates_devices.append([name, nickname])
 
     if len(candidates_devices) == 0:
         sys.exit("No idle STP device found.")
@@ -48,18 +51,19 @@ async def select_device_name():
 
     if len(candidates_devices) == 1:
         print(f"Found a single STP device: {candidates_devices[0].name}  ", flush=True)
-        return candidates_devices[0].name
+        return candidates_devices[0][0]
 
     # Sort for a deterministic order. Here all the devices
     # have proper STP-xxx names.
-    candidates_devices.sort(key=get_device_key)
+    candidates_devices.sort(key=device_tuple_sort_key)
 
     while True:
         print("\n-----", flush=True)
         i = 0
+        # Device is a tuple of [name, nickname]
         for device in candidates_devices:
             i += 1
-            print(f"\n{i}. {device.name}", flush=True)
+            print(f"\n{i}. {device[0]}  {device[1]}", flush=True)
 
         ok = False
         try:
@@ -72,23 +76,12 @@ async def select_device_name():
             pass
 
         if ok:
-            return candidates_devices[num - 1].name
+            return candidates_devices[num - 1][0]
 
 
 async def connect_to_probe(device_name):
-    """device_spec is device address or name"""
-
-    if device_name:
-        name_match = re.search(
-            "^STP-([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})"
-            "([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})$", device_name)
-
-        if not name_match:
-            sys.exit(f"Invalid device name: {device_name}. Aborting.")
-
-    else:
+    if not device_name:
         device_name = await select_device_name()
-
     print(f"Trying to connect to device [{device_name}]...", flush=True)
     probe = await Probe.find_by_name(device_name, timeout=5)
     if not probe:

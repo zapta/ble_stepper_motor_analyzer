@@ -10,20 +10,24 @@ from typing import Callable, Optional
 from bleak import BleakClient, BleakScanner
 from bleak.backends.service import BleakGATTCharacteristic, BleakGATTService
 
-from .current_histogram import CurrentHistogram
-from .distance_histogram import DistanceHistogram
-from .probe_info import ProbeInfo
-from .probe_state import ProbeState
-from .time_histogram import TimeHistogram
+from common import ble_util
+
+from common.current_histogram import CurrentHistogram
+from common.distance_histogram import DistanceHistogram
+from common.probe_info import ProbeInfo
+from common.probe_state import ProbeState
+from common.time_histogram import TimeHistogram
 
 logger = logging.getLogger(__name__)
 
 
+
 class Probe:
 
-    def __init__(self, client: BleakClient, name: str):
+    def __init__(self, client: BleakClient, name: str, nickname: str):
         self.__client = client
         self.__name = name
+        self.__nickname = nickname
         self.__probe_info = None
         self.__stepper_state_chrc = None
         self.__stepper_current_histogram_chrc = None
@@ -42,6 +46,10 @@ class Probe:
     # Get device name.
     def name(self) -> str:
         return self.__name
+    
+    # Get device nickname. Optional, may be empty.
+    def nickname(self) -> str:
+        return self.__nickname
 
     # Get chached device info.
 
@@ -87,19 +95,40 @@ class Probe:
         val_bytes = await self.__client.read_gatt_char(chrc)
         return val_bytes
 
-    # The BLE device may need up to 30 secs to recover from a previous connectiion
-    # and start advertising again so we use timeout of 45 secs to make sure we
-    # wait for it to recover.
+    device_advertisement_data = None
+
     @classmethod
-    async def find_by_name(cls, device_name, timeout):
+    def find_by_name_lambda(cls, advertisement_data, device_name):
+        """A callback for find_by_name(), matches the device name/nickname."""
+        global device_advertisement_data
+        # Not a probe device or waiting for second adv packet.
+        if not ble_util.is_adv_complete(advertisement_data):
+            return False
+        name, nickname = ble_util.extract_device_name_and_nickname(advertisement_data)
+        # Since bleak can call this callback before the second ad packet with the
+        # nickname is available, we require that bot name and nickname exist.
+        device_match =  name == device_name or nickname == device_name
+        if device_match:
+            device_advertisement_data = advertisement_data
+        return device_match
+
+ 
+    @classmethod
+    async def find_by_name(cls, requested_device_name, timeout):
+        """Find a device by its full name or its nickname"""
+        global device_advertisement_data
+        device_advertisement_data = None
         device = await BleakScanner.find_device_by_filter(
-            lambda d, ad: ad.local_name == device_name, timeout=timeout)
+            lambda device, advertisement_data: Probe.find_by_name_lambda(
+                advertisement_data, requested_device_name),
+            timeout=timeout)
         if not device:
-            logger.error(f"Device {device_name} not found.")
+            logger.error(f"Device {requested_device_name} not found.")
             return None
-        logger.info(f"Found device {device_name} at address {device.address}")
+        device_name, device_nickname = ble_util.extract_device_name_and_nickname(device_advertisement_data)
+        logger.info(f"Found device {device_name} ({device_nickname}) at address {device.address}")
         client = BleakClient(device)
-        probe = Probe(client, device_name)
+        probe = Probe(client, device_name, device_nickname)
         return probe
 
     def is_connected(self) -> bool:
@@ -271,6 +300,16 @@ class Probe:
             return
         # print(f"Conn wdt command {secs} secs", flush=True)
         await self.__client.write_gatt_char(self.__stepper_command_chrc, bytearray([0x06, secs]))
+
+    async def write_command_set_nickname(self, nickname):
+        if not self.is_connected():
+            logger.error(f"Not connected (write_command_set_nickname).")
+            return
+        str_bytes = nickname.encode()
+        str_len = len(str_bytes)
+        cmd_bytes = bytearray([0x07, str_len]) + str_bytes
+        # print(f"cmd_bytes: {cmd_bytes}")
+        await self.__client.write_gatt_char(self.__stepper_command_chrc, cmd_bytes)
 
     async def read_next_capture_signal_packet(self) -> Optional[bytearray]:
         if not self.is_connected():

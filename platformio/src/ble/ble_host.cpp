@@ -79,9 +79,9 @@ static esp_ble_adv_data_t adv_data = {
                              // max_interval * 1.25 msec
     .appearance = 0x00,
     .manufacturer_len = 0,
-    .p_manufacturer_data = NULL,
+    .p_manufacturer_data = nullptr,
     .service_data_len = 0,
-    .p_service_data = NULL,
+    .p_service_data = nullptr,
     .service_uuid_len = 0,
     .p_service_uuid = nullptr,
     .flag = (ESP_BLE_ADV_FLAG_GEN_DISC | ESP_BLE_ADV_FLAG_BREDR_NOT_SPT),
@@ -95,12 +95,13 @@ static esp_ble_adv_data_t scan_rsp_data = {
     .min_interval = 0x0006,
     .max_interval = 0x0010,
     .appearance = 0x00,
+    // Manufacturer len/data is set later with device nickname.
     .manufacturer_len = 0,
-    .p_manufacturer_data = NULL,
+    .p_manufacturer_data = nullptr,
     .service_data_len = 0,
-    .p_service_data = NULL,
-    .service_uuid_len = sizeof(service_uuid),
-    .p_service_uuid = const_cast<uint8_t*>(service_uuid),
+    .p_service_data = nullptr,
+    .service_uuid_len = 0,
+    .p_service_uuid = nullptr,
     .flag = (ESP_BLE_ADV_FLAG_GEN_DISC | ESP_BLE_ADV_FLAG_BREDR_NOT_SPT),
 };
 
@@ -122,6 +123,10 @@ struct Vars {
   bool adv_data_configured = false;
   bool scan_rsp_configured = false;
   uint16_t adc_ticks_per_amp = 0;
+  // Contains the advertised manufacturer data with the device nickname.
+  // This is set later at runtime
+  uint8_t manufacturer_data[20] = {0};
+  uint16_t manufacturer_data_len = 0;
   uint16_t conn_mtu = 0;
   analyzer::State stepper_state_buffer = {};
   analyzer::Histogram histogram_buffer = {};
@@ -685,7 +690,7 @@ static esp_gatt_status_t on_command_write(
       ESP_LOGI(TAG, "Sensors zero calibrated.");
       return ESP_GATT_OK;
 
-      // Command = wdt timer.
+    // Command = wdt timer.
     case 0x06: {
       if (len != 2) {
         ESP_LOGE(TAG, "WDT command wrong length : %hu", len);
@@ -696,6 +701,43 @@ static esp_gatt_status_t on_command_write(
         protected_vars.conn_wdt_timestamp_millis = util::time_ms();
       }
       EXIT_MUTEX
+
+      // ESP_LOGI(TAG, "Conn WDT reset (%hhu secs)", data[1]);
+      return ESP_GATT_OK;
+    }
+
+      // Command = set nickname.
+    case 0x07: {
+      ESP_LOGI(TAG, "Cmd 0x07");
+
+      if (len < 2) {
+        ESP_LOGE(TAG, "Set nickname command wrong length : %hu", len);
+        return ESP_GATT_INVALID_ATTR_LEN;
+      }
+
+      const uint8_t str_len = data[1];
+
+      // For now settings has a single field so we don't need to read the
+      // other fields from nvs.
+      nvs_config::BleSettings settings = {0};
+      if (str_len >= sizeof(settings.nickname) || 2 + str_len > len) {
+        ESP_LOGE(TAG, "Set nickname command wrong string length : %hhu (%d)",
+            str_len, len);
+        return ESP_GATT_INVALID_ATTR_LEN;
+      }
+
+      memcpy(settings.nickname, &data[2], str_len);
+      settings.nickname[str_len] = '\0';
+      ESP_LOGI(TAG, "Setting nickname: [%s]", settings.nickname);
+      if (!nvs_config::write_ble_settings(settings)) {
+        ESP_LOGE(TAG, "Set nickname command failed to write settings");
+        return ESP_GATT_ERROR;
+      }
+
+      // Indicate that we need to re-register the updated advertisement
+      // data, before we can start advertising it.
+      vars.adv_data_configured = false;
+      vars.scan_rsp_configured = false;
 
       // ESP_LOGI(TAG, "Conn WDT reset (%hhu secs)", data[1]);
       return ESP_GATT_OK;
@@ -763,6 +805,52 @@ static void gap_event_handler(
   }
 }
 
+static void update_adv_device_nickname() {
+  nvs_config::BleSettings ble_settings;
+  if (!nvs_config::read_ble_settings(&ble_settings)) {
+    ble_settings = nvs_config::kDefaultBleDefaultSetting;
+    ESP_LOGI(TAG, "No ble settings, using defaults");
+  }
+  ESP_LOGI(TAG, "Device nickname: [%s]", ble_settings.nickname);
+
+  // Set vars.nickname. Truncate if too long.
+  vars.manufacturer_data_len = 0;
+  // We use an arbitrary BLE data type code. 4369 as decimal.
+  vars.manufacturer_data[vars.manufacturer_data_len++] = 0x11;
+  vars.manufacturer_data[vars.manufacturer_data_len++] = 0x11;
+
+  // Copy with possible but unlikely truncation.
+  const char* p;
+  for (p = ble_settings.nickname;
+       *p && vars.manufacturer_data_len < sizeof(vars.manufacturer_data); p++) {
+    vars.manufacturer_data[vars.manufacturer_data_len++] = *p;
+  }
+  if (*p) {
+    ESP_LOGE(TAG, "Nickname was too long, truncated.");
+  }
+  // Attached to scan data
+  scan_rsp_data.p_manufacturer_data = &vars.manufacturer_data[0];
+  scan_rsp_data.manufacturer_len = vars.manufacturer_data_len;
+}
+
+// Called in setup or whenever we need to start advertising after the connection
+// changed the nickname.
+static void register_adv() {
+  update_adv_device_nickname();
+
+  // Clear the flags that indicates the completion of the registrations.
+  vars.adv_data_configured = false;
+  vars.scan_rsp_configured = false;
+  esp_err_t err = esp_ble_gap_config_adv_data(&adv_data);
+  if (err) {
+    ESP_LOGE(TAG, "config adv data failed, error code = %x", err);
+  }
+  err = esp_ble_gap_config_adv_data(&scan_rsp_data);
+  if (err) {
+    ESP_LOGE(TAG, "config scan response data failed, error code = %x", err);
+  }
+}
+
 static void gatts_event_handler(esp_gatts_cb_event_t event,
     esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t* param) {
   switch (event) {
@@ -789,17 +877,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
         ESP_LOGE(TAG, "set device name failed, error code = %x", err);
       }
 
-      // config adv  and scan data
-      vars.adv_data_configured = false;
-      vars.scan_rsp_configured = false;
-      err = esp_ble_gap_config_adv_data(&adv_data);
-      if (err) {
-        ESP_LOGE(TAG, "config adv data failed, error code = %x", err);
-      }
-      err = esp_ble_gap_config_adv_data(&scan_rsp_data);
-      if (err) {
-        ESP_LOGE(TAG, "config scan response data failed, error code = %x", err);
-      }
+      register_adv();
 
       err = esp_ble_gatts_create_attr_tab(
           attr_table, gatts_if, ATTR_IDX_COUNT, SVC_INST_ID);
@@ -955,7 +1033,16 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       }
       EXIT_MUTEX
 
-      esp_ble_gap_start_advertising(&adv_params);
+      // Start advertising.
+      if (vars.adv_data_configured && vars.scan_rsp_configured) {
+        // Here advertisement data didn't change during the connection.
+        esp_ble_gap_start_advertising(&adv_params);
+      } else {
+        // Adv data changed. Register the latest values.
+        vars.adv_data_configured = false;
+        vars.scan_rsp_configured = false;
+        register_adv();
+      }
       break;
 
     case ESP_GATTS_CREAT_ATTR_TAB_EVT: {
@@ -1101,7 +1188,6 @@ void setup(uint8_t hardware_config, uint16_t adc_ticks_per_amp) {
 static uint8_t state_notification_buffer[50] = {};
 
 void notify_state_if_enabled(const analyzer::State& state) {
-
   // Snapshot protected vars in a mutec.
   ProtextedVars prot_vars;
   ENTER_MUTEX { prot_vars = protected_vars; }

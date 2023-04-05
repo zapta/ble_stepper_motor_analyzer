@@ -1,3 +1,6 @@
+* Format scan data in nice columns
+
+* Change BLE Set Nickname command to be with response.
 
 * In the device info, report also software version.
 

@@ -4,9 +4,9 @@
 from __future__ import annotations
 import logging
 from typing import List
-from .capture_signal import CaptureSignal
-from .probe_info import ProbeInfo
-from .probe import Probe
+from common.capture_signal import CaptureSignal
+from common.probe_info import ProbeInfo
+from common.probe import Probe
 
 logger = logging.getLogger(__name__)
 
