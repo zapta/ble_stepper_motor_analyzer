@@ -7,7 +7,7 @@ from bleak import BleakClient, BleakScanner
 import signal
 
 # Adapt to your actual device.
-device_address = "0C:8B:95:F2:B4:36"
+device_name = "STP-0C8B95F2B436"
 
 signal.signal(signal.SIGINT, lambda number, frame: sys.exit())
 
@@ -16,13 +16,14 @@ print(f"Platform:: {platform.uname()}", flush=True)
 print(f"Python {sys.version}", flush=True)
 
 
-async def callback_handler(sender, data):
+async def notification_callback(sender, data):
     print(f"*** Notification", flush=True)
 
 
 async def test():
-    print(f"Trying to connect to {device_address}", flush=True)
-    device = await BleakScanner.find_device_by_address(device_address, timeout=10.0)
+    print(f"Trying to connect to {device_name}", flush=True)
+    device = await BleakScanner.find_device_by_filter(
+        lambda device, adv: adv.local_name == device_name, timeout=5.0)
     assert device
     client = BleakClient(device)
     await client.connect()
@@ -32,7 +33,7 @@ async def test():
     assert (service)
     notif_chrc = service.get_characteristic("ff02")
     assert (notif_chrc)
-    await client.start_notify(notif_chrc, callback_handler)
+    await client.start_notify(notif_chrc, notification_callback)
     command_chrc = service.get_characteristic("ff06")
     assert (command_chrc)
     await client.write_gatt_char(command_chrc, bytearray([0x06, 3]), response=True)
