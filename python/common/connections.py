@@ -28,7 +28,7 @@ async def select_device_name():
     all_devices = await BleakScanner.discover(return_adv=True, timeout=5)
     candidates_devices = []
     for device, adv in all_devices.values():
-        name, nickname = ble_util.extract_device_name_and_nickname(adv)
+        name, nickname, rssi = ble_util.extract_device_name_nickname_rssi(adv)
         # TODO: Use full name validation regex
         if name.startswith("STP-"):
             candidates_devices.append([name, nickname])

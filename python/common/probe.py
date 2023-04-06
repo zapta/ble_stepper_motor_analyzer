@@ -105,7 +105,7 @@ class Probe:
         # Not a probe device or waiting for second adv packet.
         if not ble_util.is_adv_complete(advertisement_data):
             return False
-        name, nickname = ble_util.extract_device_name_and_nickname(
+        name, nickname, rssi = ble_util.extract_device_name_nickname_rssi(
             advertisement_data)
         # Since bleak can call this callback before the second ad packet with the
         # nickname is available, we require that bot name and nickname exist.
@@ -126,7 +126,7 @@ class Probe:
         if not device:
             logger.error(f"Device {requested_device_name} not found.")
             return None
-        device_name, device_nickname = ble_util.extract_device_name_and_nickname(
+        device_name, device_nickname, rssi = ble_util.extract_device_name_nickname_rssi(
             device_advertisement_data)
         logger.info(
             f"Found device {device_name} ({device_nickname}) at address {device.address}")
