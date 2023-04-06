@@ -147,9 +147,9 @@ if args.set_nickname is not None:
         probe.write_command_set_nickname(args.set_nickname, response=True))
     # Keep the event loop busy for a little bit, to let the command complete.
     # TODO: Is there a cleaner way?  See https://github.com/hbldh/bleak/discussions/1274
-    for i in range(1000):
-        main_event_loop.run_until_complete(do_nothing())
-        time.sleep(0.001)
+    #for i in range(1000):
+    #    main_event_loop.run_until_complete(do_nothing())
+    #    time.sleep(0.001)
     sys.exit(f"\nDevice updated with nickname [{args.set_nickname}].")
 
 # An object that tracks the incremental fetch of the capture
