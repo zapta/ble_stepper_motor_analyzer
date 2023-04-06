@@ -46,9 +46,11 @@ class Serializer {
   Serializer(uint8_t* p_start, uint16_t size) :
       _p_start(p_start), _p_end(p_start + size), _p_next(p_start) {};
 
+  // Max number of bytes that can be encoded.
   int capacity() { return _p_end - _p_start; }
+  // Number of bytes encoded so far.
   int size() { return _p_next - _p_start; }
-  // bool is_empty() { return _p_next == _p_start; }
+  // Clear all encoded bytes.
   void reset() { _p_next = _p_start; }
 
   inline void append_uint8(uint8_t v) {

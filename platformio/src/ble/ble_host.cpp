@@ -171,7 +171,9 @@ static const uint8_t kChrConfigDeclUuid[] = {
 static const uint8_t kChrPropertyReadNotify =
     ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
 static const uint8_t kChrPropertyReadOnly = ESP_GATT_CHAR_PROP_BIT_READ;
-static const uint8_t kChrPropertyWriteNrOnly = ESP_GATT_CHAR_PROP_BIT_WRITE_NR;
+// Caller can either use write request with or without response.
+static const uint8_t kChrPropertyWriteOptionalResponse =
+    ESP_GATT_CHAR_PROP_BIT_WRITE_NR | ESP_GATT_CHAR_PROP_BIT_WRITE;
 
 // TODO: what does it do?
 static uint8_t state_ccc_val[2] = {};
@@ -339,10 +341,10 @@ static const esp_gatts_attr_db_t attr_table[ATTR_IDX_COUNT] = {
     // Characteristic
     [ATTR_IDX_COMMAND] = {{ESP_GATT_AUTO_RSP},
         {LEN_BYTES(kCharDeclUuid), ESP_GATT_PERM_READ,
-            LEN_LEN_BYTES(kChrPropertyWriteNrOnly)}},
+            LEN_LEN_BYTES(kChrPropertyWriteOptionalResponse)}},
 
     // Value
-    [ATTR_IDX_COMMAND_VAL] = {{ESP_GATT_AUTO_RSP},
+    [ATTR_IDX_COMMAND_VAL] = {{ESP_GATT_RSP_BY_APP},
         {LEN_BYTES(command_uuid), ESP_GATT_PERM_WRITE,
             LEN_LEN_BYTES(command_val)}},
 
@@ -607,8 +609,9 @@ static esp_gatt_status_t on_state_notification_control_write(
   return ESP_GATT_OK;
 }
 
+// Ser is for encoding an optional response.
 static esp_gatt_status_t on_command_write(
-    const gatts_write_evt_param& write_param) {
+    const gatts_write_evt_param& write_param, ble_util::Serializer* ser) {
   ESP_LOGD(TAG, "on_command_write() called, values:");
   ESP_LOG_BUFFER_HEX_LEVEL(
       TAG, write_param.value, write_param.len, ESP_LOG_DEBUG);
@@ -948,13 +951,12 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       ESP_LOG_BUFFER_HEX_LEVEL(
           TAG, write_param.value, write_param.len, ESP_LOG_DEBUG);
 
-      // Dispatch
+      // Handle by case.
+      vars.rsp.attr_value.handle = write_param.handle;
+      vars.rsp.attr_value.len = 0;
       esp_gatt_status_t status = ESP_GATT_OK;
       if (write_param.is_prep) {
         ESP_LOGW(TAG, "Unexpected is_prep write");
-        status = ESP_GATT_OK;
-      } else if (write_param.need_rsp) {
-        ESP_LOGW(TAG, "Unexpected need_rsp write");
         status = ESP_GATT_REQ_NOT_SUPPORTED;
       } else if (write_param.offset != 0) {
         status = ESP_GATT_INVALID_OFFSET;
@@ -966,17 +968,23 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
             "Command write:  is_prep=%d, need_rsp=%d, "
             "len=%d, value:",
             write_param.is_prep, write_param.need_rsp, write_param.len);
-        status = on_command_write(write_param);
+        ble_util::Serializer ser(
+            vars.rsp.attr_value.value, sizeof(vars.rsp.attr_value.value));
+        status = on_command_write(write_param, &ser);
+        vars.rsp.attr_value.len = (status == ESP_GATT_OK) ? ser.size() : 0;
       }
 
-      // Send response if needed.
+      // A write needs response if the characteristics is declared with non
+      // auto response and the caller requested a response.
       if (write_param.need_rsp) {
-        ESP_LOGW(TAG, "Sending write response with status %d %s", status,
-            ble_util::gatts_status_name(status));
-        esp_ble_gatts_send_response(
-            gatts_if, write_param.conn_id, write_param.trans_id, status, NULL);
+        ESP_LOGI(TAG,
+            "ESP_GATTS_WRITE_EVT: sending response status: %hu %s, len: %hu",
+            status, ble_util::gatts_status_name(status),
+            vars.rsp.attr_value.len);
+        esp_ble_gatts_send_response(gatts_if, write_param.conn_id,
+            write_param.trans_id, status, &vars.rsp);
       } else {
-        ESP_LOGD(TAG, "Write response not requested");
+        ESP_LOGD(TAG, "Response not requested or auto.");
       }
     } break;
 

@@ -2,8 +2,8 @@ from bleak import BleakScanner
 import re
 
 
-def is_valid_nickname(device_nickname, empty_ok = False):
-    if  device_nickname is None:
+def is_valid_nickname(device_nickname, empty_ok=False):
+    if device_nickname is None:
         return False
     if device_nickname == "":
         return empty_ok
@@ -40,3 +40,39 @@ def extract_device_name_and_nickname(adv):
             device_nickname = manufacturer_value.decode('utf-8')
 
     return device_name, device_nickname
+
+
+def scan_tuple_sort_key(tuple):
+    # Tuple is [name, nickname]
+    return [tuple[1], tuple[2], tuple[0]]
+
+
+async def scan_and_dump():
+    print("Scanning 5 secs for advertising BLE devices ...", flush=True)
+    devices = await BleakScanner.discover(return_adv=True, timeout=5)
+    if not devices:
+        print("No BLE devices found", flush=True)
+        return
+    tuples = []
+    max_address_len = 7
+    max_name_len = 4
+    max_nickname_len = 8
+    for device, adv in devices.values():
+        name, nickname = extract_device_name_and_nickname(adv)
+        tuples.append([device.address, name, nickname])
+        max_address_len = max(max_address_len, len(device.address))
+        max_name_len = max(max_name_len, len(name))
+        max_nickname_len = max(max_nickname_len, len(nickname))
+
+    tuples.sort(key=scan_tuple_sort_key)
+
+    print(
+        f"\n{' #':2}  {'ADDRESS':{max_address_len}}   {'NAME':{max_name_len}}   {'NICKNAME':{max_nickname_len}}",
+        flush=True)
+    print("-" * (10 + max_address_len + max_name_len + max_nickname_len))
+    i = 0
+    for tuple in tuples:
+        i += 1
+        print(
+            f"{i:2}  {tuple[0]:{max_address_len}}   {tuple[1]:{max_name_len}}   {tuple[2]:{max_nickname_len}}",
+            flush=True)

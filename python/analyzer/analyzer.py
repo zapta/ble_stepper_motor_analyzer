@@ -70,7 +70,8 @@ parser.add_argument("--max-amps",
                     type=float,
                     default=2.0,
                     help="Max current display.")
-parser.add_argument("--units", dest="units", default="steps", help="Units of movements.")
+parser.add_argument("--units", dest="units",
+                    default="steps", help="Units of movements.")
 parser.add_argument("--steps-per-unit",
                     dest="steps_per_unit",
                     type=float,
@@ -127,21 +128,23 @@ async def do_nothing():
 
 # A special case where the user asked to just scan and exit.
 if args.scan:
-    asyncio.run(connections.scan_and_dump())
+    asyncio.run(ble_util.scan_and_dump())
     sys.exit("\nScanning done.")
 
 # Connect to the probe.
 logging.basicConfig(level=logging.INFO)
-probe = main_event_loop.run_until_complete(connections.connect_to_probe(args.device))
+probe = main_event_loop.run_until_complete(
+    connections.connect_to_probe(args.device))
 if not probe:
     # NOTE: Error message already been printed by connect_to_probe().
     sys.exit()
 
-if args.set_nickname is not None :
+if args.set_nickname is not None:
     # NOTE: Writing an empty nickname is equivalent to deleting it.
     if not ble_util.is_valid_nickname(args.set_nickname, empty_ok=True):
-        sys.exit(f"Invalid --set-nickname value: [{args.set_nickname}].", flush=True)
-    main_event_loop.run_until_complete(probe.write_command_set_nickname(args.set_nickname))
+        sys.exit(f"Invalid --set-nickname value: [{args.set_nickname}].")
+    main_event_loop.run_until_complete(
+        probe.write_command_set_nickname(args.set_nickname, response=True))
     # Keep the event loop busy for a little bit, to let the command complete.
     # TODO: Is there a cleaner way?  See https://github.com/hbldh/bleak/discussions/1274
     for i in range(1000):
@@ -443,7 +446,8 @@ async def timer_handler_tasks(task_index: int) -> bool:
         if not task_read_capture_signal:
             # print("CAPTURE: Creating initial task", flush=True)
             capture_signal_fetcher.reset()
-            task_read_capture_signal = asyncio.create_task(capture_signal_fetcher.loop())
+            task_read_capture_signal = asyncio.create_task(
+                capture_signal_fetcher.loop())
             return False
         if not task_read_capture_signal.done():
             # print("DISTANCE: Task not ready", flush=True)
@@ -451,16 +455,20 @@ async def timer_handler_tasks(task_index: int) -> bool:
         capture_signal: CaptureSignal = task_read_capture_signal.result()
         if not capture_signal:
             # print("CAPTURE: Creating additional task", flush=True)
-            task_read_capture_signal = asyncio.create_task(capture_signal_fetcher.loop())
+            task_read_capture_signal = asyncio.create_task(
+                capture_signal_fetcher.loop())
             return False
         task_read_capture_signal = None
         # print("CAPTURE: Data ready", flush=True)
         # A new capture available, update phase and signal plots.
         plot8.clear()
-        plot8.plot(capture_signal.times_sec(), capture_signal.amps_a(), pen='yellow')
-        plot8.plot(capture_signal.times_sec(), capture_signal.amps_b(), pen='skyblue')
+        plot8.plot(capture_signal.times_sec(),
+                   capture_signal.amps_a(), pen='yellow')
+        plot8.plot(capture_signal.times_sec(),
+                   capture_signal.amps_b(), pen='skyblue')
         plot7.clear()
-        plot7.plot(capture_signal.amps_a(), capture_signal.amps_b(), pen='greenyellow')
+        plot7.plot(capture_signal.amps_a(),
+                   capture_signal.amps_b(), pen='greenyellow')
         return True
 
 
@@ -498,11 +506,13 @@ def timer_handler():
 
     if pending_direction_toggle:
         print(f"Changing direction", flush=True)
-        main_event_loop.run_until_complete(probe.write_command_toggle_direction())
+        main_event_loop.run_until_complete(
+            probe.write_command_toggle_direction())
         pending_direction_toggle = False
 
     if capture_divider != last_set_capture_divider:
-        main_event_loop.run_until_complete(probe.write_command_set_capture_divider(capture_divider))
+        main_event_loop.run_until_complete(
+            probe.write_command_set_capture_divider(capture_divider))
         last_set_capture_divider = capture_divider
         print(f"Capture divider set to {last_set_capture_divider}", flush=True)
 
@@ -522,7 +532,8 @@ def timer_handler():
 
     # Time for next task slot.
     task_start_time = time_now
-    task_done = main_event_loop.run_until_complete(timer_handler_tasks(task_index))
+    task_done = main_event_loop.run_until_complete(
+        timer_handler_tasks(task_index))
     if task_done:
         task_index += 1
         # Currently we have tasks [0, 4]

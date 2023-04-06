@@ -1,4 +1,4 @@
-* Change BLE Set Nickname command to be with response.
+* On Windows, analyzer run Ctl C, and nickname setting, do not disconnect after 5 secs but 30 secs.
 
 * In the device info, report also software version.
 
