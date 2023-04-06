@@ -999,7 +999,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
       break;
 
     case ESP_GATTS_CONNECT_EVT: {
-      ESP_LOGI(TAG, "ESP_GATTS_CONNECT_EVT, conn_id = %d, remove address:",
+      ESP_LOGI(TAG, "ESP_GATTS_CONNECT_EVT, conn_id = %d, remote address:",
           param->connect.conn_id);
       esp_log_buffer_hex(
           TAG, param->connect.remote_bda, sizeof(param->connect.remote_bda));
