@@ -33,10 +33,12 @@ async def test():
     assert (service)
     notif_chrc = service.get_characteristic("ff02")
     assert (notif_chrc)
+    # Tell the device to start sending notifications.
     await client.start_notify(notif_chrc, notification_callback)
     command_chrc = service.get_characteristic("ff06")
     assert (command_chrc)
-    await client.write_gatt_char(command_chrc, bytearray([0x06, 3]), response=True)
+    # Send to the device a command to disconnect in 5 secs.
+    await client.write_gatt_char(command_chrc, bytearray([0x06, 5]), response=True)
     await asyncio.sleep(1)
     # await client.disconnect()
     print(f"Done", flush=True)
