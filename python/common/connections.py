@@ -21,9 +21,11 @@ def atexit_handler(probe, event_loop):
             print("atexit: Disconnecting.", flush=True)
             event_loop.run_until_complete(probe.disconnect())
         else:
-            print("atexit: Auto disconnect.", flush=True)
+            #print("atexit: Auto disconnect.", flush=True)
+            pass
     else:
-        print("atexit: Not connected.", flush=True)
+        #print("atexit: Not connected.", flush=True)
+        pass
 
 
 def device_select_tuple_sort_key(tuple):
@@ -42,8 +44,8 @@ async def select_device_name():
             candidates_devices.append([name, nickname])
 
     if len(candidates_devices) == 0:
-        sys.exit("No idle STP device found.")
-        return None
+        print("No idle STP device found.", flush=True)
+        sys.exit()
 
     if len(candidates_devices) == 1:
         print(f"Found a single STP device: {candidates_devices[0][0]}  ", flush=True)
@@ -65,7 +67,8 @@ async def select_device_name():
         try:
             num = int(input(f"\nSelect device 1 to {len(candidates_devices)}, 0 abort: "))
             if num == 0:
-                sys.exit("\nUser asked to abort.\n")
+                print("\nUser asked to abort.\n", flush=True)
+                sys.exit()
             if num > 0 and num <= len(candidates_devices):
                 ok = True
         except ValueError:
@@ -90,6 +93,9 @@ async def connect_to_probe(device_name):
     print(f"Connected to probe", flush=True)
     probe.info().dump()
     if probe.info().current_ticks_per_amp() == 0:
-        sys.exit(f"Device reported an invalid configuration of 0 current ticks"
-                 f" per Amp (hardware config {probe.info().hardware_config()}). Aborting.")
+        print(
+            f"Device reported an invalid configuration of 0 current ticks"
+            f" per Amp (hardware config {probe.info().hardware_config()}). Aborting.",
+            flush=True)
+        sys.exit()
     return probe

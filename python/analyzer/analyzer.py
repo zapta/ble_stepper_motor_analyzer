@@ -9,6 +9,7 @@ import logging
 import platform
 import signal
 import sys
+import os
 import time
 import pyqtgraph
 from numpy import histogram
@@ -39,8 +40,17 @@ main_event_loop = asyncio.new_event_loop()
 # Set latter when we connect to the device.
 probe = None
 
+
 def atexit_handler():
-  connections.atexit_handler(probe, main_event_loop)
+    connections.atexit_handler(probe, main_event_loop)
+    # This force exit with a fixed OK code, as a workaround for Mac OSC
+    # zsh which prints 'zsh: trace trap  python3 analyzer.py' when exiting
+    # the pyqtgraph GUI.
+    # NOTE: This short-circuit any additional atexit handlers, but should be
+    # a problem since this atexit handler is the first one registered (?) and 
+    # thus the last to be executed.
+    os._exit(0)
+
 
 atexit.register(atexit_handler)
 
@@ -128,7 +138,8 @@ async def do_nothing():
 # A special case where the user asked to just scan and exit.
 if args.scan:
     asyncio.run(ble_util.scan_and_dump())
-    sys.exit("\nScanning done.")
+    print("Scanning done.", flush=True)
+    sys.exit()
 
 # Connect to the probe.
 logging.basicConfig(level=logging.INFO)
@@ -140,7 +151,8 @@ if not probe:
 if args.set_nickname is not None:
     # NOTE: Writing an empty nickname is equivalent to deleting it.
     if not ble_util.is_valid_nickname(args.set_nickname, empty_ok=True):
-        sys.exit(f"Invalid --set-nickname value: [{args.set_nickname}].")
+        print(f"Invalid --set-nickname value: [{args.set_nickname}].")
+        sys.exit()
     main_event_loop.run_until_complete(
         probe.write_command_set_nickname(args.set_nickname, response=True))
     # Keep the event loop busy for a little bit, to let the command complete.
@@ -148,7 +160,8 @@ if args.set_nickname is not None:
     #for i in range(1000):
     #    main_event_loop.run_until_complete(do_nothing())
     #    time.sleep(0.001)
-    sys.exit(f"\nDevice updated with nickname [{args.set_nickname}].")
+    print(f"\nDevice updated with nickname [{args.set_nickname}].")
+    sys.exit()
 
 # An object that tracks the incremental fetch of the capture
 # signal. We don't perform all of them at once to avoid choppy
