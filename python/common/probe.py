@@ -334,14 +334,11 @@ class Probe:
         await self.__client.start_notify(self.__stepper_state_chrc, callback_handler)
         logger.info(f"Started device state notifications.")
 
-    # Problematic on Windows per https://github.com/hbldh/bleak/issues/1223
+    # NOTE: This used to be problematic under Windows per 
+    # https://github.com/hbldh/bleak/issues/1223 but seems 
+    # to be ok as of Apr 2023.
     async def disconnect(self):
-        logger.info(f"Disconnecting.")
-        if not self.is_connected():
-            self.__client.disconnect()
-        # self.__probe_info = None
-        # self.__stepper_state_chrc = None
-        # self.__stepper_current_histogram_chrc = None
-        # self.__stepper_time_histogram_chrc = None
-        # self.__stepper_distance_histogram_chrc = None
+        # logger.info(f"Disconnecting.")
+        if self.is_connected():
+            await self.__client.disconnect()
         return

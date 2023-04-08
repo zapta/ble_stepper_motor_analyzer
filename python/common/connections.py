@@ -1,21 +1,29 @@
-import asyncio
-import logging
+# import asyncio
+from asyncio import futures
+# import logging
 import platform
-import re
+# import re
 import sys
+# import concurrent.futures
 
 from bleak import BleakScanner
 from common.probe import Probe
 from common import ble_util
 
 
-def atexit_handler(_probe, _event_loop):
-    print("\natexit: invoked", flush=True)
-    if _probe and _probe.is_connected():
-        _event_loop.run_until_complete(_probe.write_command_conn_wdt(1))
-        print("atexit: Device should disconnect in 1 sec", flush=True)
+def atexit_handler(probe, event_loop):
+    # NOTE: Windows release the connection only 30 seconds after the program
+    # exists. As a workaround, we force here an active disconnect
+    # before the program exits. This takes a second or two so we do
+    # not disconnect on other platforms to avoid the unnecessary delay.
+    if probe and probe.is_connected():
+        if platform.uname().system == "Windows":
+            print("atexit: Disconnecting.", flush=True)
+            event_loop.run_until_complete(probe.disconnect())
+        else:
+            print("atexit: Auto disconnect.", flush=True)
     else:
-        print("atexit: Not connected", flush=True)
+        print("atexit: Not connected.", flush=True)
 
 
 def device_select_tuple_sort_key(tuple):

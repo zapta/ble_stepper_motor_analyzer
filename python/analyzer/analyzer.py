@@ -14,6 +14,7 @@ import pyqtgraph
 from numpy import histogram
 from pyqtgraph.Qt import QtWidgets
 from collections import deque
+import atexit
 
 # A workaround to avoid auto formatting.
 if True:
@@ -32,11 +33,16 @@ if True:
 
 # NOTE: Color names list here https://matplotlib.org/stable/gallery/color/named_colors.html
 
-# Default device address. Use the flag below to override it.
-# To find device addresses, run scanner_main.py and look for
-# devices whose name looks like STP-XXXXXXXXXXXX.
-# The device address has different format on Windows and
-# on Mac OSX.
+# We use a single event loop for all asyncio operatios.
+main_event_loop = asyncio.new_event_loop()
+
+# Set latter when we connect to the device.
+probe = None
+
+def atexit_handler():
+  connections.atexit_handler(probe, main_event_loop)
+
+atexit.register(atexit_handler)
 
 # Allows to stop the program by typing ctrl-c.
 signal.signal(signal.SIGINT, lambda number, frame: sys.exit())
@@ -70,8 +76,7 @@ parser.add_argument("--max-amps",
                     type=float,
                     default=2.0,
                     help="Max current display.")
-parser.add_argument("--units", dest="units",
-                    default="steps", help="Units of movements.")
+parser.add_argument("--units", dest="units", default="steps", help="Units of movements.")
 parser.add_argument("--steps-per-unit",
                     dest="steps_per_unit",
                     type=float,
@@ -114,12 +119,6 @@ last_set_capture_divider = None
 # The current capture divider, with an arbitrary default.
 capture_divider = capture_dividers[2]
 
-# We use a single event loop for all asyncio operatios.
-main_event_loop = asyncio.new_event_loop()
-
-# Set latter when we connect to the device.
-probe = None
-
 
 async def do_nothing():
     """ A dummy async method. """
@@ -133,8 +132,7 @@ if args.scan:
 
 # Connect to the probe.
 logging.basicConfig(level=logging.INFO)
-probe = main_event_loop.run_until_complete(
-    connections.connect_to_probe(args.device))
+probe = main_event_loop.run_until_complete(connections.connect_to_probe(args.device))
 if not probe:
     # NOTE: Error message already been printed by connect_to_probe().
     sys.exit()
@@ -379,9 +377,9 @@ async def timer_handler_tasks(task_index: int) -> bool:
 
     # Send conn WDT heartbeat, keeping the connection for additional
     # 5 secs.
-    if task_index == 0:
-        await probe.write_command_conn_wdt(5)
-        return True
+    # if task_index == 0:
+    #     await probe.write_command_conn_wdt(5)
+    #     return True
 
     # All tasks below are performed only when not paused.
     if pause_enabled:
@@ -446,8 +444,7 @@ async def timer_handler_tasks(task_index: int) -> bool:
         if not task_read_capture_signal:
             # print("CAPTURE: Creating initial task", flush=True)
             capture_signal_fetcher.reset()
-            task_read_capture_signal = asyncio.create_task(
-                capture_signal_fetcher.loop())
+            task_read_capture_signal = asyncio.create_task(capture_signal_fetcher.loop())
             return False
         if not task_read_capture_signal.done():
             # print("DISTANCE: Task not ready", flush=True)
@@ -455,20 +452,16 @@ async def timer_handler_tasks(task_index: int) -> bool:
         capture_signal: CaptureSignal = task_read_capture_signal.result()
         if not capture_signal:
             # print("CAPTURE: Creating additional task", flush=True)
-            task_read_capture_signal = asyncio.create_task(
-                capture_signal_fetcher.loop())
+            task_read_capture_signal = asyncio.create_task(capture_signal_fetcher.loop())
             return False
         task_read_capture_signal = None
         # print("CAPTURE: Data ready", flush=True)
         # A new capture available, update phase and signal plots.
         plot8.clear()
-        plot8.plot(capture_signal.times_sec(),
-                   capture_signal.amps_a(), pen='yellow')
-        plot8.plot(capture_signal.times_sec(),
-                   capture_signal.amps_b(), pen='skyblue')
+        plot8.plot(capture_signal.times_sec(), capture_signal.amps_a(), pen='yellow')
+        plot8.plot(capture_signal.times_sec(), capture_signal.amps_b(), pen='skyblue')
         plot7.clear()
-        plot7.plot(capture_signal.amps_a(),
-                   capture_signal.amps_b(), pen='greenyellow')
+        plot7.plot(capture_signal.amps_a(), capture_signal.amps_b(), pen='greenyellow')
         return True
 
 
@@ -506,13 +499,11 @@ def timer_handler():
 
     if pending_direction_toggle:
         print(f"Changing direction", flush=True)
-        main_event_loop.run_until_complete(
-            probe.write_command_toggle_direction())
+        main_event_loop.run_until_complete(probe.write_command_toggle_direction())
         pending_direction_toggle = False
 
     if capture_divider != last_set_capture_divider:
-        main_event_loop.run_until_complete(
-            probe.write_command_set_capture_divider(capture_divider))
+        main_event_loop.run_until_complete(probe.write_command_set_capture_divider(capture_divider))
         last_set_capture_divider = capture_divider
         print(f"Capture divider set to {last_set_capture_divider}", flush=True)
 
@@ -532,8 +523,7 @@ def timer_handler():
 
     # Time for next task slot.
     task_start_time = time_now
-    task_done = main_event_loop.run_until_complete(
-        timer_handler_tasks(task_index))
+    task_done = main_event_loop.run_until_complete(timer_handler_tasks(task_index))
     if task_done:
         task_index += 1
         # Currently we have tasks [0, 4]

@@ -35,12 +35,14 @@ async def test():
     assert (notif_chrc)
     # Tell the device to start sending notifications.
     await client.start_notify(notif_chrc, notification_callback)
-    command_chrc = service.get_characteristic("ff06")
-    assert (command_chrc)
+    # command_chrc = service.get_characteristic("ff06")
+    # assert (command_chrc)
     # Send to the device a command to disconnect in 5 secs.
-    await client.write_gatt_char(command_chrc, bytearray([0x06, 5]), response=True)
+    # await client.write_gatt_char(command_chrc, bytearray([0x06, 5]), response=True)
     await asyncio.sleep(1)
-    # await client.disconnect()
+    # Commenting the statement below causes under windows
+    # delayed disconnect 30 seconds after the program exist.
+    await client.disconnect()
     print(f"Done", flush=True)
 
 
