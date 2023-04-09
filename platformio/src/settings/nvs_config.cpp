@@ -22,7 +22,7 @@ const AcquistionSettings kDefaultAcquisitionSettings = {
 
 const BleSettings kDefaultBleDefaultSetting = {.nickname = ""};
 
-bool read_acquisition_settings(AcquistionSettings* settings) {
+[[nodiscard]] bool read_acquisition_settings(AcquistionSettings* settings) {
   // Open
   nvs_handle_t my_handle = -1;
   esp_err_t err = nvs_open(kStorageNamespace, NVS_READONLY, &my_handle);
@@ -71,7 +71,7 @@ bool read_acquisition_settings(AcquistionSettings* settings) {
   return true;
 }
 
-bool write_acquisition_settings(const AcquistionSettings& settings) {
+[[nodiscard]] bool write_acquisition_settings(const AcquistionSettings& settings) {
   // Open
   nvs_handle_t my_handle = -1;
   esp_err_t err = nvs_open(kStorageNamespace, NVS_READWRITE, &my_handle);
@@ -137,7 +137,7 @@ bool write_acquisition_settings(const AcquistionSettings& settings) {
   return err == ESP_OK;
 }
 
-bool write_ble_settings(const BleSettings& settings) {
+[[nodiscard]] bool write_ble_settings(const BleSettings& settings) {
   // Open
   nvs_handle_t my_handle = -1;
   esp_err_t err = nvs_open(kStorageNamespace, NVS_READWRITE, &my_handle);
@@ -191,7 +191,7 @@ bool write_ble_settings(const BleSettings& settings) {
   return err == ESP_OK;
 }
 
-bool read_ble_settings(BleSettings* settings) {
+[[nodiscard]] bool read_ble_settings(BleSettings* settings) {
   // Open
   nvs_handle_t my_handle = -1;
   esp_err_t err = nvs_open(kStorageNamespace, NVS_READONLY, &my_handle);

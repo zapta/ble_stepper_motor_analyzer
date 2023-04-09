@@ -718,17 +718,21 @@ static esp_gatt_status_t on_command_write(
         return ESP_GATT_INVALID_ATTR_LEN;
       }
 
-      const uint8_t str_len = data[1];
-
-      // For now settings has a single field so we don't need to read the
-      // other fields from nvs.
+      // Verify new nickname is not too long.
       nvs_config::BleSettings settings = {0};
+      const uint8_t str_len = data[1];
       if (str_len >= sizeof(settings.nickname) || 2 + str_len > len) {
         ESP_LOGE(TAG, "Set nickname command wrong string length : %hhu (%d)",
             str_len, len);
         return ESP_GATT_INVALID_ATTR_LEN;
       }
 
+      // Read current ble settings.
+      if (!nvs_config::read_ble_settings(&settings)) {
+        settings = nvs_config::kDefaultBleDefaultSetting;
+      }
+
+      // Update settings with new nickname.
       memcpy(settings.nickname, &data[2], str_len);
       settings.nickname[str_len] = '\0';
       ESP_LOGI(TAG, "Setting nickname: [%s]", settings.nickname);
