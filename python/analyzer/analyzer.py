@@ -40,15 +40,21 @@ main_event_loop = asyncio.new_event_loop()
 # Set latter when we connect to the device.
 probe = None
 
+# After reset we ignore a few state notification to clear up
+# the notification pipeline.
+states_to_drop = 0
+
 
 def atexit_handler():
+    global states_to_drop
+    # Stop processing of new incoming notifications.
+    states_to_drop = 99999
     connections.atexit_handler(probe, main_event_loop)
-    # This force exit with a fixed OK code, as a workaround for Mac OSC
+    # NOTE: This force exit with a fixed OK code, as a workaround for Mac OSC
     # zsh which prints 'zsh: trace trap  python3 analyzer.py' when exiting
-    # the pyqtgraph GUI.
-    # NOTE: This short-circuit any additional atexit handlers, but should be
-    # a problem since this atexit handler is the first one registered (?) and 
-    # thus the last to be executed.
+    # the pyqtgraph GUI.This shorts-circuit any additional atexit handlers,
+    # but should be a problem since this atexit handler is the first one registered (?)
+    # and thus the last to be executed.
     os._exit(0)
 
 
@@ -118,10 +124,6 @@ pause_enabled = False
 # Indicates a pending request to toggle direction.
 pending_direction_toggle = False
 
-# After reset we ignore a few state notification to clear up
-# the notification pipeline.
-states_to_drop = 0
-
 # Capture divider values to toggle through. Modify as desired..
 capture_dividers = [1, 2, 5, 10, 20]
 # The last divider that was set in the device.
@@ -155,12 +157,7 @@ if args.set_nickname is not None:
         sys.exit()
     main_event_loop.run_until_complete(
         probe.write_command_set_nickname(args.set_nickname, response=True))
-    # Keep the event loop busy for a little bit, to let the command complete.
-    # TODO: Is there a cleaner way?  See https://github.com/hbldh/bleak/discussions/1274
-    #for i in range(1000):
-    #    main_event_loop.run_until_complete(do_nothing())
-    #    time.sleep(0.001)
-    print(f"\nDevice updated with nickname [{args.set_nickname}].")
+    print(f"Device updated with nickname [{args.set_nickname}].")
     sys.exit()
 
 # An object that tracks the incremental fetch of the capture
@@ -386,13 +383,16 @@ task_read_capture_signal = None
 
 async def timer_handler_tasks(task_index: int) -> bool:
     """ Execute next task slice, return True if completed."""
-    global probe, pause_enabled, task_read_current_histogram, task_read_time_histogram, task_read_distance_histogram, task_read_capture_signal
+    global probe, pause_enabled, task_read_current_histogram, task_read_time_histogram
+    global task_read_distance_histogram, task_read_capture_signal
 
     # Send conn WDT heartbeat, keeping the connection for additional
-    # 5 secs.
-    # if task_index == 0:
-    #     await probe.write_command_conn_wdt(5)
-    #     return True
+    # 5 secs. This is a fallback recoverey mechanism when using systems such
+    # as Linux or Windows that don't close the connection automatically when
+    # the app exits.
+    if task_index == 0:
+        await probe.write_command_conn_wdt(5)
+        return True
 
     # All tasks below are performed only when not paused.
     if pause_enabled:

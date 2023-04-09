@@ -12,20 +12,15 @@ from common import ble_util
 
 
 def atexit_handler(probe, event_loop):
-    # NOTE: Windows release the connection only 30 seconds after the program
-    # exists. As a workaround, we force here an active disconnect
-    # before the program exits. This takes a second or two so we do
-    # not disconnect on other platforms to avoid the unnecessary delay.
-    if probe and probe.is_connected():
-        if platform.uname().system == "Windows":
-            print("atexit: Disconnecting.", flush=True)
+    # On Mac OSX we don't need to close the connection since the OS does it
+    # itself. This eliminates the two secs or so delay exiting the program.
+    # On Windows and Linux the OS doesn't close the connection and on Windows
+    # it event try to reconnect if the device disconnect due to expired WDT.
+    # This information is correct as of Apr 2023.
+    platform_name = platform.uname().system
+    if probe and probe.is_connected() and  platform_name not in [ "Darwin" ]:
+            print("Disconnecting bluetooth connection.", flush=True)
             event_loop.run_until_complete(probe.disconnect())
-        else:
-            #print("atexit: Auto disconnect.", flush=True)
-            pass
-    else:
-        #print("atexit: Not connected.", flush=True)
-        pass
 
 
 def device_select_tuple_sort_key(tuple):
