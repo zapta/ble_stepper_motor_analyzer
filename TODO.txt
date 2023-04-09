@@ -1,8 +1,6 @@
 * In the analyzer, make the data loss report, insensitivie to pause. That is, measuring actual data loss from the device.
 * Consider to drop the WDT usage in the analyzer.
 
-* In firmare, if new set-nickname value equals the current one, do nothing, to reduce FLASH wearout.
-
 * In the device info, report also software version.
 
 ---------

@@ -196,15 +196,18 @@ python analyzer.py --scan
 ```
 
 
-**--device** Instructs the analyzer to not search on start for available devices, and instead, connect to the device with given name directly.
+**--device** Instructs the analyzer to not search on start for available devices, and instead, connect to the device with given name directly. If you set in the device a nick name using the --set-nickname flag below, you can also use that nickname as a value of the --device falg. 
 
 ```
 python analyzer.py --device "STP-0C8B95F2B436"
+
+python analyzer.py --device "X-AXIS"
 ```
 
-**--device_nickname** Specify a user friendly name of the stepper motor being monitor. This name will be displayed at the top of the analyzer's app. 
+**--set_nickname** Running the analyzer with this flags sets on the device a user friendly nickname that can be used as an alternative value for the *--device* flag. That nickname is also shown in the title of the Analyzer graphical view.
+
 ```
-python analyzer.py --device_nickname "X Axis"
+python analyzer.py --set_nickname "X-Axis"
 ```
 
 **--max-amps** If you monitor a low current stepper motor such as a 600ma extruder motor, you can use this flag to limit the range of the current display in the Phase and Oscilloscope graphs, to zoom in on details.
