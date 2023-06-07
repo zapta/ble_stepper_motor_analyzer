@@ -1,12 +1,17 @@
 # BLE STEPPER MOTOR ANALYZER
 
-<div align="center">
-<a  href="https://github.com/zapta/ble_stepper_motor_analyzer">github.com/zapta/ble_stepper_motor_analyzer</a>
-</div>
+As for June 2023, a BLE Stepper Motor analyzer that is productized version of this reference design is available for purchase at the link below from a third party, and it's a good way and hassle free way to acquire this technology. That product has different connectors and form factor but is compatible with the software and firmware of the reference design here. It's ok and even encouraged to ask and discuss here technical question regarding the product and the software/firmware, but please keep in mind that this repository and its content are provided on a voluntarily and 'as is' base. The maintainers of this repository do not intend to offer any product for sell.
+
+
+https://vector3d.co.uk/product/stepper-motor-analyser/
+
+
+
+------
 
 <p align="center">
   <br>
-  The analyzer device<br>
+  The analyzer device of the reference design here<br>
   <img src="./www/device_overall.jpg" style="width: 350px;" />
 </p>
 
