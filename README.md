@@ -255,8 +255,8 @@ flash.bat
 5. Connect an antenna, run an analyzer program as explain above and that you see some signals from the device. The LED on the device will blink faster to indicate an active connection.
 6. The device is now ready for installation in the 3D printer or for shipping to your customers.
 
-* **Schematic**: https://github.com/zapta/ble_stepper_motor_analyzer/blob/main/hardware/stepper_monitor.pdf
-* **JLCPCB production files**: https://github.com/zapta/ble_stepper_motor_analyzer/tree/main/hardware/JLCPCB
+* **Schematic**: https://github.com/zapta/ble_stepper_motor_analyzer/blob/main/kicad/stepper_monitor.pdf
+* **JLCPCB production files**: https://github.com/zapta/ble_stepper_motor_analyzer/tree/main/kicad/JLCPCB
 
 
 
