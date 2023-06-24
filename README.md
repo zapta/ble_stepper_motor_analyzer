@@ -1,11 +1,8 @@
 # BLE STEPPER MOTOR ANALYZER
 
-As for June 2023, a productized version of a BLE Stepper Motor analyzer that is based on the reference design here is **available for purchase from Vector 3D**, a third party, and should be compatible with the firmware and software here. If you encounter technical difficulties, it's ok and even encouraged to ask here, and we will do our best to help on a voluntarily base and without any guarantee.
+> **_NOTE:_** As for June 2023, a **productized version of a BLE Stepper Motor analyzer is available*** at https://vector3d.co.uk/product/stepper-motor-analyser/ and is firmware and software compatible with the reference design here. While we are not involved with that commercial offering, we do support such initiatives of making the technology available to the community, and will be happy to provide here technical support as much as we can.
 
-
-https://vector3d.co.uk/product/stepper-motor-analyser/
-
-
+> **_NOTE:_** As for June 24th 2023, added under the spec table a discussion regarding the **max stepper voltage** that can be used.
 
 ------
 
@@ -85,31 +82,35 @@ The device contains two galvanic isolated current sensors that sense the current
 
 ## Specification
 
-Item | Specification
-:------------ | :-------------
-Power consumption | 7-30 VDC, 1W.
-Firmware update connector | USB Type C.
-SOIC Module | ESP32-WROOM-32U-N4.
-Current measurement | +/-2.5A per coil.
-PCB | 39mm x 43mm, two layers.
-Antenna  | 2.4Ghz external antenna IPX IPEX connector.
-Simultaneous connections | 1 max.
-Protocol | BLE 4.1 or higher, with Data Length Extension feature.
-Current sensors | CC6920BSO-5A
-Zero calibration | Using onboard button.
-Count direction | User selected (doesn't change motor direction).
-Sampling rate | 40Khz per channel.
-Sampling resolution | 12bits.
-Current accuracy | estimated at +/- 2%.
-Max step rate | 5K full steps/sec.
-Step resolution | 1/100th of a full step.
-Firmware programming language | C++
-Firmware programming IDE | VSCode, Platformio, ESPIDF framework.
-Firmware debugging | Via optional 10 pins JTAG connector.
-Electronic design tool | Kicad.
-Mechanical design tool | Onshape.
-Open source license | Creative Commons CC0.
+| Item                          | Specification                                          |
+| :---------------------------- | :----------------------------------------------------- |
+| Supply voltage                | 7-30 VDC                                               |
+| Stepper motor voltage         | See note below                                         |
+| Power consumption             | 1W max                                                 |
+| Firmware update connector     | USB Type C.                                            |
+| SOIC Module                   | ESP32-WROOM-32U-N4.                                    |
+| Current measurement           | +/-2.5A per coil.                                      |
+| PCB                           | 39mm x 43mm, two layers.                               |
+| Antenna                       | 2.4Ghz external antenna IPX IPEX connector.            |
+| Simultaneous connections      | 1 max.                                                 |
+| Protocol                      | BLE 4.1 or higher, with Data Length Extension feature. |
+| Current sensors               | CC6920BSO-5A                                           |
+| Zero calibration              | Using onboard button.                                  |
+| Count direction               | User selected (doesn't change motor direction).        |
+| Sampling rate                 | 40Khz per channel.                                     |
+| Sampling resolution           | 12bits.                                                |
+| Current accuracy              | estimated at +/- 2%.                                   |
+| Max step rate                 | 5K full steps/sec.                                     |
+| Step resolution               | 1/100th of a full step.                                |
+| Firmware programming language | C++                                                    |
+| Firmware programming IDE      | VSCode, Platformio, ESPIDF framework.                  |
+| Firmware debugging            | Via optional 10 pins JTAG connector.                   |
+| Electronic design tool        | Kicad.                                                 |
+| Mechanical design tool        | Onshape.                                               |
+| Open source license           | Creative Commons CC0.                                  |
 
+> **_NOTE:_**  The analyzer uses current sensors CC6920BSO-5A current
+sensors which provides galvanic isolation between the stepper motor wires and the circuitry and input voltage of the analyzer. As a result, the stepper motor voltage is not limited, and is independent, of the supply voltage. While the sensors are specified as 3500V RMS isolation, the PCB was definitely not designed for that voltages in mind and use 6mil clearance between the traces. Some information on the internet such as https://www.smpspowersupply.com/ipc2221pcbclearance.html suggests that this qualifies it to 50 or even 100v, but since we are not safety experts, we tested it with only 24V steppers.
 
 
 ## Installing the device in your 3D printer
