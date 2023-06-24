@@ -110,7 +110,7 @@ The device contains two galvanic isolated current sensors that sense the current
 | Open source license           | Creative Commons CC0.                                  |
 
 > **_NOTE:_**  The analyzer uses current sensors CC6920BSO-5A current
-sensors which provides galvanic isolation between the stepper motor wires and the circuitry and input voltage of the analyzer. As a result, the stepper motor voltage is not limited, and is independent, of the supply voltage. While the sensors are specified as 3500V RMS isolation, the PCB was definitely not designed for that voltages in mind and use 6mil clearance between the traces. Some information on the internet such as https://www.smpspowersupply.com/ipc2221pcbclearance.html suggests that this qualifies it to 50 or even 100v, but since we are not safety experts, we tested it with only 24V steppers.
+sensors which provides galvanic isolation between the stepper motor wires and the circuitry and input voltage of the analyzer. As a result, the stepper motor voltage is not limited, and is independent, of the supply voltage. While the sensors are specified as 3500V RMS isolation, the PCB was definitely not designed for that voltage in mind and use only 6mil clearance between the traces. Some information on the internet such as https://www.smpspowersupply.com/ipc2221pcbclearance.html suggests that this qualifies it to 50 or even 100v, but since we are not safety experts, we tested it with only 24V steppers.
 
 
 ## Installing the device in your 3D printer
