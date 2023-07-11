@@ -1,10 +1,6 @@
 * Step tracking is not stable with very low stepper current, e.g. ~150ma after a Duet Home All function.
 
-* In the analyzer, make the data loss report, insensitivie to pause. That is, measuring actual data loss from the device.
-
 * In the device info, report also software version.
 
----------
-
-
 * Use github workflows to automate relase creation
+

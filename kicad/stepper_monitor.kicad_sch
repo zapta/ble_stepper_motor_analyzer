@@ -3995,7 +3995,7 @@
     (property "Reference" "U2" (at 89.535 121.92 0)
       (effects (font (size 1.27 1.27)))
     )
-    (property "Value" "CP2102N-A01-GQFN28" (at 80.01 129.54 0)
+    (property "Value" "CP2102-GMR-QFN28" (at 80.01 129.54 0)
       (effects (font (size 1.27 1.27)))
     )
     (property "Footprint" "stepper_monitor:QFN-28-1EP_5x5mm_P0.5mm_EP3.35x3.35mm" (at 114.935 135.89 0)
